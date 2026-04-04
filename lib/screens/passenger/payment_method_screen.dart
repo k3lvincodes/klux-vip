@@ -58,7 +58,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         child: Text(
                           'Payment method',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -77,7 +77,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 child: Text(
                   'Save cards',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: AppColors.black,
                   ),
@@ -126,7 +126,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       Text(
                         'Add new cards',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 11,
                           fontWeight: FontWeight.w500,
                           color: AppColors.black,
                         ),
@@ -143,7 +143,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 child: Text(
                   'Other ways to pay',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.black,
                   ),
@@ -190,7 +190,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         text: 'Amount to pay ',
                         style: const TextStyle(
                           color: AppColors.black,
-                          fontSize: 16,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                         children: [
@@ -266,7 +266,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             cardNumber,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 12,
               letterSpacing: 2,
             ),
           ),
@@ -278,7 +278,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
               ),
               if (expiry.isNotEmpty)
@@ -331,7 +331,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: AppColors.black,
                 ),

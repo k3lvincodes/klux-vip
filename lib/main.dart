@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:klux_vip/screens/driver_profile_setup_screen.dart';
@@ -25,6 +26,8 @@ import 'package:klux_vip/screens/passenger/special_booking_screen.dart';
 import 'package:klux_vip/screens/passenger/trip_summary_screen.dart';
 import 'package:klux_vip/screens/otp_screen.dart';
 import 'package:klux_vip/screens/passenger_profile_setup_screen.dart';
+import 'package:klux_vip/screens/forgot_password_screen.dart';
+import 'package:klux_vip/screens/new_password_screen.dart';
 import 'package:klux_vip/screens/role_selection_screen.dart';
 import 'package:klux_vip/screens/sign_in_screen.dart';
 import 'package:klux_vip/screens/sign_up_screen.dart';
@@ -83,13 +86,21 @@ final GoRouter _router = GoRouter(
       },
     ),
     GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/new-password',
+      builder: (context, state) => const NewPasswordScreen(),
+    ),
+    GoRoute(
       path: '/otp',
       builder: (context, state) {
         final role = state.uri.queryParameters['role'];
         final email = state.uri.queryParameters['email'];
-        final isSignupStr = state.uri.queryParameters['isSignup'];
-        final isSignup = isSignupStr == 'true';
-        return OtpScreen(role: role, email: email, isSignup: isSignup);
+        final isSignup = state.uri.queryParameters['isSignup'] == 'true';
+        final isPasswordReset = state.uri.queryParameters['isPasswordReset'] == 'true';
+        return OtpScreen(role: role, email: email, isSignup: isSignup, isPasswordReset: isPasswordReset);
       },
     ),
     GoRoute(
@@ -194,16 +205,88 @@ class KluxVipApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    final baseTextTheme = GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme);
+
+    return ToastificationWrapper(
+      child: MaterialApp.router(
       title: 'Klux VIP',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        textTheme: baseTextTheme,
         scaffoldBackgroundColor: AppColors.background,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: IconThemeData(color: AppColors.black),
+          titleTextStyle: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF5F0EF),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.black,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.black,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.white,
+        ),
+        dividerTheme: DividerThemeData(
+          color: Colors.grey.shade200,
+          thickness: 1,
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          },
+        ),
       ),
       routerConfig: _router,
+    ),
     );
   }
 }

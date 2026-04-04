@@ -5,6 +5,7 @@ import 'package:klux_vip/repositories/ride_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
 import 'package:klux_vip/providers/ride_provider.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -74,11 +75,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                           unselectedLabelColor: AppColors.black,
                           labelStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                           unselectedLabelStyle: const TextStyle(
                             fontWeight: FontWeight.w500,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                           dividerHeight: 0,
                           tabs: const [
@@ -170,7 +171,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 child: Text(
                   'PASSENGER',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: AppColors.black,
                   ),
@@ -189,12 +190,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             children: [
               const Text(
                 'Estimated fare',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
                 '\$$fare',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: AppColors.black,
                 ),
@@ -222,7 +223,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     style: TextStyle(
                       color: AppColors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -246,9 +247,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                             if (success && context.mounted) {
                               context.push('/confirm-arrival');
                             } else if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(rideProv.errorMessage ?? 'Failed to accept ride'))
-                              );
+                              CustomToast.showError(context, rideProv.errorMessage ?? 'Failed to accept ride');
                             }
                           },
                       style: ElevatedButton.styleFrom(
@@ -264,7 +263,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                         style: const TextStyle(
                           color: AppColors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                     );
@@ -289,14 +288,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppColors.black,
           ),

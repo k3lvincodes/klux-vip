@@ -4,6 +4,9 @@ import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? role;
@@ -23,27 +26,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _handleCreateAccount() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty || !_isChecked) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields and accept terms')));
+      CustomToast.showError(context, 'Please fill all fields and accept terms');
       return;
     }
     
     final auth = context.read<AuthProvider>();
     final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final email = _emailController.text;
-    final role = widget.role ?? 'Passenger';
+    final email = _emailController.text.trim();
+    final role = widget.role ?? 'Unassigned';
 
     final success = await auth.signUp(
       email, 
       _passwordController.text, 
-      _nameController.text, 
+      _nameController.text.trim(), 
       role,
     );
     
     if (success) {
-      router.push('/otp?role=$role&email=$email&isSignup=true');
+      router.push('/otp?email=$email&isSignup=true');
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(auth.errorMessage ?? 'Sign up failed')));
+      if (mounted) {
+        CustomToast.showError(context, auth.errorMessage ?? 'Sign up failed');
+      }
     }
   }
 
@@ -54,9 +58,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Stack(
+      body: Stack(
           children: [
             Container(
               width: double.infinity,
@@ -65,14 +69,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 22.0),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 30, 0, 120),
+                  padding: const EdgeInsets.fromLTRB(0, 50, 0, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Create an account',
                         style: TextStyle(
-                        fontSize: 30,
+                          fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: AppColors.black,
                         ),
@@ -80,7 +84,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 8),
                       const Text(
                         "We're glad to have you here! Let's get started.",
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 34),
                       _buildInput(
@@ -157,9 +161,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             title: auth.isLoading ? 'Loading...' : 'Create account',
                             onPress: auth.isLoading ? () {} : _handleCreateAccount,
                             variant: ButtonVariant.primary,
-                            height: 50,
+                            height: 40,
                             borderRadius: 25,
-                            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                           );
                         }
                       ),
@@ -167,30 +171,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _buildOrContinue(),
                       const SizedBox(height: 18),
                       _buildSocialButtons(),
-                      const SizedBox(height: 26),
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Already have an account? ',
-                            style: TextStyle(fontSize: 12, color: AppColors.black),
-                            ),
-                            GestureDetector(
-                              onTap: _handleSignIn,
-                              child: const Text(
-                                'Sign in',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w800,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ].animate(interval: 50.ms).fade(duration: 400.ms, curve: Curves.easeOutQuad).slideY(begin: 0.1, end: 0),
                   ),
                 ),
               ),
@@ -198,20 +179,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Container(
-                  width: 160,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Already have an account? ',
+                          style: TextStyle(fontSize: 12, color: AppColors.black),
+                        ),
+                        GestureDetector(
+                          onTap: _handleSignIn,
+                          child: const Text(
+                            'Sign in',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                              decorationColor: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 800.ms).slideY(begin: 0.2, end: 0),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -253,19 +252,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
         const SizedBox(width: 18),
         _socialButton(
-          label: 'f',
+          iconWidget: const FaIcon(FontAwesomeIcons.facebook, size: 22, color: Color(0xFF1877F2)),
           color: const Color(0xFF1877F2),
         ),
         const SizedBox(width: 18),
         _socialButton(
-          icon: Icons.apple,
+          iconWidget: const Icon(Icons.apple, size: 22, color: Colors.black),
           color: Colors.black,
         ),
       ],
     );
   }
 
-  Widget _socialButton({String? label, IconData? icon, required Color color}) {
+  Widget _socialButton({String? label, Widget? iconWidget, required Color color}) {
     return Container(
       width: 48,
       height: 48,
@@ -290,7 +289,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: color,
                 ),
               )
-            : Icon(icon, size: 22, color: color),
+            : (iconWidget ?? const SizedBox()),
       ),
     );
   }
@@ -305,9 +304,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F7),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
@@ -320,7 +320,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF9CA3AF), size: 22),
+          Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
@@ -329,10 +329,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               keyboardType: keyboardType,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: AppColors.white,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           if (isPassword)

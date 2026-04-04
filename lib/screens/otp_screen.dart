@@ -1,74 +1,127 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
+import 'package:klux_vip/repositories/profile_repository.dart';
+import 'package:pinput/pinput.dart';
 
 class OtpScreen extends StatefulWidget {
   final String? role;
   final String? email;
   final bool? isSignup;
+  final bool? isPasswordReset;
 
-  const OtpScreen({super.key, this.role, this.email, this.isSignup});
+  const OtpScreen({super.key, this.role, this.email, this.isSignup, this.isPasswordReset});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  Timer? _timer;
+  int _start = 60;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() {
+      _start = 60;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_start == 0) {
+        setState(() {
+          timer.cancel();
+        });
+      } else {
+        setState(() {
+          _start--;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    _timer?.cancel();
+    _otpController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _handleOtpChange(String value, int index) {
-    if (value.length == 1 && index < 3) {
-      _focusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-  }
-
   Future<void> _handleVerify() async {
-    final otp = _controllers.map((c) => c.text).join();
+    final otp = _otpController.text;
     debugPrint('OTP Verified: $otp');
     
     if (otp.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter all 6 digits')));
+      CustomToast.showError(context, 'Please enter all 6 digits');
       return;
     }
     
     if (widget.email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email not found')));
+      CustomToast.showError(context, 'Email not found');
       return;
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.verifyOtp(widget.email!, otp, isSignup: widget.isSignup ?? false);
+    final success = await auth.verifyOtp(
+      widget.email!, 
+      otp, 
+      isSignup: widget.isSignup ?? false,
+      isPasswordReset: widget.isPasswordReset ?? false,
+    );
     
     if (success) {
       if (mounted) {
-        if (widget.role == 'Passenger') {
-          context.push('/passenger-profile-setup');
+        if (widget.isPasswordReset == true) {
+          context.push('/new-password');
+        } else if (widget.isSignup == true) {
+          context.push('/role-selection');
+        } else if (widget.role == 'Passenger') {
+          final user = auth.currentUser;
+          if (user != null) {
+            final profile = await ProfileRepository().getPassengerProfile(user.id);
+            if (mounted) {
+              if (profile == null || profile['first_name'] == null) {
+                context.push('/passenger-profile-setup');
+              } else {
+                context.push('/passenger-home');
+              }
+            }
+          }
         } else if (widget.role == 'Driver' || widget.role == 'Affiliate') {
-          context.push('/driver-profile-setup');
+          final user = auth.currentUser;
+          if (user != null) {
+            final profile = await ProfileRepository().getDriverProfile(user.id);
+            if (mounted) {
+              if (profile == null || profile['first_name'] == null) {
+                context.push('/driver-profile-setup');
+              } else {
+                context.push('/driver-home');
+              }
+            }
+          }
         } else {
           _showDemoRoleSelection();
         }
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(auth.errorMessage ?? 'Invalid OTP')));
+        CustomToast.showError(context, auth.errorMessage ?? 'Invalid OTP');
       }
     }
   }
@@ -86,7 +139,7 @@ class _OtpScreenState extends State<OtpScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Demo: Where do you want to go?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Demo: Where do you want to go?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               ListTile(
                 title: const Text('Passenger Flow'),
@@ -118,16 +171,17 @@ class _OtpScreenState extends State<OtpScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFEBE5E4),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 180),
               const Text(
                 'Verify Code',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.black,
                 ),
@@ -135,58 +189,33 @@ class _OtpScreenState extends State<OtpScreen> {
               const SizedBox(height: 8),
               const Text(
                 'Please enter the code we just sent to email',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               Text(
                 widget.email ?? 'your email',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 45,
-                    height: 55,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        onChanged: (value) => _handleOtpChange(value, index),
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 1,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+              Pinput(
+                length: 6,
+                controller: _otpController,
+                focusNode: _focusNode,
+                defaultPinTheme: PinTheme(
+                  width: 45,
+                  height: 40,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                ),
+                onCompleted: (pin) => _handleVerify(),
               ),
               const SizedBox(height: 40),
               Row(
@@ -194,11 +223,16 @@ class _OtpScreenState extends State<OtpScreen> {
                 children: [
                   const Text('Didn’t receive OTP? '),
                   GestureDetector(
-                    onTap: () {},
-                    child: const Text(
-                      'Resend code',
+                    onTap: _start == 0 ? () async {
+                      if (widget.email != null) {
+                        _startTimer();
+                        CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
+                      }
+                    } : null,
+                    child: Text(
+                      _start == 0 ? 'Resend code' : 'Resend code in ${_start}s',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: _start == 0 ? AppColors.primary : Colors.grey,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -221,6 +255,7 @@ class _OtpScreenState extends State<OtpScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

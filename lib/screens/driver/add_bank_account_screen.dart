@@ -5,6 +5,7 @@ import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/payment_provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
 
 class AddBankAccountScreen extends StatefulWidget {
   const AddBankAccountScreen({super.key});
@@ -64,7 +65,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                         'Add Bank Account',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -96,7 +97,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       // Bank Name
                       const Text(
                         'Bank name',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       _buildTextField('Enter  bank name', _bankNameController),
@@ -105,7 +106,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       // Account Holder Name
                       const Text(
                         'Account holder name',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       _buildTextField('Enter your full name', _holderNameController),
@@ -114,7 +115,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       // Account Number
                       const Text(
                         'Account number',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       _buildTextField('Enter account number', _accountNumberController),
@@ -128,9 +129,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                               if (_bankNameController.text.isEmpty ||
                                   _holderNameController.text.isEmpty ||
                                   _accountNumberController.text.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please fill all fields')),
-                                );
+                                CustomToast.showError(context, 'Please fill all fields');
                                 return;
                               }
                               final auth = context.read<AuthProvider>();
@@ -167,18 +166,35 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
   }
 
   Widget _buildTextField(String hint, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        filled: true,
-        fillColor: const Color(0xFFF5F0EF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: true,
+          fillColor: AppColors.white,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        style: const TextStyle(fontSize: 12),
       ),
     );
   }
@@ -211,12 +227,12 @@ class _SetPinSheetState extends State<_SetPinSheet> {
         children: [
           const Text(
             'Set up withdrawal pin',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
 
           // Enter pin
-          const Text('Enter your  4 digit pin', style: TextStyle(fontSize: 14)),
+          const Text('Enter your  4 digit pin', style: TextStyle(fontSize: 12)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -233,7 +249,7 @@ class _SetPinSheetState extends State<_SetPinSheet> {
                 alignment: Alignment.center,
                 child: Text(
                   val.isEmpty ? '' : (index < 2 && !_isConfirming && _pin[index].isNotEmpty ? val : '•'),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               );
             }),
@@ -241,7 +257,7 @@ class _SetPinSheetState extends State<_SetPinSheet> {
           const SizedBox(height: 24),
 
           // Confirm pin
-          const Text('Confirm pin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const Text('Confirm pin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -258,7 +274,7 @@ class _SetPinSheetState extends State<_SetPinSheet> {
                 alignment: Alignment.center,
                 child: Text(
                   val.isEmpty ? '' : (index < 2 && _isConfirming && _confirmPin[index].isNotEmpty ? val : '•'),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               );
             }),
@@ -286,7 +302,7 @@ class _SetPinSheetState extends State<_SetPinSheet> {
                 style: TextStyle(
                   color: AppColors.black,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 12,
                 ),
               ),
             ),

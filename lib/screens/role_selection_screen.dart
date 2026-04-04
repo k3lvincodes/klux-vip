@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:klux_vip/theme/app_colors.dart';
-
+import 'package:provider/provider.dart';
+import 'package:klux_vip/providers/auth_provider.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
 
@@ -14,12 +16,24 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   final List<String> _roles = ['Affiliate', 'Driver', 'Passenger'];
 
-  void _handleSelectRole(String role) {
+  Future<void> _handleSelectRole(String role) async {
     setState(() {
       _selectedRole = role;
     });
-    // Navigate to sign up flow with role param
-    context.push('/sign-up?role=$role');
+    
+    // Call AuthProvider to update role
+    final auth = context.read<AuthProvider>();
+    final success = await auth.updateUserRole(role);
+    
+    if (success && mounted) {
+      if (role == 'Passenger') {
+        context.push('/passenger-profile-setup');
+      } else {
+        context.push('/driver-profile-setup');
+      }
+    } else if (mounted) {
+       CustomToast.showError(context, auth.errorMessage ?? 'Failed to update role');
+    }
   }
 
   @override
@@ -36,8 +50,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const Text(
                 'Who are you?',
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                   color: AppColors.black,
                 ),
               ),
@@ -51,11 +65,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       onTap: () => _handleSelectRole(role),
                       child: Container(
                         width: double.infinity,
-                        height: 60,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: isSelected ? AppColors.primary : AppColors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: isSelected ? null : Border.all(color: Colors.black.withValues(alpha: 0.5)),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.05),
@@ -69,7 +82,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                           child: Text(
                             role,
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppColors.black,
                             ),

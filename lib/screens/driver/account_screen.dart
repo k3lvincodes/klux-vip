@@ -67,7 +67,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         'Account',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -88,13 +88,13 @@ class _AccountScreenState extends State<AccountScreen> {
                 // Balance
                 const Text(
                   'Total balance 👁',
-                  style: TextStyle(fontSize: 14, color: AppColors.black),
+                  style: TextStyle(fontSize: 12, color: AppColors.black),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '\$${payProv.totalEarnings.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    fontSize: 36,
+                    fontSize: 30,
                     fontWeight: FontWeight.bold,
                     color: AppColors.black,
                   ),
@@ -160,7 +160,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       'View all',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   )
                 : Row(
@@ -184,7 +184,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             child: Text(
                               _tabLabels[index],
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w500,
                                 color: isSelected ? AppColors.black : Colors.grey,
                               ),
@@ -243,7 +243,7 @@ class _AccountScreenState extends State<AccountScreen> {
                               Text(
                                 isOutgoing ? 'Withdrawal' : 'Ride Payment',
                                 style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.black,
                                 ),
@@ -264,7 +264,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             Text(
                               '${isOutgoing ? "-" : "+"}\$$amount',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: isOutgoing ? Colors.red : AppColors.black,
                               ),

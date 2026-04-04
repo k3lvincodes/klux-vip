@@ -44,7 +44,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         'Withdraw to bank',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -76,7 +76,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         const Text(
                           'DAVID JOHN',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -84,7 +84,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         Text(
                           '0123456789 Unity Bank',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             color: Colors.grey.shade600,
                           ),
                         ),
@@ -110,7 +110,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                       const Text(
                         'DAVID JOHN',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -128,7 +128,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         ),
                         child: const Text(
                           'Unity Bank',
-                          style: TextStyle(fontSize: 14, color: AppColors.black),
+                          style: TextStyle(fontSize: 12, color: AppColors.black),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -144,7 +144,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         ),
                         child: const Text(
                           '0123456789',
-                          style: TextStyle(fontSize: 14, color: AppColors.black),
+                          style: TextStyle(fontSize: 12, color: AppColors.black),
                         ),
                       ),
                       const Spacer(),
@@ -166,7 +166,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                             style: TextStyle(
                               color: AppColors.black,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -209,7 +209,7 @@ class _VerifyPinSheetState extends State<_VerifyPinSheet> {
           const Text(
             'Enter your pin to verify\ntransaction',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
 
@@ -229,7 +229,7 @@ class _VerifyPinSheetState extends State<_VerifyPinSheet> {
                 alignment: Alignment.center,
                 child: Text(
                   val.isEmpty ? '' : (index < 2 ? val : '•'),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               );
             }),
@@ -245,7 +245,7 @@ class _VerifyPinSheetState extends State<_VerifyPinSheet> {
           const SizedBox(height: 8),
           Text(
             'Or use fingerprints',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 24),
 
@@ -270,7 +270,7 @@ class _VerifyPinSheetState extends State<_VerifyPinSheet> {
                 style: TextStyle(
                   color: AppColors.black,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 12,
                 ),
               ),
             ),

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
 import 'package:klux_vip/providers/ride_provider.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
 
 class InstantBookingScreen extends StatefulWidget {
   const InstantBookingScreen({super.key});
@@ -15,10 +18,7 @@ class InstantBookingScreen extends StatefulWidget {
 }
 
 class _InstantBookingScreenState extends State<InstantBookingScreen> {
-  static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(37.42796133580664, -122.085749655962),
-    zoom: 14.4746,
-  );
+  static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
 
   int _passengers = 1;
   final TextEditingController _fromController = TextEditingController();
@@ -26,7 +26,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
   Future<void> _handleFindDriver() async {
     if (_fromController.text.isEmpty || _toController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter pickup and dropoff locations')));
+      CustomToast.showError(context, 'Please enter pickup and dropoff locations');
       return;
     }
 
@@ -34,7 +34,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     final rideProvider = context.read<RideProvider>();
 
     if (auth.currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not authenticated')));
+      CustomToast.showError(context, 'User not authenticated');
       return;
     }
 
@@ -48,7 +48,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
       context.push('/trip-summary');
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(rideProvider.errorMessage ?? 'Failed to request ride')));
+        CustomToast.showError(context, rideProvider.errorMessage ?? 'Failed to request ride');
       }
     }
   }
@@ -59,11 +59,24 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
       body: Stack(
         children: [
           // Map Background
-          const GoogleMap(
-            initialCameraPosition: _initialPosition,
-            zoomControlsEnabled: false,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
+          FlutterMap(
+            options: const MapOptions(
+              initialCenter: _initialPosition,
+              initialZoom: 14.5,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                additionalOptions: {
+                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                },
+                userAgentPackageName: 'com.kluxvip.app',
+                maxZoom: 22,
+              ),
+            ],
           ),
           
           // Back Button
@@ -101,7 +114,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                           Text(
                             'Number of passengers',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: AppColors.black,
                             ),
@@ -118,7 +131,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                           children: [
                             Text(
                               '$_passengers',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(width: 16),
                             Column(
@@ -154,7 +167,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                           Text(
                             'Comments',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: AppColors.black,
                             ),
@@ -200,7 +213,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                           child: const Text(
                             '\$200',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: AppColors.black,
                             ),
@@ -210,7 +223,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                         const Text(
                           'Total fare',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             color: Colors.grey,
                           ),
                         ),
@@ -241,25 +254,39 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
   Widget _buildLocationInput({required String hint, required Color iconColor, required TextEditingController controller}) {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(Icons.location_on, color: iconColor),
+          Icon(Icons.location_on, color: iconColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
                 hintText: hint,
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
                 border: InputBorder.none,
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: AppColors.white,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              style: const TextStyle(color: AppColors.black, fontSize: 14),
+              style: const TextStyle(color: AppColors.black, fontSize: 12),
             ),
           ),
         ],

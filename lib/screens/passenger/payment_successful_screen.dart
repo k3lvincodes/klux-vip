@@ -35,7 +35,7 @@ class PaymentSuccessfulScreen extends StatelessWidget {
                         child: Text(
                           'Checkout',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -71,7 +71,7 @@ class PaymentSuccessfulScreen extends StatelessWidget {
               const Text(
                 'Payment successful!',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: AppColors.black,
                 ),
@@ -80,7 +80,7 @@ class PaymentSuccessfulScreen extends StatelessWidget {
               const Text(
                 'Driver on it\'s way!',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 12,
                   color: Colors.grey,
                 ),
               ),

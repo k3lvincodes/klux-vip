@@ -73,7 +73,7 @@ class _WithdrawMethodScreenState extends State<WithdrawMethodScreen> {
                         'Add a new withdrawal\nmethod',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -87,7 +87,7 @@ class _WithdrawMethodScreenState extends State<WithdrawMethodScreen> {
                 const Text(
                   'Select a withdraw method',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.black,
                   ),
@@ -132,7 +132,7 @@ class _WithdrawMethodScreenState extends State<WithdrawMethodScreen> {
                               Text(
                                 method.title,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: isSelected ? AppColors.white : AppColors.black,
                                 ),

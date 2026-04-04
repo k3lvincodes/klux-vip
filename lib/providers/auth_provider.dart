@@ -66,14 +66,79 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Verifies the OTP sent to the email
-  Future<bool> verifyOtp(String email, String token, {bool isSignup = false}) async {
+  Future<bool> verifyOtp(String email, String token, {bool isSignup = false, bool isPasswordReset = false}) async {
     try {
       _setLoading(true);
       _setError(null);
+      
+      OtpType type = OtpType.magiclink;
+      if (isSignup) type = OtpType.signup;
+      if (isPasswordReset) type = OtpType.recovery;
+
       await _supabase.auth.verifyOTP(
         email: email,
         token: token,
-        type: isSignup ? OtpType.signup : OtpType.magiclink,
+        type: type,
+      );
+      return true;
+    } on AuthException catch (e) {
+      _setError(e.message);
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Sends a password reset OTP to the given email
+  Future<bool> sendPasswordResetOtp(String email) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      await _supabase.auth.resetPasswordForEmail(email);
+      return true;
+    } on AuthException catch (e) {
+      _setError(e.message);
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Updates the user's password using the current session
+  Future<bool> updatePassword(String newPassword) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      return true;
+    } on AuthException catch (e) {
+      _setError(e.message);
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Update user metadata (like role)
+  Future<bool> updateUserRole(String role) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          data: {'role': role},
+        ),
       );
       return true;
     } on AuthException catch (e) {

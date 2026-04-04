@@ -43,7 +43,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         child: Text(
                           'Add new card',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -88,7 +88,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         '**** **** **** 1289',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 11,
                           letterSpacing: 2,
                         ),
                       ),
@@ -100,7 +100,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                             'David Joe',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
                           Text(
@@ -186,7 +186,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         const Text(
                           'Save card information.',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppColors.black,
                           ),
@@ -215,7 +215,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: FontWeight.w500,
         color: Colors.grey,
       ),
@@ -224,30 +224,37 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
   Widget _buildInputField(String hint, {IconData? suffixIcon}) {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
         ],
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: TextField(
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(
-            color: AppColors.black,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 1,
+            color: Color(0xFF9CA3AF),
+            fontSize: 12,
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.black) : null,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: true,
+          fillColor: AppColors.white,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+          suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: const Color(0xFF9CA3AF), size: 20) : null,
         ),
+        style: const TextStyle(fontSize: 12),
       ),
     );
   }

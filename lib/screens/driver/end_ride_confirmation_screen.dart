@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
@@ -9,10 +11,7 @@ import 'package:klux_vip/providers/ride_provider.dart';
 class EndRideConfirmationScreen extends StatelessWidget {
   const EndRideConfirmationScreen({super.key});
 
-  static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(37.42796133580664, -122.085749655962),
-    zoom: 11,
-  );
+  static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +19,24 @@ class EndRideConfirmationScreen extends StatelessWidget {
       body: Stack(
         children: [
           // Map Background
-          const GoogleMap(
-            initialCameraPosition: _initialPosition,
-            zoomControlsEnabled: false,
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
+          FlutterMap(
+            options: const MapOptions(
+              initialCenter: _initialPosition,
+              initialZoom: 14.5,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                additionalOptions: {
+                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                },
+                userAgentPackageName: 'com.kluxvip.app',
+                maxZoom: 22,
+              ),
+            ],
           ),
 
           // Back Button
@@ -62,7 +74,7 @@ class EndRideConfirmationScreen extends StatelessWidget {
                   const Text(
                     'Ride completed?',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: AppColors.black,
                     ),
@@ -71,7 +83,7 @@ class EndRideConfirmationScreen extends StatelessWidget {
                   const Text(
                     'Please confirm that you\'ve completed the ride',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
@@ -88,9 +100,9 @@ class EndRideConfirmationScreen extends StatelessWidget {
                             children: [
                               Icon(Icons.location_on, color: Colors.green, size: 18),
                               const SizedBox(width: 8),
-                              const Text('From', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              const Text('From', style: TextStyle(fontSize: 12, color: Colors.grey)),
                               const Spacer(),
-                              Text(pickup, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.black)),
+                              Text(pickup, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.black)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -98,9 +110,9 @@ class EndRideConfirmationScreen extends StatelessWidget {
                             children: [
                               Icon(Icons.location_on, color: Colors.red, size: 18),
                               const SizedBox(width: 8),
-                              const Text('To', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              const Text('To', style: TextStyle(fontSize: 12, color: Colors.grey)),
                               const Spacer(),
-                              Text(dropoff, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.black)),
+                              Text(dropoff, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.black)),
                             ],
                           ),
                         ],

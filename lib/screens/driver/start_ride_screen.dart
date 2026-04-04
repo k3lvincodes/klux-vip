@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
@@ -15,10 +17,7 @@ class StartRideScreen extends StatefulWidget {
 }
 
 class _StartRideScreenState extends State<StartRideScreen> {
-  static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(37.42796133580664, -122.085749655962),
-    zoom: 11,
-  );
+  static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
 
   int _waitSeconds = 0;
   Timer? _timer;
@@ -51,11 +50,24 @@ class _StartRideScreenState extends State<StartRideScreen> {
       body: Stack(
         children: [
           // Map Background
-          const GoogleMap(
-            initialCameraPosition: _initialPosition,
-            zoomControlsEnabled: false,
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
+          FlutterMap(
+            options: const MapOptions(
+              initialCenter: _initialPosition,
+              initialZoom: 14.5,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                additionalOptions: {
+                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                },
+                userAgentPackageName: 'com.kluxvip.app',
+                maxZoom: 22,
+              ),
+            ],
           ),
 
           // Back Button
@@ -95,7 +107,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
                       const Text(
                         'Waiting time',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -104,7 +116,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
                       Text(
                         _formattedTime,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
                         ),
@@ -115,7 +127,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
                   const Text(
                     'You may cancel the offer',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       color: Colors.grey,
                     ),
                   ),
@@ -151,7 +163,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
                         style: TextStyle(
                           color: AppColors.black,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 12,
                         ),
                       ),
                     ),

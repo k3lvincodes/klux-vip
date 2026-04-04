@@ -4,6 +4,10 @@ import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:klux_vip/providers/auth_provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:klux_vip/utils/custom_toast.dart';
+import 'package:klux_vip/repositories/profile_repository.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -20,25 +24,41 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter email and password')));
+      CustomToast.showError(context, 'Please enter email and password');
       return;
     }
     
     final auth = context.read<AuthProvider>();
-    final success = await auth.signIn(_emailController.text, _passwordController.text);
+    final success = await auth.signIn(_emailController.text.trim(), _passwordController.text);
     
     if (success && mounted) {
       final user = auth.currentUser;
       final role = user?.userMetadata?['role'];
       
-      if (role == 'Driver' || role == 'Affiliate') {
-        context.go('/driver-home');
-      } else {
-        context.go('/passenger-home');
+      if (user != null) {
+        if (role == 'Driver' || role == 'Affiliate') {
+          final profile = await ProfileRepository().getDriverProfile(user.id);
+          if (mounted) {
+            if (profile == null || profile['first_name'] == null) {
+              context.go('/driver-profile-setup');
+            } else {
+              context.go('/driver-home');
+            }
+          }
+        } else {
+          final profile = await ProfileRepository().getPassengerProfile(user.id);
+          if (mounted) {
+            if (profile == null || profile['first_name'] == null) {
+              context.go('/passenger-profile-setup');
+            } else {
+              context.go('/passenger-home');
+            }
+          }
+        }
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(auth.errorMessage ?? 'Login failed')));
+        CustomToast.showError(context, auth.errorMessage ?? 'Login failed');
       }
     }
   }
@@ -50,9 +70,9 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Stack(
+      body: Stack(
           children: [
             Container(
               width: double.infinity,
@@ -61,14 +81,14 @@ class _SignInScreenState extends State<SignInScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 22.0),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 30, 0, 120),
+                  padding: const EdgeInsets.fromLTRB(0, 180, 0, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Welcome back',
                         style: TextStyle(
-                        fontSize: 30,
+                          fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: AppColors.black,
                         ),
@@ -76,7 +96,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       const SizedBox(height: 8),
                       const Text(
                         'Login to your account',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 34),
                       _buildInput(
@@ -112,18 +132,19 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                           const Text(
                             'Remember me',
-                          style: TextStyle(fontSize: 11, color: AppColors.black),
+                            style: TextStyle(fontSize: 11, color: AppColors.black),
                           ),
                           const Spacer(),
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () => context.push('/forgot-password'),
                             child: const Text(
-                              'Forget password?',
+                              'Forgot password?',
                               style: TextStyle(
-                              fontSize: 11,
+                                fontSize: 11,
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                                 decoration: TextDecoration.underline,
+                                decorationColor: AppColors.primary,
                               ),
                             ),
                           ),
@@ -136,9 +157,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             title: auth.isLoading ? 'Loading...' : 'Login',
                             onPress: auth.isLoading ? () {} : _handleLogin,
                             variant: ButtonVariant.primary,
-                            height: 50,
+                            height: 40,
                             borderRadius: 25,
-                            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                           );
                         }
                       ),
@@ -146,30 +167,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       _buildOrContinue(),
                       const SizedBox(height: 18),
                       _buildSocialButtons(),
-                      const SizedBox(height: 26),
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              "Don't have an account? ",
-                            style: TextStyle(fontSize: 12, color: AppColors.black),
-                            ),
-                            GestureDetector(
-                              onTap: _handleSignUp,
-                              child: const Text(
-                                'Sign up',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w800,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ].animate(interval: 50.ms).fade(duration: 400.ms, curve: Curves.easeOutQuad).slideY(begin: 0.1, end: 0),
                   ),
                 ),
               ),
@@ -177,20 +175,38 @@ class _SignInScreenState extends State<SignInScreen> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Container(
-                  width: 160,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Don't have an account? ",
+                          style: TextStyle(fontSize: 12, color: AppColors.black),
+                        ),
+                        GestureDetector(
+                          onTap: _handleSignUp,
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                              decorationColor: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 600.ms).slideY(begin: 0.2, end: 0),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -232,19 +248,19 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(width: 18),
         _socialButton(
-          label: 'f',
+          iconWidget: const FaIcon(FontAwesomeIcons.facebook, size: 22, color: Color(0xFF1877F2)),
           color: const Color(0xFF1877F2),
         ),
         const SizedBox(width: 18),
         _socialButton(
-          icon: Icons.apple,
+          iconWidget: const Icon(Icons.apple, size: 22, color: Colors.black),
           color: Colors.black,
         ),
       ],
     );
   }
 
-  Widget _socialButton({String? label, IconData? icon, required Color color}) {
+  Widget _socialButton({String? label, Widget? iconWidget, required Color color}) {
     return Container(
       width: 48,
       height: 48,
@@ -269,7 +285,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   color: color,
                 ),
               )
-            : Icon(icon, size: 22, color: color),
+            : (iconWidget ?? const SizedBox()),
       ),
     );
   }
@@ -284,9 +300,10 @@ class _SignInScreenState extends State<SignInScreen> {
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F7),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
@@ -299,7 +316,7 @@ class _SignInScreenState extends State<SignInScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF9CA3AF), size: 22),
+          Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
@@ -308,10 +325,16 @@ class _SignInScreenState extends State<SignInScreen> {
               keyboardType: keyboardType,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: AppColors.white,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           if (isPassword)

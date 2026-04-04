@@ -10,15 +10,17 @@ class CustomButton extends StatelessWidget {
   final double height;
   final double borderRadius;
   final TextStyle? textStyle;
+  final IconData? icon;
 
   const CustomButton({
     super.key,
     required this.title,
     required this.onPress,
     this.variant = ButtonVariant.secondary,
-    this.height = 50,
-    this.borderRadius = 12,
+    this.height = 52,
+    this.borderRadius = 30,
     this.textStyle,
+    this.icon,
   });
 
   Color _getBackgroundColor() {
@@ -32,6 +34,17 @@ class CustomButton extends StatelessWidget {
     }
   }
 
+  Color _getTextColor() {
+    switch (variant) {
+      case ButtonVariant.primary:
+        return AppColors.black;
+      case ButtonVariant.outline:
+        return AppColors.black;
+      case ButtonVariant.secondary:
+        return AppColors.black;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -41,17 +54,25 @@ class CustomButton extends StatelessWidget {
         color: _getBackgroundColor(),
         borderRadius: BorderRadius.circular(borderRadius),
         border: variant == ButtonVariant.outline
-            ? Border.all(color: AppColors.black, width: 1)
+            ? Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1)
             : null,
-        boxShadow: variant != ButtonVariant.outline
+        boxShadow: variant == ButtonVariant.primary
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  offset: const Offset(0, 2),
-                  blurRadius: 3.84,
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  offset: const Offset(0, 4),
+                  blurRadius: 12,
                 ),
               ]
-            : null,
+            : variant == ButtonVariant.secondary
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      offset: const Offset(0, 2),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -59,13 +80,23 @@ class CustomButton extends StatelessWidget {
           onTap: onPress,
           borderRadius: BorderRadius.circular(borderRadius),
           child: Center(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
-              ).merge(textStyle),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: _getTextColor()),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _getTextColor(),
+                    letterSpacing: 0.3,
+                  ).merge(textStyle),
+                ),
+              ],
             ),
           ),
         ),

@@ -28,7 +28,7 @@ class DriverSelfieScreen extends StatelessWidget {
                 child: Text(
                   'Take a selfie',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: AppColors.black,
                   ),
@@ -79,7 +79,7 @@ class DriverSelfieScreen extends StatelessWidget {
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 12,
               color: AppColors.black,
               height: 1.4,
             ),

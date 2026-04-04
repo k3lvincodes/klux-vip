@@ -59,7 +59,7 @@ class RidePaymentReceivedScreen extends StatelessWidget {
               const Text(
                 '\$140 Received',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: AppColors.black,
                 ),
@@ -82,7 +82,7 @@ class RidePaymentReceivedScreen extends StatelessWidget {
                   'View payment details',
                   style: TextStyle(
                     color: Colors.grey,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),

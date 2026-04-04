@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:klux_vip/theme/app_colors.dart';
 import 'package:klux_vip/widgets/custom_button.dart';
 import 'package:klux_vip/repositories/profile_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -16,12 +19,11 @@ class PassengerHomeScreen extends StatefulWidget {
 class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
-  static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(37.42796133580664, -122.085749655962),
-    zoom: 14.4746,
-  );
+  static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
+  final MapController _mapController = MapController();
 
   String _userName = 'Loading...';
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -38,7 +40,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
           setState(() {
             _userName = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim().toUpperCase();
             if (_userName.isEmpty) _userName = 'PASSENGER';
+            _profileImageUrl = profile['profile_image_url'];
           });
+          debugPrint('Drawer Profile Fetched: $_userName, Image: $_profileImageUrl');
         }
       } catch (e) {
         debugPrint('Error fetching profile: $e');
@@ -53,12 +57,50 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       drawer: _buildDrawer(context),
       body: Stack(
         children: [
-          // The Map
-          GoogleMap(
-            initialCameraPosition: _initialPosition,
-            zoomControlsEnabled: false,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
+          // The Mapbox Map
+          FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: _initialPosition,
+              initialZoom: 14.5,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                additionalOptions: {
+                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                },
+                userAgentPackageName: 'com.kluxvip.app',
+                maxZoom: 22,
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _initialPosition,
+                    width: 40,
+                    height: 40,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          )
+                        ],
+                      ),
+                      child: const Icon(Icons.my_location, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           
           // Menu Button inside a white circle
@@ -66,8 +108,11 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             top: 50,
             left: 20,
             child: GestureDetector(
-              onTap: () {
-                _scaffoldKey.currentState?.openDrawer();
+              onTap: () async {
+                await _fetchProfile();
+                if (mounted) {
+                  _scaffoldKey.currentState?.openDrawer();
+                }
               },
               child: Container(
                 width: 44,
@@ -85,7 +130,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 ),
                 child: const Icon(Icons.menu, color: AppColors.black),
               ),
-            ),
+            ).animate().fade(duration: 500.ms, delay: 300.ms).slideX(begin: -0.5, end: 0, curve: Curves.easeOut),
           ),
           
           // Bottom Sheet / Card
@@ -119,7 +164,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                           const Expanded(
                             child: Text(
                               'Choose pickup and Destination',
-                              style: TextStyle(color: Colors.grey, fontSize: 14),
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
                             ),
                           ),
                         ],
@@ -132,7 +177,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                   const Text(
                     'Select ride',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: AppColors.black,
                     ),
@@ -173,7 +218,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                         Text(
                           'Book ride',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -183,9 +228,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                ],
+                ].animate(interval: 50.ms).fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
               ),
-            ),
+            ).animate().fade(duration: 600.ms, delay: 200.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
           ),
         ],
       ),
@@ -210,7 +255,20 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                       color: Color(0xFFD6D6D6),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.person, size: 40, color: Colors.black54),
+                    child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                        ? ClipOval(
+                            child: Image.network(
+                              _profileImageUrl!,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint('Image.network failed to load: $error');
+                                return const Icon(Icons.person, size: 40, color: Colors.black54);
+                              },
+                            ),
+                          )
+                        : const Icon(Icons.person, size: 40, color: Colors.black54),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -231,7 +289,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             
             // Menu Items
             _buildDrawerItem(Icons.history, 'Request history', () {}),
-            Container(color: AppColors.white, child: _buildDrawerItem(Icons.notifications_none, 'Notifications', () {})),
+            _buildDrawerItem(Icons.notifications_none, 'Notifications', () {}),
             _buildDrawerItem(Icons.verified_user_outlined, 'Safety', () {}),
             _buildDrawerItem(Icons.settings_outlined, 'Settings', () {}),
             _buildDrawerItem(Icons.help_outline, 'Support', () {}),
@@ -261,7 +319,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       title: Text(
         title,
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: AppColors.black,
         ),
@@ -286,7 +344,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               children: [
                 const Text(
                   'Choose pickup and Destination',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.black),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.black),
                 ),
                 const SizedBox(height: 24),
                 _buildLocationInput(hint: 'From', icon: Icons.location_on, iconColor: Colors.green),
@@ -312,22 +370,38 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   Widget _buildLocationInput({required String hint, required IconData icon, required Color iconColor}) {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: iconColor),
+          Icon(icon, color: iconColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
               decoration: InputDecoration(
                 hintText: hint,
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: AppColors.white,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
         ],
