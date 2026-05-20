@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "722378003724",
+    "project_id": "kenick",
+    "storage_bucket": "kenick.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:722378003724:android:835e30adf3d689e174e529",
+        "android_client_info": {
+          "package_name": "com.k3boys.kenick"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjjrtjIhGaMlC1pYqIu7vxjicDNyawfNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

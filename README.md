@@ -1,6 +1,6 @@
-# Klux VIP
+# Kenick
 
-Flutter app for Klux VIP.
+Flutter app for Kenick.
 
 ## Get started
 

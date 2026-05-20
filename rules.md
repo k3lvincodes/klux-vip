@@ -1,6 +1,6 @@
-# Klux VIP - Project Rules & Conventions
+# Kenick - Project Rules & Conventions
 
-This document tracks the explicit design, architecture, and behavior rules established for the Klux VIP project. Adhere strictly to these guidelines to ensure UI/UX consistency across the app.
+This document tracks the explicit design, architecture, and behavior rules established for the Kenick project. Adhere strictly to these guidelines to ensure UI/UX consistency across the app.
 
 ## UI Styling & Components
 

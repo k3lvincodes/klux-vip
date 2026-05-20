@@ -1,0 +1,462 @@
+/* =============================================
+   KENICK ADMIN DASHBOARD — Premium Design System
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Colors */
+  --admin-bg: #09090b;
+  --admin-surface: #121214;
+  --admin-surface-hover: #18181b;
+  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-border-hover: rgba(255, 255, 255, 0.15);
+  
+  --admin-primary: #F4C522;
+  --admin-primary-dark: #dca70b;
+  --admin-primary-dim: rgba(244, 197, 34, 0.1);
+  
+  --admin-text: #fafafa;
+  --admin-text-muted: #a1a1aa;
+  --admin-text-faint: #52525b;
+
+  /* Status Colors */
+  --admin-success: #10b981;
+  --admin-success-dim: rgba(16, 185, 129, 0.1);
+  --admin-warning: #f59e0b;
+  --admin-warning-dim: rgba(245, 158, 11, 0.1);
+  --admin-danger: #ef4444;
+  --admin-danger-dim: rgba(239, 68, 68, 0.1);
+  --admin-info: #3b82f6;
+  --admin-info-dim: rgba(59, 130, 246, 0.1);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(18, 18, 20, 0.65);
+  --glass-blur: blur(16px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Reset & Body ---- */
+.admin-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =============================================
+   LAYOUT (Sidebar & Topbar)
+   ============================================= */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---- Sidebar ---- */
+.admin-sidebar {
+  width: 260px;
+  background-color: var(--admin-surface);
+  border-right: var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  z-index: 50;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-sidebar-header {
+  padding: 1.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.admin-sidebar-header img {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--admin-border);
+}
+
+.admin-sidebar-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--admin-text);
+  letter-spacing: -0.02em;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 1rem 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  color: var(--admin-text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-item:hover {
+  background-color: var(--admin-surface-hover);
+  color: var(--admin-text);
+}
+
+.admin-nav-item.active {
+  background-color: var(--admin-primary-dim);
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+
+.admin-nav-item svg {
+  transition: transform 0.2s ease;
+}
+
+.admin-nav-item:hover svg, .admin-nav-item.active svg {
+  transform: scale(1.1);
+}
+
+/* User Profile Widget */
+.admin-user-widget {
+  padding: 1.25rem 1rem;
+  border-top: var(--glass-border);
+  background: rgba(0,0,0,0.2);
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-dark));
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px var(--admin-primary-dim);
+}
+
+.admin-user-details p { margin: 0; }
+.admin-user-email { font-size: 0.85rem; font-weight: 600; color: var(--admin-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.admin-user-role { font-size: 0.75rem; color: var(--admin-primary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.admin-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--admin-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-logout-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+}
+
+/* ---- Main Content Area ---- */
+.admin-main {
+  flex: 1;
+  margin-left: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ---- Topbar ---- */
+.admin-topbar {
+  height: 72px;
+  background-color: rgba(9, 9, 11, 0.8);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.admin-topbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.admin-content {
+  padding: 2.5rem;
+  flex: 1;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* =============================================
+   COMPONENTS (Cards, Badges, Tables)
+   ============================================= */
+
+/* ---- Glassmorphism Card ---- */
+.admin-card {
+  background-color: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: var(--glass-shadow);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Optional hover effect for interactive cards */
+.admin-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  border-color: var(--admin-border-hover);
+}
+
+/* A subtle mesh gradient overlay for important cards */
+.admin-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  z-index: 1;
+}
+
+.admin-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin: 0 0 1.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---- Stat Cards Specifics ---- */
+.admin-stat-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.admin-stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0.25rem 0;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.admin-stat-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Badges ---- */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.admin-badge-success { background: var(--admin-success-dim); color: var(--admin-success); border: 1px solid rgba(16,185,129,0.2); }
+.admin-badge-warning { background: var(--admin-warning-dim); color: var(--admin-warning); border: 1px solid rgba(245,158,11,0.2); }
+.admin-badge-danger { background: var(--admin-danger-dim); color: var(--admin-danger); border: 1px solid rgba(239,68,68,0.2); }
+.admin-badge-info { background: var(--admin-info-dim); color: var(--admin-info); border: 1px solid rgba(59,130,246,0.2); }
+
+/* ---- Page Headers ---- */
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.admin-page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.admin-page-header p {
+  color: var(--admin-text-muted);
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+/* ---- Premium Tables ---- */
+.admin-table-wrapper {
+  background: var(--admin-surface);
+  border: var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: rgba(0,0,0,0.2);
+  color: var(--admin-text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1.25rem 1.5rem;
+  border-bottom: var(--glass-border);
+}
+
+.admin-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: var(--admin-text);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr {
+  transition: background-color 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background-color: rgba(255,255,255,0.02);
+}
+
+/* ---- Buttons ---- */
+.admin-btn {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-dark));
+  color: #000;
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(244,197,34,0.15);
+}
+
+.admin-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(244,197,34,0.25);
+}
+
+.admin-btn-outline {
+  background: transparent;
+  color: var(--admin-primary);
+  border: 1px solid var(--admin-primary);
+  box-shadow: none;
+}
+
+.admin-btn-outline:hover {
+  background: var(--admin-primary-dim);
+  box-shadow: none;
+}
+
+/* ---- Recharts Customization ---- */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(18, 18, 20, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  color: #fff !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--admin-primary) !important;
+  font-weight: 600;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 1024px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+  }
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .admin-main {
+    margin-left: 0;
+  }
+  .admin-content {
+    padding: 1.5rem;
+  }
+}
