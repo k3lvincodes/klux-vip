@@ -50,23 +50,27 @@ class _DriverIdVerificationScreenState
       case VerificationCompleted(:final session):
         switch (session.status) {
           case VerificationStatus.approved:
-            await _saveDocuments(session.sessionId);
-            await _updateVerificationStatus('approved');
-            _sendResultEmail(isSuccess: true);
-            if (mounted) {
-              CustomToast.showSuccess(context, 'Identity verified successfully!');
-              context.go('/vehicle-registration');
-            }
+            try {
+              await _saveDocuments(session.sessionId);
+              await _updateVerificationStatus('approved');
+              _sendResultEmail(isSuccess: true);
+              if (mounted) {
+                CustomToast.showSuccess(context, 'Identity verified successfully!');
+                context.go('/vehicle-registration');
+              }
+            } catch (_) {}
           case VerificationStatus.pending:
-            await _saveDocuments(session.sessionId);
-            await _updateVerificationStatus('pending');
-            if (mounted) {
-              CustomToast.showSuccess(
-                context,
-                'Verification submitted. You will be updated when the result is out.',
-              );
-              context.go('/vehicle-registration');
-            }
+            try {
+              await _saveDocuments(session.sessionId);
+              await _updateVerificationStatus('pending');
+              if (mounted) {
+                CustomToast.showSuccess(
+                  context,
+                  'Verification submitted. You will be updated when the result is out.',
+                );
+                context.go('/vehicle-registration');
+              }
+            } catch (_) {}
           case VerificationStatus.declined:
             await _updateVerificationStatus('declined');
             _sendResultEmail(isSuccess: false);
@@ -116,15 +120,23 @@ class _DriverIdVerificationScreenState
           fileUrl: 'didit://$sessionId',
         );
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        CustomToast.showError(context, 'Failed to save documents. Please try again.');
+      }
+      rethrow;
+    }
   }
 
   Future<void> _updateVerificationStatus(String status) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
+      String dbStatus = status;
+      if (status == 'declined') dbStatus = 'suspended';
+      
       await Supabase.instance.client
           .from('driver_profiles')
-          .update({'verification_status': status})
+          .update({'status': dbStatus})
           .eq('user_id', user.id);
     }
   }

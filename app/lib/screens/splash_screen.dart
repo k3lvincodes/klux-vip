@@ -20,13 +20,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _determineNextRoute();
+    _initApp();
+  }
 
-    Future.delayed(const Duration(milliseconds: 4000), () {
-      if (mounted) {
-        context.go(_nextRoute ?? '/onboarding');
-      }
-    });
+  Future<void> _initApp() async {
+    await Future.wait([
+      _determineNextRoute(),
+      Future.delayed(const Duration(milliseconds: 4000)),
+    ]);
+    if (mounted) {
+      context.go(_nextRoute ?? '/onboarding');
+    }
   }
 
   Future<void> _determineNextRoute() async {

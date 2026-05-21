@@ -4,13 +4,14 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/repositories/document_repository.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -79,8 +80,19 @@ class _SignInScreenState extends State<SignInScreen> {
         final userId = _biometricData!['user_id'] as String;
         final auth = context.read<AuthProvider>();
 
-        // Refresh the session timestamp
+        // Refresh the session timestamp locally via biometrics RPC
         await DeviceBiometricsService.refreshSession(userId);
+        
+        // Restore Supabase Session using saved refresh token
+        final prefs = await SharedPreferences.getInstance();
+        final refreshToken = prefs.getString('bio_refresh_token');
+        if (refreshToken != null) {
+          try {
+            await Supabase.instance.client.auth.setSession(refreshToken);
+          } catch (_) {
+            // Ignore if refresh token is invalid/expired, it will fall through to null check below
+          }
+        }
         
         if (!mounted) return;
 
@@ -378,11 +390,6 @@ class _SignInScreenState extends State<SignInScreen> {
         _socialButton(
           label: 'G',
           color: const Color(0xFFDB4437),
-        ),
-        const SizedBox(width: 18),
-        _socialButton(
-          iconWidget: const FaIcon(FontAwesomeIcons.facebook, size: 22, color: Color(0xFF1877F2)),
-          color: const Color(0xFF1877F2),
         ),
         const SizedBox(width: 18),
         _socialButton(

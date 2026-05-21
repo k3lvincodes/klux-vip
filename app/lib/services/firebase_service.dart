@@ -25,11 +25,11 @@ class FirebaseService {
 
       _fcmToken = await FirebaseMessaging.instance.getToken();
       if (kDebugMode) {
-        print('FCM Token: $_fcmToken');
+        debugPrint('FCM Token: $_fcmToken');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Firebase init failed: $e');
+        debugPrint('Firebase init failed: $e');
       }
     }
   }
@@ -48,7 +48,7 @@ class FirebaseService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Failed to register device: $e');
+        debugPrint('Failed to register device: $e');
       }
     }
   }
@@ -64,7 +64,7 @@ class FirebaseService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Failed to update device token: $e');
+        debugPrint('Failed to update device token: $e');
       }
     }
   }
@@ -77,11 +77,11 @@ class FirebaseService {
         sound: true,
       );
       if (kDebugMode) {
-        print('Notification permission: ${settings.authorizationStatus}');
+        debugPrint('Notification permission: ${settings.authorizationStatus}');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Permission request failed: $e');
+        debugPrint('Permission request failed: $e');
       }
     }
   }
@@ -99,7 +99,7 @@ class FirebaseService {
   ) async {
     await Firebase.initializeApp();
     if (kDebugMode) {
-      print('Background message: ${message.notification?.title}');
+      debugPrint('Background message: ${message.notification?.title}');
     }
   }
 }

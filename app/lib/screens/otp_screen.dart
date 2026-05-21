@@ -9,6 +9,7 @@ import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/repositories/document_repository.dart';
 import 'package:pinput/pinput.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OtpScreen extends StatefulWidget {
   final String? role;
@@ -89,18 +90,18 @@ class _OtpScreenState extends State<OtpScreen> {
     if (success) {
       if (mounted) {
         if (widget.isPasswordReset == true) {
-          context.push('/new-password');
+          context.go('/new-password');
         } else if (widget.isSignup == true) {
-          context.push('/role-selection');
+          context.go('/role-selection');
         } else if (widget.role == 'Passenger') {
           final user = auth.currentUser;
           if (user != null) {
             final profile = await ProfileRepository().getPassengerProfile(user.id);
             if (mounted) {
               if (profile == null || profile['first_name'] == null) {
-                context.push('/passenger-profile-setup');
+                context.go('/passenger-profile-setup');
               } else {
-                context.push('/passenger-home');
+                context.go('/passenger-home');
               }
             }
           }
@@ -110,16 +111,16 @@ class _OtpScreenState extends State<OtpScreen> {
             final profile = await ProfileRepository().getDriverProfile(user.id);
             if (mounted) {
               if (profile == null || profile['first_name'] == null) {
-                context.push('/driver-profile-setup');
+                context.go('/driver-profile-setup');
               } else {
                 // Check if identity verification has been completed (combined ID + liveness + face match)
                 final docRepo = DocumentRepository();
                 final idDoc = await docRepo.getDocumentByType(user.id, 'driver_license');
                 if (!mounted) return;
                 if (idDoc == null) {
-                  context.push('/driver-id-verification');
+                  context.go('/driver-id-verification');
                 } else {
-                  context.push('/driver-home');
+                  context.go('/driver-home');
                 }
               }
             }
@@ -235,8 +236,21 @@ class _OtpScreenState extends State<OtpScreen> {
                   GestureDetector(
                     onTap: _start == 0 ? () async {
                       if (widget.email != null) {
-                        _startTimer();
-                        CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
+                        try {
+                          final supabase = Supabase.instance.client;
+                          if (widget.isPasswordReset == true) {
+                            await supabase.auth.resetPasswordForEmail(widget.email!);
+                          } else {
+                            await supabase.auth.resend(
+                              type: widget.isSignup == true ? OtpType.signup : OtpType.magiclink,
+                              email: widget.email,
+                            );
+                          }
+                          _startTimer();
+                          CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
+                        } catch (e) {
+                          CustomToast.showError(context, 'Failed to resend OTP');
+                        }
                       }
                     } : null,
                     child: Text(

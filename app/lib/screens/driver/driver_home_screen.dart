@@ -26,6 +26,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   String _userName = 'Loading...';
   String? _profileImageUrl;
   final Map<String, String> _passengerNames = {};
+  final Set<String> _declinedRideIds = {};
+  String _lastRideIds = '';
 
   @override
   void initState() {
@@ -164,21 +166,74 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
   // Completed Tab
   Widget _buildCompletedTab(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.history, size: 64, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text(
-              'No completed rides yet',
-              style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return const SizedBox();
+
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: RideRepository().getDriverCompletedRides(user.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || (snapshot.data ?? []).isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.history, size: 64, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No completed rides yet',
+                    style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        final rides = snapshot.data!;
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+          itemCount: rides.length,
+          itemBuilder: (context, index) {
+            final ride = rides[index];
+            final pickup = ride['pickup_address'] ?? 'Unknown location';
+            final dropoff = ride['dropoff_address'] ?? 'Unknown location';
+            final fare = ride['fare_amount'] ?? '0.00';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : AppColors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Completed Ride', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('\$$fare', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLocationDetail(Icons.my_location, Colors.green, pickup, isDark),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 9),
+                    child: SizedBox(height: 8, child: VerticalDivider(width: 2, thickness: 2, color: Colors.grey)),
+                  ),
+                  _buildLocationDetail(Icons.location_on, Colors.red, dropoff, isDark),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -206,9 +261,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
           );
         }
-        final rides = snapshot.data ?? [];
-        if (rides.isNotEmpty) {
-          _fetchPassengerNames(rides);
+        final rides = (snapshot.data ?? []).where((r) => !_declinedRideIds.contains(r['id'])).toList();
+        
+        final currentRideIds = rides.map((e) => e['id']).join(',');
+        if (currentRideIds != _lastRideIds) {
+          _lastRideIds = currentRideIds;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _fetchPassengerNames(rides);
+          });
         }
         if (rides.isEmpty) {
           return Center(
@@ -343,7 +403,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      _declinedRideIds.add(ride['id']);
+                    });
+                  },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: BorderSide(color: Colors.grey.shade300),

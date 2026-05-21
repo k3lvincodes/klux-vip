@@ -1,5 +1,14 @@
 import { Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import HowItWorks from './pages/HowItWorks';
+import Fleets from './pages/Fleets';
+import Services from './pages/Services';
+import AboutUs from './pages/AboutUs';
+import Testimonials from './pages/Testimonials';
+import Contact from './pages/Contact';
+import BookingPage from './pages/BookingPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import Overview from './pages/admin/Overview';
@@ -12,12 +21,24 @@ import TransactionsPage from './pages/admin/TransactionsPage';
 import DocumentsPage from './pages/admin/DocumentsPage';
 import UserDetail from './pages/admin/UserDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import PublicLayout from './components/PublicLayout';
 
 function App() {
   return (
     <Routes>
-      {/* Public Landing Page */}
-      <Route path="/" element={<LandingPage />} />
+      {/* Public Pages */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/fleets" element={<Fleets />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/testimonials" element={<Testimonials />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/book" element={<BookingPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsConditions />} />
+      </Route>
       
       {/* Admin Login */}
       <Route path="/admin/login" element={<AdminLogin />} />

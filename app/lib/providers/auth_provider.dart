@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kenick_vip/services/firebase_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -63,6 +64,11 @@ class AuthProvider extends ChangeNotifier {
       
       if (response.user != null) {
         FirebaseService().registerDevice(response.user!.id).ignore();
+      }
+      
+      if (response.session?.refreshToken != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('bio_refresh_token', response.session!.refreshToken!);
       }
       
       return true;

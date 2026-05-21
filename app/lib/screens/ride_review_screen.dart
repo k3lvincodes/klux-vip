@@ -58,7 +58,7 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
 
       if (mounted) {
         CustomToast.showSuccess(context, 'Thank you for your feedback!');
-        context.go('/home');
+        _goHome();
       }
     } catch (e) {
       if (mounted) CustomToast.showError(context, 'Failed to submit review');
@@ -150,7 +150,7 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
               ),
               const SizedBox(height: 20),
               TextButton(
-                onPressed: () => context.go('/home'),
+                onPressed: _goHome,
                 child: Text('Skip', style: TextStyle(color: Colors.grey)),
               ),
             ],
@@ -158,5 +158,15 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
         ),
       ),
     );
+  }
+
+  void _goHome() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final role = user?.userMetadata?['role'];
+    if (role == 'Driver' || role == 'Affiliate') {
+      context.go('/driver-home');
+    } else {
+      context.go('/passenger-home');
+    }
   }
 }

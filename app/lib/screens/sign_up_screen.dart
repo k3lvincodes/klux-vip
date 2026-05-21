@@ -4,7 +4,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 
@@ -253,11 +252,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _socialButton(
           label: 'G',
           color: const Color(0xFFDB4437),
-        ),
-        const SizedBox(width: 18),
-        _socialButton(
-          iconWidget: const FaIcon(FontAwesomeIcons.facebook, size: 22, color: Color(0xFF1877F2)),
-          color: const Color(0xFF1877F2),
         ),
         const SizedBox(width: 18),
         _socialButton(
