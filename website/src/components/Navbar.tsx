@@ -17,12 +17,12 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Fleets', path: '/fleets' },
-    { name: 'Services', path: '/services' },
-    { name: 'About us', path: '/about' },
-    { name: 'Testimonials', path: '/testimonials' },
-    { name: 'Contact', path: '/contact' }
+    { name: 'Home', hash: '' },
+    { name: 'Fleets', hash: 'fleets' },
+    { name: 'Services', hash: 'services' },
+    { name: 'About us', hash: 'about-us' },
+    { name: 'Testimonials', hash: 'testimonials' },
+    { name: 'Contact', hash: 'contact' }
   ];
 
   return (
@@ -35,9 +35,9 @@ export default function Navbar() {
           <ul className="menu-links">
             {navLinks.map((item) => (
               <li key={item.name}>
-                <Link to={item.path} onClick={() => setIsMenuOpen(false)}>
+                <a href={item.hash ? `/#${item.hash}` : '/'} onClick={() => setIsMenuOpen(false)}>
                   {item.name}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>
@@ -62,7 +62,7 @@ export default function Navbar() {
               <img src="https://flagcdn.com/w40/us.png" alt="US" />
               <span>En</span>
             </div>
-            <Link to="/" className="nav-cta" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <Link to="/book" className="nav-cta" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               Ride
             </Link>
             <button className="nav-menu-btn" onClick={() => setIsMenuOpen(true)}>

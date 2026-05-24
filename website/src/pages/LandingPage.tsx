@@ -1,14 +1,29 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HowItWorks from './HowItWorks';
+import Fleets from './Fleets';
+import Services from './Services';
+import AboutUs from './AboutUs';
+import Testimonials from './Testimonials';
+import Contact from './Contact';
 import FAQ from '../components/FAQ';
 import '../App.css';
 
 export default function LandingPage() {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const id = hash.replace('#', '');
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, []);
+
   return (
     <>
       {/* ====== SECTION 1: HERO ====== */}
       <section className="hero-wrapper" id="home">
-        {/* Hero Content */}
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-headline">
@@ -35,10 +50,15 @@ export default function LandingPage() {
       </section>
 
       <HowItWorks />
+      <Fleets />
+      <Services />
+      <AboutUs />
+      <Testimonials />
+      <Contact />
 
       <FAQ />
 
-      {/* ====== SECTION 7: DOWNLOAD APP ====== */}
+      {/* ====== DOWNLOAD APP ====== */}
       <section className="download-section">
         <div className="container">
           <div className="download-header">

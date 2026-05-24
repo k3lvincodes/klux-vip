@@ -11,10 +11,10 @@ export default function Footer() {
                <h2>Kenick</h2>
             </div>
             <div className="footer-links-grid">
-              <Link to="/about" className="footer-link-main">About</Link>
-              <Link to="/services" className="footer-link-main">Services</Link>
+              <a href="/#about-us" className="footer-link-main">About</a>
+              <a href="/#services" className="footer-link-main">Services</a>
               <div className="footer-contact">
-                <Link to="/contact" className="footer-link-main">Contact Us</Link>
+                <a href="/#contact" className="footer-link-main">Contact Us</a>
                 <p>booking@kenicktransportation.com</p>
                 <p>+1260-210-3519</p>
                 <div className="footer-social">

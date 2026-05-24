@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 
 export default function Services() {
   return (
@@ -24,7 +23,7 @@ export default function Services() {
           ))}
         </div>
         <div className="services-cta" style={{ textAlign: 'center', marginTop: '3rem' }}>
-          <Link to="/contact" className="btn btn-dark services-learn-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>Contact Us to Learn More</Link>
+          <a href="/#contact" className="btn btn-dark services-learn-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>Contact Us to Learn More</a>
         </div>
       </div>
     </section>
