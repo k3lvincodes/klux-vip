@@ -32,7 +32,7 @@ class BookingSelectionScreen extends StatelessWidget {
                   style: TextStyle(
                     color: isDark ? AppColors.white : AppColors.black,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 16,
                   ),
                 ),
                 centerTitle: true,
@@ -50,7 +50,7 @@ class BookingSelectionScreen extends StatelessWidget {
                       onPress: () {
                         context.push('/instant-booking');
                       },
-                      variant: ButtonVariant.primary,
+                      variant: ButtonVariant.secondary,
                     ),
                     const SizedBox(height: 16),
                     CustomButton(
@@ -66,7 +66,7 @@ class BookingSelectionScreen extends StatelessWidget {
                       onPress: () {
                         context.push('/special-booking');
                       },
-                      variant: ButtonVariant.outline,
+                      variant: ButtonVariant.secondary,
                     ),
                   ],
                 ),

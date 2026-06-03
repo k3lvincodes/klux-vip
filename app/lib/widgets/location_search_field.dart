@@ -9,6 +9,7 @@ class LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
   final bool isDark;
+  final String? countryCode;
   final ValueChanged<LocationSearchResult>? onSelected;
 
   const LocationSearchField({
@@ -16,6 +17,7 @@ class LocationSearchField extends StatefulWidget {
     required this.controller,
     required this.hint,
     required this.isDark,
+    this.countryCode,
     this.onSelected,
   });
 
@@ -28,7 +30,11 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
   Timer? _debounce;
   bool _isSearching = false;
   bool _dropdownVisible = false;
+  bool _suppressDropdownHide = false;
   final _focusNode = FocusNode();
+  final _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  final _fieldKey = GlobalKey();
 
   @override
   void initState() {
@@ -36,7 +42,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         _showDropdown();
-      } else {
+      } else if (_dropdownVisible && !_suppressDropdownHide) {
         _hideDropdown();
       }
     });
@@ -47,8 +53,14 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
   void dispose() {
     _debounce?.cancel();
     _focusNode.dispose();
+    _removeOverlay();
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   void _onControllerChanged() {
@@ -60,11 +72,29 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
   void _showDropdown() {
     if (_dropdownVisible) return;
     setState(() => _dropdownVisible = true);
+    _overlayEntry?.remove();
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        final renderBox = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+        final width = renderBox?.size.width ?? MediaQuery.of(context).size.width;
+        return Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: const Offset(0, 58),
+            child: _buildDropdown(),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   void _hideDropdown() {
     if (!_dropdownVisible) return;
     setState(() => _dropdownVisible = false);
+    _removeOverlay();
   }
 
   void _onSearchChanged(String query) {
@@ -76,9 +106,10 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
+    _debounce = Timer(const Duration(milliseconds: 200), () async {
       if (!mounted) return;
       setState(() => _isSearching = true);
+      _showDropdown();
 
       final results = await LocationSearchService.search(query);
       if (!mounted) return;
@@ -88,7 +119,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
         _isSearching = false;
       });
 
-      if (_suggestions.isNotEmpty && _focusNode.hasFocus) {
+      if (_focusNode.hasFocus) {
         _showDropdown();
       } else {
         _hideDropdown();
@@ -144,12 +175,14 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
     if (!mounted) return;
 
     try {
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
+      late Position pos;
+      try {
+        pos = await Geolocator.getCurrentPosition();
+      } catch (_) {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last == null) rethrow;
+        pos = last;
+      }
 
       final result = await LocationSearchService.reverseGeocode(
         LatLng(pos.latitude, pos.longitude),
@@ -174,6 +207,10 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
           ),
         );
       }
+
+      _suppressDropdownHide = true;
+      _focusNode.unfocus();
+      _suppressDropdownHide = false;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -190,16 +227,18 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
       TextPosition(offset: result.placeName.length),
     );
     widget.onSelected?.call(result);
+    _suppressDropdownHide = true;
     _focusNode.unfocus();
+    _suppressDropdownHide = false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: SizedBox(
+        key: _fieldKey,
+        child: Container(
           height: 50,
           decoration: BoxDecoration(
             color: widget.isDark
@@ -251,15 +290,19 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
               color: widget.isDark ? AppColors.white : AppColors.black,
             ),
             onChanged: _onSearchChanged,
-            onTap: _showDropdown,
+            onTap: () {
+              if (widget.controller.text.isNotEmpty) {
+                _suppressDropdownHide = true;
+                _focusNode.unfocus();
+                _showDropdown();
+                _suppressDropdownHide = false;
+              } else {
+                _showDropdown();
+              }
+            },
           ),
         ),
-        if (_dropdownVisible)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildDropdown(),
-          ),
-      ],
+      ),
     );
   }
 
@@ -268,7 +311,10 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
 
     items.add(_buildCurrentLocationTile());
 
-    if (_suggestions.isNotEmpty) {
+    if (_isSearching) {
+      items.add(const Divider(height: 1, thickness: 1));
+      items.add(_buildLoadingTile());
+    } else if (_suggestions.isNotEmpty) {
       items.add(const Divider(height: 1, thickness: 1));
       for (final result in _suggestions) {
         items.add(_buildSuggestionTile(result));
@@ -284,8 +330,8 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
       surfaceTintColor: bgColor,
       shadowColor: Colors.black26,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxHeight: 250,
+        constraints: BoxConstraints(
+          maxHeight: (MediaQuery.of(context).size.height * 0.35).clamp(80.0, 300.0),
         ),
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -338,6 +384,32 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingTile() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Searching addresses...',
+            style: TextStyle(
+              fontSize: 13,
+              color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }

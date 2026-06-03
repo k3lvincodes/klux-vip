@@ -26,8 +26,8 @@ alter table public.vehicles enable row level security;
 
 -- RLS Policies for vehicles
 create policy "Vehicles are viewable by everyone." on public.vehicles for select using (true);
-create policy "Drivers can insert their own vehicles." on public.vehicles for insert with check (auth.uid() = driver_id);
-create policy "Drivers can update their own vehicles." on public.vehicles for update using (auth.uid() = driver_id);
+create policy "Chauffeurs can insert their own vehicles." on public.vehicles for insert with check (auth.uid() = driver_id);
+create policy "Chauffeurs can update their own vehicles." on public.vehicles for update using (auth.uid() = driver_id);
 
 -- Trigger for vehicle updated_at
 create or replace function public.handle_vehicle_updated_at()
@@ -62,7 +62,7 @@ alter table public.reviews enable row level security;
 
 -- RLS Policies for reviews
 create policy "Users can view reviews they gave or received." on public.reviews for select using (auth.uid() = reviewer_id or auth.uid() = reviewee_id);
-create policy "Passengers can insert reviews for drivers." on public.reviews for insert with check (auth.uid() = reviewer_id);
+create policy "Clients can insert reviews for chauffeurs." on public.reviews for insert with check (auth.uid() = reviewer_id);
 create policy "Users cannot update their reviews." on public.reviews for update using (false);
 create policy "Users cannot delete reviews." on public.reviews for delete using (false);
 
@@ -158,9 +158,9 @@ create table public.driver_documents (
 alter table public.driver_documents enable row level security;
 
 -- RLS Policies for driver documents
-create policy "Drivers can view their own documents." on public.driver_documents for select using (auth.uid() = driver_id);
-create policy "Drivers can upload their own documents." on public.driver_documents for insert with check (auth.uid() = driver_id);
-create policy "Drivers can update their own documents." on public.driver_documents for update using (auth.uid() = driver_id);
+create policy "Chauffeurs can view their own documents." on public.driver_documents for select using (auth.uid() = driver_id);
+create policy "Chauffeurs can upload their own documents." on public.driver_documents for insert with check (auth.uid() = driver_id);
+create policy "Chauffeurs can update their own documents." on public.driver_documents for update using (auth.uid() = driver_id);
 
 -- Function to check if driver has all required documents approved
 create or replace function public.driver_documents_approved(driver_uuid uuid)
@@ -182,7 +182,7 @@ $$ language plpgsql;
 -- 5. DATABASE FUNCTIONS (PostGIS)
 -- ============================================
 
--- Find nearby drivers function
+-- Find nearby chauffeurs function
 create or replace function public.find_nearby_drivers(
   pickup_lat double precision,
   pickup_lng double precision,
@@ -260,17 +260,17 @@ $$ language plpgsql;
 -- Drop existing permissive policies and replace with hardened versions
 
 -- Rides: Restrict UPDATE after creation (prevent tampering)
-drop policy if exists "Passengers can update their unassigned rides." on public.rides;
-drop policy if exists "Drivers can accept and update their assigned rides." on public.rides;
+drop policy if exists "Clients can update their unassigned rides." on public.rides;
+drop policy if exists "Chauffeurs can accept and update their assigned rides." on public.rides;
 
 -- New hardened policies for rides
-create policy "Passengers can update their rides only when requested." on public.rides for update using 
+create policy "Clients can update their rides only when requested." on public.rides for update using 
   (auth.uid() = passenger_id and status = 'requested');
 
-create policy "Drivers can accept requested rides." on public.rides for update using 
+create policy "Chauffeurs can accept requested rides." on public.rides for update using 
   (auth.uid() = driver_id and status = 'requested');
 
--- Create a helper function for driver to accept ride
+-- Create a helper function for chauffeur to accept ride
 create or replace function public.accept_ride(
   ride_uuid uuid,
   driver_uuid uuid

@@ -8,6 +8,14 @@ import 'package:intl/intl.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/widgets/location_search_field.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/services/fare_rate_service.dart';
+import 'package:provider/provider.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 
 
 class ScheduleBookingScreen extends StatefulWidget {
@@ -19,19 +27,73 @@ class ScheduleBookingScreen extends StatefulWidget {
 
 class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
+  late LatLng _currentPosition;
+  final MapController _mapController = MapController();
   bool _isSearching = false;
+  String? _countryCode;
+
+  @override
+  void initState() {
+    super.initState();
+    final mem = MapMemory();
+    _currentPosition = (mem.hasMemory && mem.lastPosition != null)
+        ? mem.lastPosition!
+        : _initialPosition;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mem.hasMemory && mem.lastPosition != null) {
+        _mapController.move(mem.lastPosition!, mem.lastZoom);
+      }
+      final code = await LocationSearchService.detectCountryCode(
+        _currentPosition,
+      );
+      if (mounted) setState(() => _countryCode = code);
+    });
+
+    final rideProv = context.read<RideProvider>();
+    if (rideProv.pickupLocation != null) {
+      _pickupLocation = rideProv.pickupLocation;
+      _fromController.text = rideProv.pickupLocation!.placeName;
+    }
+    if (rideProv.dropoffLocation != null) {
+      _dropoffLocation = rideProv.dropoffLocation;
+      _toController.text = rideProv.dropoffLocation!.placeName;
+    }
+    if (_pickupLocation != null && _dropoffLocation != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleLocationSelected();
+      });
+    }
+  }
+
+  double _initialChildSize(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    double contentH = 0;
+    contentH += 40;           // 16 top pad + 24 drag handle
+    contentH += 12;           // spacer
+    contentH += 64;           // clients
+    contentH += 12 + 48;      // spacer + date/time
+    contentH += 12 + 48 + 20; // spacer + comments + spacer
+    contentH += 116;          // location inputs
+    if (_calculatedFare != null) contentH += 24 + 80;
+    contentH += 32 + 52 + 8; // spacer + button + spacer
+    return ((contentH + bottomPad) / screenH).clamp(0.08, 0.9);
+  }
 
   final TextEditingController _passengersController = TextEditingController(
     text: '1',
   );
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
+  double? _calculatedFare;
+  double? _distanceKm;
+  double _sheetExtent = 0;
+  LocationSearchResult? _pickupLocation;
+  LocationSearchResult? _dropoffLocation;
+
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
-  final TextEditingController _fareController = TextEditingController(
-    text: '200',
-  );
 
   String get _formattedDateTime {
     if (_selectedDate == null) return 'Date and time';
@@ -119,76 +181,39 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
 
   @override
   void dispose() {
+    MapMemory().save(_currentPosition, _mapController.camera.zoom);
     _passengersController.dispose();
     _fromController.dispose();
     _toController.dispose();
     _commentController.dispose();
-    _fareController.dispose();
     super.dispose();
   }
 
-  Future<void> _showFareDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tempController = TextEditingController(text: _fareController.text);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : AppColors.white,
-          title: Text(
-            'Set fare amount',
-            style: TextStyle(color: isDark ? AppColors.white : AppColors.black),
-          ),
-          content: TextField(
-            controller: tempController,
-            keyboardType: TextInputType.number,
-            autofocus: true,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
-            ],
-            decoration: InputDecoration(
-              prefixText: '\$ ',
-              prefixStyle: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.white : AppColors.black,
-              ),
-              hintText: 'Enter amount',
-              hintStyle: TextStyle(color: Colors.grey.shade500),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.white : AppColors.black,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, tempController.text),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
-              child: const Text(
-                'Confirm',
-                style: TextStyle(color: AppColors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  String _formatDistance(double km) {
+    if (km < 1) return '${(km * 1000).toStringAsFixed(0)} m';
+    return '${km.toStringAsFixed(1)} km';
+  }
 
-    if (result != null && result.isNotEmpty) {
-      _fareController.text = result;
-      setState(() {});
+  String _formatDuration(double km) {
+    final minutes = (km / 30 * 60).round();
+    if (minutes < 60) return '$minutes min';
+    final hrs = minutes ~/ 60;
+    final mins = minutes % 60;
+    return '${hrs}h ${mins}min';
+  }
+
+  Future<void> _handleLocationSelected() async {
+    if (_pickupLocation != null && _dropoffLocation != null) {
+      final km = const Distance().as(
+        LengthUnit.Kilometer,
+        LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude),
+        LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude),
+      );
+      _distanceKm = km;
+      final rate = await FareRateService.getRate(_countryCode ?? 'US');
+      _calculatedFare = rate.baseFare + (km * rate.perKmRate);
+      _sheetExtent = _initialChildSize(context);
+      if (mounted) setState(() {});
     }
   }
 
@@ -243,15 +268,16 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Map Background
           FlutterMap(
-            options: const MapOptions(
-              initialCenter: _initialPosition,
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentPosition,
               initialZoom: 14.5,
-              interactionOptions: InteractionOptions(
+              interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
             ),
@@ -265,6 +291,11 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
+              ),
+              MarkerLayer(
+                markers: [
+                  AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                ],
               ),
             ],
           ),
@@ -297,13 +328,45 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
             ),
           ),
 
-          // Draggable Bottom Sheet
-          DraggableScrollableSheet(
-            initialChildSize: 0.75,
+          if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
+            Positioned(
+              bottom: MediaQuery.of(context).size.height * _sheetExtent + 10,
+              left: 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBackground : const Color(0xFFF5F0EF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.directions_car, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          NotificationListener<DraggableScrollableNotification>(
+            onNotification: (notification) {
+              _sheetExtent = notification.extent;
+              return false;
+            },
+            child: DraggableScrollableSheet(
+            initialChildSize: _initialChildSize(context),
             minChildSize: 0.08,
-            maxChildSize: 0.75,
+            maxChildSize: _initialChildSize(context),
             snap: true,
-            snapSizes: const [0.08, 0.75],
+            snapSizes: [0.08, _initialChildSize(context)],
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -321,8 +384,8 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                 ),
                 child: ListView(
                   controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
-                    children: [
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  children: [
                       // Drag handle
                       Center(
                         child: Container(
@@ -337,6 +400,8 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                           ),
                         ),
                       ),
+
+
 
                       // Number of passengers
                       Container(
@@ -359,7 +424,7 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Passengers',
+                                'Clients',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -551,20 +616,24 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                           Column(
                             children: [
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.2,
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 13.0),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        shape: BoxShape.circle,
                                       ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.my_location,
-                                      size: 12,
-                                      color: AppColors.primary,
+                                      child: const Icon(
+                                        Icons.my_location,
+                                        size: 12,
+                                        color: AppColors.primary,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -573,25 +642,33 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                                       hint: 'Current Location',
                                       controller: _fromController,
                                       isDark: isDark,
-                                      onSelected: (r) {},
+                                      countryCode: _countryCode,
+                                      onSelected: (r) {
+                                        _pickupLocation = r;
+                                        _handleLocationSelected();
+                                      },
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 16),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      size: 12,
-                                      color: Colors.red,
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 13.0),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withValues(alpha: 0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.location_on,
+                                        size: 12,
+                                        color: Colors.red,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -600,7 +677,11 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                                       hint: 'Where to?',
                                       controller: _toController,
                                       isDark: isDark,
-                                      onSelected: (r) {},
+                                      countryCode: _countryCode,
+                                      onSelected: (r) {
+                                        _dropoffLocation = r;
+                                        _handleLocationSelected();
+                                      },
                                     ),
                                   ),
                                 ],
@@ -609,12 +690,9 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-
-                      // Fare Display
-                      GestureDetector(
-                        onTap: _showFareDialog,
-                        child: Container(
+                      if (_calculatedFare != null) ...[
+                        const SizedBox(height: 24),
+                        Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           decoration: BoxDecoration(
@@ -623,81 +701,97 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                                 : const Color(0xFFF5F0EF),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '\$${_fareController.text}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? AppColors.white
-                                            : AppColors.black,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.edit,
-                                      size: 14,
-                                      color: isDark
-                                          ? Colors.grey.shade400
-                                          : Colors.grey.shade600,
-                                    ),
-                                  ],
-                                ),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 8,
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tap to set fare',
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '\$${_calculatedFare!.toStringAsFixed(2)}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
                                   color: isDark
-                                      ? Colors.grey.shade400
-                                      : Colors.grey,
+                                      ? AppColors.white
+                                      : AppColors.black,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 32),
 
-                      // Find Driver Button
-                      CustomButton(
-                        title: _isSearching ? 'Searching for driver...' : 'Find a driver',
-                        isLoading: _isSearching,
-                        onPress: () async {
-                          if (_isSearching) return;
-                          setState(() => _isSearching = true);
-                          // Simulate searching for a driver directly on the booking screen
-                          await Future.delayed(const Duration(seconds: 4));
-                          if (!context.mounted) return;
-                          setState(() => _isSearching = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Driver found! (Simulation)')),
+                      // Find Chauffeur Button
+                      Consumer<RideProvider>(
+                        builder: (context, rideProv, child) {
+                          return CustomButton(
+                            title: _isSearching || rideProv.isLoading
+                                ? 'Searching for chauffeur...'
+                                : 'Find a chauffeur',
+                            isLoading: _isSearching || rideProv.isLoading,
+                            onPress: _isSearching || rideProv.isLoading
+                                ? () {}
+                                : () async {
+                                    final ctx = this.context;
+                                    if (_fromController.text.isEmpty || _toController.text.isEmpty) {
+                                      CustomToast.showError(ctx, 'Please enter pickup and dropoff locations');
+                                      return;
+                                    }
+                                    if (_selectedDate == null || _selectedTime == null) {
+                                      CustomToast.showError(ctx, 'Please select date and time');
+                                      return;
+                                    }
+
+                                    final auth = ctx.read<AuthProvider>();
+                                    if (auth.currentUser == null) {
+                                      CustomToast.showError(ctx, 'User not authenticated');
+                                      return;
+                                    }
+
+                                    setState(() => _isSearching = true);
+
+                                    final success = await rideProv.requestInstantRide(
+                                      passengerId: auth.currentUser!.id,
+                                      pickupAddress: _fromController.text,
+                                      dropoffAddress: _toController.text,
+                                      pickupLat: _pickupLocation?.latitude,
+                                      pickupLng: _pickupLocation?.longitude,
+                                      dropoffLat: _dropoffLocation?.latitude,
+                                      dropoffLng: _dropoffLocation?.longitude,
+                                      fareAmount: _calculatedFare,
+                                      passengerNote: _commentController.text.trim().isNotEmpty
+                                          ? _commentController.text.trim()
+                                          : null,
+                                    );
+
+                                    if (ctx.mounted) {
+                                      setState(() => _isSearching = false);
+                                      if (success) {
+                                        ctx.push('/trip-summary');
+                                      } else {
+                                        CustomToast.showError(
+                                          ctx,
+                                          rideProv.errorMessage ?? 'Failed to request ride',
+                                        );
+                                      }
+                                    }
+                                  },
+                            variant: ButtonVariant.primary,
                           );
                         },
-                        variant: ButtonVariant.primary,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                     ],
                   ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),

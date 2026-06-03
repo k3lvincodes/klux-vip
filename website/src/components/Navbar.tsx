@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlignRight, X } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -17,12 +20,12 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   const navLinks = [
-    { name: 'Home', hash: '' },
-    { name: 'Fleets', hash: 'fleets' },
-    { name: 'Services', hash: 'services' },
-    { name: 'About us', hash: 'about-us' },
-    { name: 'Testimonials', hash: 'testimonials' },
-    { name: 'Contact', hash: 'contact' }
+    { key: 'home', hash: '' },
+    { key: 'fleets', hash: 'fleets' },
+    { key: 'services', hash: 'services' },
+    { key: 'about_us', hash: 'about-us' },
+    { key: 'testimonials', hash: 'testimonials' },
+    { key: 'contact', hash: 'contact' }
   ];
 
   return (
@@ -34,16 +37,16 @@ export default function Navbar() {
         <div className="menu-content">
           <ul className="menu-links">
             {navLinks.map((item) => (
-              <li key={item.name}>
+              <li key={item.key}>
                 <a href={item.hash ? `/#${item.hash}` : '/'} onClick={() => setIsMenuOpen(false)}>
-                  {item.name}
+                  {t(`nav.${item.key}`)}
                 </a>
               </li>
             ))}
           </ul>
           <div className="menu-footer">
             <Link to="/" className="nav-cta menu-cta" onClick={() => setIsMenuOpen(false)}>
-              Ride
+              {t('common.book_btn')}
             </Link>
           </div>
         </div>
@@ -55,15 +58,12 @@ export default function Navbar() {
             <div className="nav-logo-icon">
               <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} />
             </div>
-            Kenick
+            {t('common.app_name')}
           </Link>
           <div className="nav-right">
-            <div className="nav-lang">
-              <img src="https://flagcdn.com/w40/us.png" alt="US" />
-              <span>En</span>
-            </div>
+            <LanguageSwitcher />
             <Link to="/book" className="nav-cta" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-              Ride
+              {t('common.book_btn')}
             </Link>
             <button className="nav-menu-btn" onClick={() => setIsMenuOpen(true)}>
               <AlignRight size={26} />

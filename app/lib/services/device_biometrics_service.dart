@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:local_auth/local_auth.dart';
 
 class DeviceBiometricsService {
   static const String _deviceIdKey = 'device_uuid';
@@ -21,7 +22,6 @@ class DeviceBiometricsService {
   }
 
   static String _generateDeviceId() {
-    // Generate a unique device identifier
     final now = DateTime.now().microsecondsSinceEpoch;
     final random = (now % 100000).toString();
     return 'dev_${now}_$random';
@@ -30,6 +30,30 @@ class DeviceBiometricsService {
   static Future<bool> isBiometricEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('face_id_enabled') ?? false;
+  }
+
+  static Future<BiometricType?> getAvailableBiometricType() async {
+    try {
+      final auth = LocalAuthentication();
+      final available = await auth.canCheckBiometrics;
+      final supported = await auth.isDeviceSupported();
+      if (!available || !supported) return null;
+      final types = await auth.getAvailableBiometrics();
+      if (types.contains(BiometricType.face)) return BiometricType.face;
+      if (types.contains(BiometricType.fingerprint)) return BiometricType.fingerprint;
+      if (types.contains(BiometricType.iris)) return BiometricType.iris;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<String> getBiometricLabel() async {
+    final type = await getAvailableBiometricType();
+    if (type == BiometricType.face) return 'Face ID';
+    if (type == BiometricType.fingerprint) return 'Touch ID';
+    if (type == BiometricType.iris) return 'Iris';
+    return 'Biometrics';
   }
 
   static Future<void> registerDevice(String userId) async {

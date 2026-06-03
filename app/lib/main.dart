@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toastification/toastification.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/screens/driver_profile_setup_screen.dart';
 import 'package:kenick_vip/screens/driver_id_verification_screen.dart';
 import 'package:kenick_vip/screens/driver/account_screen.dart';
@@ -42,6 +43,7 @@ import 'package:kenick_vip/screens/driver/vehicle_info_screen.dart';
 import 'package:kenick_vip/screens/driver/id_verification_documents_screen.dart';
 import 'package:kenick_vip/screens/passenger/edit_profile_screen.dart';
 import 'package:kenick_vip/screens/privacy_policy_screen.dart';
+import 'package:kenick_vip/screens/terms_of_service_screen.dart';
 import 'package:kenick_vip/screens/otp_screen.dart';
 import 'package:kenick_vip/screens/passenger_profile_setup_screen.dart';
 import 'package:kenick_vip/screens/forgot_password_screen.dart';
@@ -64,6 +66,8 @@ import 'package:kenick_vip/providers/theme_provider.dart';
 import 'package:kenick_vip/widgets/biometric_lock_screen.dart';
 import 'package:local_auth/local_auth.dart';
 
+enum _LockTier { none, soft, hard }
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -85,7 +89,6 @@ Future<void> main() async {
     await Firebase.initializeApp();
     await FirebaseMessaging.instance.requestPermission();
   } catch (e) {
-    // Firebase may not be configured yet — app will still work without push notifications
     debugPrint('Firebase init skipped: $e');
   }
 
@@ -109,6 +112,22 @@ Future<void> main() async {
 
 final GoRouter _router = GoRouter(
   initialLocation: '/',
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final location = state.uri.path;
+
+    final publicRoutes = <String>{
+      '/', '/onboarding', '/sign-in', '/sign-up', '/forgot-password',
+      '/new-password', '/otp', '/role-selection',
+      '/privacy-policy', '/terms-of-service',
+    };
+
+    if (session == null && !publicRoutes.contains(location)) {
+      return '/onboarding';
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
@@ -240,7 +259,6 @@ final GoRouter _router = GoRouter(
       path: '/support',
       builder: (context, state) => const SupportScreen(),
     ),
-    // Driver Flow
     GoRoute(
       path: '/driver-home',
       builder: (context, state) => const DriverHomeScreen(),
@@ -269,7 +287,6 @@ final GoRouter _router = GoRouter(
       path: '/ride-payment-received',
       builder: (context, state) => const RidePaymentReceivedScreen(),
     ),
-    // Account & Withdraw Flow
     GoRoute(
       path: '/account',
       builder: (context, state) => const AccountScreen(),
@@ -318,6 +335,10 @@ final GoRouter _router = GoRouter(
       path: '/privacy-policy',
       builder: (context, state) => const PrivacyPolicyScreen(),
     ),
+    GoRoute(
+      path: '/terms-of-service',
+      builder: (context, state) => const TermsOfServiceScreen(),
+    ),
   ],
 );
 
@@ -339,7 +360,7 @@ class _SmoothPageTransitionBuilder extends PageTransitionsBuilder {
       ).animate(
         CurvedAnimation(
           parent: animation,
-          curve: Curves.easeOutCubic,
+          curve: AppCurves.easeOutCubic,
           reverseCurve: Curves.easeInCubic,
         ),
       ),
@@ -353,7 +374,7 @@ class _SmoothPageTransitionBuilder extends PageTransitionsBuilder {
           scale: Tween<double>(begin: 0.98, end: 1.0).animate(
             CurvedAnimation(
               parent: animation,
-              curve: Curves.easeOutCubic,
+              curve: AppCurves.easeOutCubic,
               reverseCurve: Curves.easeInCubic,
             ),
           ),
@@ -371,37 +392,88 @@ class KenickVipApp extends StatefulWidget {
   State<KenickVipApp> createState() => _KenickVipAppState();
 }
 
-class _KenickVipAppState extends State<KenickVipApp> with WidgetsBindingObserver {
+class _KenickVipAppState extends State<KenickVipApp>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   bool _isLocked = false;
   bool _faceIdEnabled = false;
   bool _canAuthenticate = false;
-  bool _isStartup = true;
+  DateTime? _backgroundedAt;
+  _LockTier _lockTier = _LockTier.none;
+  late final AnimationController _lockOverlayController;
+
+  static const Duration _shortLockThreshold = Duration(minutes: 2);
+  static const Duration _mediumLockThreshold = Duration(minutes: 15);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _lockOverlayController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
     _loadBiometricPrefs();
-    
-    // Hide lock screen during the 4-second splash screen animation
-    Future.delayed(const Duration(milliseconds: 4000), () {
-      if (mounted) setState(() => _isStartup = false);
-    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _lockOverlayController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.paused) {
+      _backgroundedAt = DateTime.now();
       if (_faceIdEnabled) {
         setState(() => _isLocked = true);
       }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_isLocked && _faceIdEnabled && _backgroundedAt != null) {
+        final elapsed = DateTime.now().difference(_backgroundedAt!);
+        if (elapsed < _shortLockThreshold) {
+          _unlockImmediately();
+        } else if (elapsed < _mediumLockThreshold) {
+          setState(() => _lockTier = _LockTier.soft);
+          _lockOverlayController.forward();
+        } else {
+          setState(() => _lockTier = _LockTier.hard);
+          _lockOverlayController.forward();
+        }
+      }
+      _backgroundedAt = null;
     }
+  }
+
+  void _unlockImmediately() {
+    setState(() {
+      _isLocked = false;
+      _lockTier = _LockTier.none;
+    });
+    _lockOverlayController.reset();
+  }
+
+  void _handleUnlocked() {
+    _lockOverlayController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _isLocked = false;
+          _lockTier = _LockTier.none;
+        });
+      }
+    });
+  }
+
+  void _handleSoftDismiss() {
+    _lockOverlayController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _isLocked = false;
+          _lockTier = _LockTier.none;
+        });
+      }
+    });
   }
 
   Future<void> _loadBiometricPrefs() async {
@@ -413,9 +485,6 @@ class _KenickVipAppState extends State<KenickVipApp> with WidgetsBindingObserver
       setState(() {
         _faceIdEnabled = enabled;
         _canAuthenticate = canAuth;
-        if (enabled && canAuth) {
-          _isLocked = true;
-        }
       });
     }
   }
@@ -434,201 +503,221 @@ class _KenickVipAppState extends State<KenickVipApp> with WidgetsBindingObserver
             debugShowCheckedModeBanner: false,
             themeMode: themeProvider.themeMode,
             builder: (context, child) {
-              final isLoggedIn = context.watch<AuthProvider>().currentUser != null;
+              final auth = context.watch<AuthProvider>();
+              final isLoggedIn = auth.currentUser != null;
+
               return Stack(
                 children: [
-                  if (child != null) child,
-                  if (_isLocked && !_isStartup && isLoggedIn)
-                    BiometricLockScreen(
-                      canAuthenticate: _canAuthenticate,
-                      onUnlocked: () => setState(() => _isLocked = false),
+                  child!,
+                  if (_isLocked && isLoggedIn)
+                    AnimatedBuilder(
+                      animation: _lockOverlayController,
+                      builder: (context, _) {
+                        final opacity = _lockOverlayController.value;
+                        return Opacity(
+                          opacity: opacity,
+                          child: AbsorbPointer(
+                            absorbing: opacity < 0.95,
+                            child: BiometricLockScreen(
+                              canAuthenticate: _canAuthenticate,
+                              lockMode: _lockTier == _LockTier.soft
+                                  ? LockMode.soft
+                                  : LockMode.hard,
+                              onUnlocked: _handleUnlocked,
+                              onSoftDismiss: _lockTier == _LockTier.soft
+                                  ? _handleSoftDismiss
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                 ],
               );
             },
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          textTheme: baseTextTheme,
-          scaffoldBackgroundColor: AppColors.background,
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: AppColors.black),
-            titleTextStyle: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.black,
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: const Color(0xFFF5F0EF),
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: AppColors.primary,
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+              textTheme: baseTextTheme,
+              scaffoldBackgroundColor: AppColors.background,
+              appBarTheme: AppBarTheme(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+                iconTheme: const IconThemeData(color: AppColors.black),
+                titleTextStyle: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: const Color(0xFFF5F0EF),
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.black,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                color: Colors.white,
+              ),
+              dividerTheme: DividerThemeData(
+                color: Colors.grey.shade200,
+                thickness: 1,
+              ),
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: _SmoothPageTransitionBuilder(),
+                  TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
+                  TargetPlatform.windows: _SmoothPageTransitionBuilder(),
+                },
               ),
             ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: AppColors.primary,
+                brightness: Brightness.dark,
               ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              useMaterial3: true,
+              textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+              scaffoldBackgroundColor: AppColors.darkBackground,
+              appBarTheme: AppBarTheme(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+                iconTheme: const IconThemeData(color: AppColors.white),
+                titleTextStyle: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
               ),
-            ),
-          ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.black,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: AppColors.darkSurface,
+                hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
               ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.black,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            color: Colors.white,
-          ),
-          dividerTheme: DividerThemeData(
-            color: Colors.grey.shade200,
-            thickness: 1,
-          ),
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: _SmoothPageTransitionBuilder(),
-              TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
-              TargetPlatform.windows: _SmoothPageTransitionBuilder(),
-            },
-          ),
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-          scaffoldBackgroundColor: AppColors.darkBackground,
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: AppColors.white),
-            titleTextStyle: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.white,
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: AppColors.darkSurface,
-            hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.grey.shade700),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                color: AppColors.darkSurface,
               ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              dividerTheme: DividerThemeData(
+                color: Colors.grey.shade800,
+                thickness: 1,
+              ),
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: _SmoothPageTransitionBuilder(),
+                  TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
+                  TargetPlatform.windows: _SmoothPageTransitionBuilder(),
+                },
               ),
             ),
-          ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: Colors.grey.shade700),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            color: AppColors.darkSurface,
-          ),
-          dividerTheme: DividerThemeData(
-            color: Colors.grey.shade800,
-            thickness: 1,
-          ),
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: _SmoothPageTransitionBuilder(),
-              TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
-              TargetPlatform.windows: _SmoothPageTransitionBuilder(),
-            },
-          ),
-        ),
-        routerConfig: _router,
+            routerConfig: _router,
           );
         },
       ),

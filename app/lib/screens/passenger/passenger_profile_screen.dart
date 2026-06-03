@@ -47,10 +47,10 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       );
     }
 
-    final String firstName = _profile?['first_name'] ?? 'Passenger';
+    final String firstName = _profile?['first_name'] ?? 'Client';
     final String lastName = _profile?['last_name'] ?? '';
     final String fullName = '$firstName $lastName'.trim();
-    final String imageUrl = _profile?['profile_image_url'] ?? '';
+    final String imageUrl = _profile?['avatar_url'] ?? '';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,

@@ -96,7 +96,7 @@ class _DriverIdVerificationScreenState
   void _sendResultEmail({required bool isSuccess}) {
     final user = Supabase.instance.client.auth.currentUser;
     final email = user?.email;
-    final name = user?.userMetadata?['name'] as String? ?? email ?? 'Driver';
+    final name = user?.userMetadata?['name'] as String? ?? email ?? 'Chauffeur';
     if (email == null) return;
     if (isSuccess) {
       _emailService.sendVerificationSuccessEmail(toEmail: email, userName: name);
@@ -135,9 +135,9 @@ class _DriverIdVerificationScreenState
       if (status == 'declined') dbStatus = 'suspended';
       
       await Supabase.instance.client
-          .from('driver_profiles')
+          .from('driver_details')
           .update({'status': dbStatus})
-          .eq('user_id', user.id);
+          .eq('profile_id', user.id);
     }
   }
 

@@ -53,7 +53,7 @@ export default function TermsConditions() {
             </ul>
 
             <h3 style={{ fontSize: '1.3rem', fontWeight: 600, marginTop: '2rem', marginBottom: '0.75rem', color: '#000' }}>
-              3. Service Quality and Driver Conduct
+              3. Service Quality and Chauffeur Conduct
             </h3>
             <p style={{ marginBottom: '1.5rem' }}>
               Kenick is committed to maintaining the highest standard of luxury transportation. All independent 
@@ -69,7 +69,7 @@ export default function TermsConditions() {
               Pricing is calculated based on distance, duration, scheduled time, and chosen vehicle category. All 
               transactions are processed securely. You agree to pay the flat-rate fee displayed during booking, plus 
               any applicable tolls, additional stops requested en route, or cleaning/damage fees incurred due to 
-              passenger negligence.
+              client negligence.
             </p>
 
             <h3 style={{ fontSize: '1.3rem', fontWeight: 600, marginTop: '2rem', marginBottom: '0.75rem', color: '#000' }}>

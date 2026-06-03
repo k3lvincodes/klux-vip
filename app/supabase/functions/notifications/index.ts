@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         body,
         data,
         status: 'pending',
+        delivery_status: 'pending',
       })
 
       return new Response(
@@ -91,6 +92,7 @@ Deno.serve(async (req) => {
       body,
       data,
       status: 'sent',
+      delivery_status: 'sent',
     })
 
     const fcmSent = await sendFCM({
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
     if (!fcmSent) {
       await supabase
         .from('notifications')
-        .update({ status: 'failed' })
+        .update({ status: 'failed', delivery_status: 'failed' })
         .eq('id', notificationRecord.id)
     }
 

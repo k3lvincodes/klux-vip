@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Shield, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import '../styles/admin-login.css';
 
 export default function AdminLogin() {
@@ -39,7 +39,7 @@ export default function AdminLogin() {
 
       if (data.user) {
         const { data: userData, error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .select('is_super_admin')
           .eq('id', data.user.id)
           .single();
@@ -64,6 +64,10 @@ export default function AdminLogin() {
     <div className="al-page">
       {/* LEFT PANEL — Brand Visual */}
       <div className="al-brand-panel">
+        {/* Logo at top left */}
+        <div className="al-top-logo">
+          <img src="/Kenick-logo-favicon.png" alt="Kenick" />
+        </div>
         {/* Animated aurora blobs */}
         <div className="al-aurora">
           <div className="al-aurora-blob al-blob-1"></div>
@@ -76,16 +80,12 @@ export default function AdminLogin() {
         <div className="al-noise"></div>
 
         <div className={`al-brand-content ${mounted ? 'al-visible' : ''}`}>
-          <div className="al-brand-badge">
-            <Shield size={14} />
-            <span>SECURED PORTAL</span>
-          </div>
           <h1 className="al-brand-title">
-            Kenick<br />
+            Kenick Transportation<br />
             <span>Command Center</span>
           </h1>
           <p className="al-brand-desc">
-            Full platform control. Monitor rides, manage drivers, 
+            Full platform control. Monitor rides, manage chauffeurs, 
             review transactions, and oversee every aspect of the 
             Kenick VIP experience.
           </p>
@@ -111,11 +111,6 @@ export default function AdminLogin() {
       {/* RIGHT PANEL — Login Form */}
       <div className="al-form-panel">
         <div className={`al-form-container ${mounted ? 'al-visible' : ''}`}>
-          {/* Logo */}
-          <div className="al-form-logo">
-            <img src="/Kenick-logo-favicon.png" alt="Kenick" />
-          </div>
-
           <div className="al-form-header">
             <h2>Welcome back</h2>
             <p>Enter your credentials to access the admin dashboard</p>
@@ -185,7 +180,7 @@ export default function AdminLogin() {
           </form>
 
           <div className="al-footer">
-            <a href="/">← Back to kenick.com</a>
+            <a href="/">← Back to kenicktransportation.com</a>
           </div>
         </div>
       </div>

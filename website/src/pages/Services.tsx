@@ -1,29 +1,34 @@
+import { useTranslation } from 'react-i18next';
+
+const SERVICE_KEYS = [
+  { titleKey: 'services.airport_transfers', descKey: 'services.airport_transfers_desc', img: '/airport image.png' },
+  { titleKey: 'services.corporate_travel', descKey: 'services.corporate_travel_desc', img: '/copoorate image.png' },
+  { titleKey: 'services.special_events', descKey: 'services.special_events_desc', img: '/event image.png' },
+  { titleKey: 'services.vip_service', descKey: 'services.vip_service_desc', img: '/group transport image.png' },
+];
 
 export default function Services() {
+  const { t } = useTranslation();
+
   return (
     <section className="services section-padding page-layout" id="services">
       <div className="services-bg-circle-1" />
       <div className="services-bg-circle-2" />
-      <h2 className="section-title">Our services</h2>
+      <h2 className="section-title">{t('services.title')}</h2>
       <div className="container">
         <div className="services-grid">
-          {[
-            { title: 'Airport transfers', desc: 'Enjoy a seamless transition from the tarmac to your final destination.', img: '/airport image.png' },
-            { title: 'Corporate travel', desc: 'Designed for business professionals. Our corporate travel service offers reliability, comfort, and privacy.', img: '/copoorate image.png' },
-            { title: 'Wedding & events', desc: 'Make your special day unforgettable with our luxury SUV transportation.', img: '/event image.png' },
-            { title: 'Group & VIP transport', desc: "Streamline your team's travel with our executive group transfer services.", img: '/group transport image.png' },
-          ].map((s) => (
-            <div className="service-card" key={s.title}>
-              <div className="service-card-img"><img src={s.img} alt={s.title} /></div>
+          {SERVICE_KEYS.map((s) => (
+            <div className="service-card" key={s.titleKey}>
+              <div className="service-card-img"><img src={s.img} alt={t(s.titleKey)} /></div>
               <div className="service-card-body">
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
+                <h3>{t(s.titleKey)}</h3>
+                <p>{t(s.descKey)}</p>
               </div>
             </div>
           ))}
         </div>
         <div className="services-cta" style={{ textAlign: 'center', marginTop: '3rem' }}>
-          <a href="/#contact" className="btn btn-dark services-learn-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>Contact Us to Learn More</a>
+          <a href="/#contact" className="btn btn-dark services-learn-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>{t('services.view_all_services')}</a>
         </div>
       </div>
     </section>

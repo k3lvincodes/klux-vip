@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, MapPin, Calendar, Clock, Car } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -7,6 +8,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function BookingPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialVehicle = searchParams.get('vehicle') || 'Standard SUV';
 
@@ -260,16 +262,15 @@ export default function BookingPage() {
             fontWeight: 700,
             color: '#000',
           }}>
-            Book Your Ride
+            {t('booking.title')}
           </h2>
 
           {submitSuccess ? (
             <div style={{ textAlign: 'center', padding: '20px', background: '#f0fdf4', borderRadius: '16px', border: '1px solid #bbf7d0' }}>
               <CheckCircle2 size={64} color="#10b981" style={{ margin: '0 auto 20px' }} />
-              <h3 style={{ color: '#000', marginBottom: '8px' }}>Booking Confirmed!</h3>
+              <h3 style={{ color: '#000', marginBottom: '8px' }}>{t('booking.booking_confirmed')}</h3>
               <p style={{ color: '#64748b', marginTop: '10px', fontSize: '0.9rem' }}>
-                Your ride for {bookingForm.date} at {bookingForm.time} has been successfully booked.
-                We'll send a confirmation email shortly.
+                {t('booking.booking_confirmed_desc', { date: bookingForm.date, time: bookingForm.time })}
               </p>
               <button
                 style={{
@@ -291,7 +292,7 @@ export default function BookingPage() {
                   setBookingForm({ pickup: '', dropoff: '', date: '', time: '', vehicle: 'Standard SUV', passengers: '1' });
                 }}
               >
-                Book Another Ride
+                {t('booking.book_another_ride')}
               </button>
             </div>
           ) : (
@@ -299,14 +300,14 @@ export default function BookingPage() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                  <MapPin size={15} /> Pickup Location
+                  <MapPin size={15} /> {t('booking.pickup_location')}
                 </label>
                 <input
                   type="text"
                   name="pickup"
                   value={bookingForm.pickup}
                   onChange={handleChange}
-                  placeholder="Enter pickup address or airport"
+                  placeholder={t('booking.pickup_placeholder')}
                   required
                   style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s', color: '#000', background: '#fff' }}
                   onFocus={e => e.currentTarget.style.borderColor = '#F4C522'}
@@ -316,14 +317,14 @@ export default function BookingPage() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                  <MapPin size={15} /> Drop-off Location
+                  <MapPin size={15} /> {t('booking.dropoff_location')}
                 </label>
                 <input
                   type="text"
                   name="dropoff"
                   value={bookingForm.dropoff}
                   onChange={handleChange}
-                  placeholder="Enter drop-off address or airport"
+                  placeholder={t('booking.dropoff_placeholder')}
                   required
                   style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s', color: '#000', background: '#fff' }}
                   onFocus={e => e.currentTarget.style.borderColor = '#F4C522'}
@@ -334,7 +335,7 @@ export default function BookingPage() {
               <div className="booking-form-row" style={{ marginBottom: '20px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Calendar size={15} /> Date
+                    <Calendar size={15} /> {t('booking.date')}
                   </label>
                   <input
                     type="date"
@@ -347,7 +348,7 @@ export default function BookingPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Clock size={15} /> Time
+                    <Clock size={15} /> {t('booking.time')}
                   </label>
                   <input
                     type="time"
@@ -363,7 +364,7 @@ export default function BookingPage() {
               <div className="booking-form-row" style={{ marginBottom: '28px' }}>
                 <div style={{ flex: 2 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Car size={15} /> Vehicle Type
+                    <Car size={15} /> {t('booking.vehicle_type')}
                   </label>
                   <select
                     name="vehicle"
@@ -371,15 +372,15 @@ export default function BookingPage() {
                     onChange={handleChange}
                     style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', color: '#000', background: '#fff', cursor: 'pointer' }}
                   >
-                    <option value="GMC Yukon">GMC Yukon</option>
-                    <option value="Cadillac Escalade">Cadillac Escalade</option>
-                    <option value="Ford Expedition">Ford Expedition</option>
-                    <option value="Standard SUV">Standard SUV</option>
+                    <option value="GMC Yukon">{t('fleet.gmc_yukon')}</option>
+                    <option value="Cadillac Escalade">{t('fleet.cadillac_escalade')}</option>
+                    <option value="Ford Expedition">{t('fleet.ford_expedition')}</option>
+                    <option value="Standard SUV">{t('fleet.standard_suv')}</option>
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    Passengers
+                    {t('booking.passengers')}
                   </label>
                   <select
                     name="passengers"
@@ -402,7 +403,7 @@ export default function BookingPage() {
                   padding: '16px',
                   fontSize: '1rem',
                   fontWeight: 700,
-                  borderRadius: '12px',
+                  borderRadius: '999px',
                   background: '#F4C522',
                   color: '#000',
                   border: 'none',
@@ -414,7 +415,7 @@ export default function BookingPage() {
                 onMouseEnter={e => { if (!isSubmitting) e.currentTarget.style.background = '#DCA70B'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = '#F4C522'; }}
               >
-                {isSubmitting ? 'Processing...' : 'Confirm Booking'}
+                {isSubmitting ? t('booking.processing') : t('booking.confirm_booking')}
               </button>
             </form>
           )}

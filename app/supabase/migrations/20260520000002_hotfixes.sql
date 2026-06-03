@@ -4,26 +4,26 @@
 -- ============================================
 
 -- ============================================
--- 1. FIX: Drivers Cannot Accept Rides (RLS Bug)
+-- 1. FIX: Chauffeurs Cannot Accept Rides (RLS Bug)
 -- ============================================
 -- The previous policy evaluated `auth.uid() = driver_id` BEFORE the update.
 -- Since requested rides have a NULL driver_id, this evaluated to false, blocking acceptance.
 -- We fix this by allowing updates when driver_id IS NULL, and enforcing the new driver_id with CHECK.
-drop policy if exists "Drivers can accept requested rides." on public.rides;
+drop policy if exists "Chauffeurs can accept requested rides." on public.rides;
 
-create policy "Drivers can accept requested rides." on public.rides for update 
+create policy "Chauffeurs can accept requested rides." on public.rides for update 
   using (driver_id is null and status = 'requested')
   with check (auth.uid() = driver_id);
 
 
 -- ============================================
--- 2. FIX: Passenger Ride Tampering (Missing CHECK)
+-- 2. FIX: Client Ride Tampering (Missing CHECK)
 -- ============================================
--- The previous policy lacked a `with check` clause, meaning a passenger could update
+-- The previous policy lacked a `with check` clause, meaning a client could update
 -- their ride and maliciously change the passenger_id to someone else's ID.
-drop policy if exists "Passengers can update their rides only when requested." on public.rides;
+drop policy if exists "Clients can update their rides only when requested." on public.rides;
 
-create policy "Passengers can update their rides only when requested." on public.rides for update 
+create policy "Clients can update their rides only when requested." on public.rides for update 
   using (auth.uid() = passenger_id and status = 'requested')
   with check (auth.uid() = passenger_id);
 

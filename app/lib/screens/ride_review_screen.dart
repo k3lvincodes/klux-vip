@@ -163,7 +163,7 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
   void _goHome() {
     final user = Supabase.instance.client.auth.currentUser;
     final role = user?.userMetadata?['role'];
-    if (role == 'Driver' || role == 'Affiliate') {
+    if (role == 'Chauffeur' || role == 'Affiliate') {
       context.go('/driver-home');
     } else {
       context.go('/passenger-home');

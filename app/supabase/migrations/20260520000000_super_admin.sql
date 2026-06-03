@@ -28,13 +28,13 @@ $$ language plpgsql security definer;
 create policy "Admins can view all users." on public.users for select using (public.is_admin());
 create policy "Admins can update all users." on public.users for update using (public.is_admin());
 
--- Driver profiles
-create policy "Admins can view all driver profiles." on public.driver_profiles for select using (public.is_admin());
-create policy "Admins can update all driver profiles." on public.driver_profiles for update using (public.is_admin());
+-- Chauffeur profiles
+create policy "Admins can view all chauffeur profiles." on public.driver_profiles for select using (public.is_admin());
+create policy "Admins can update all chauffeur profiles." on public.driver_profiles for update using (public.is_admin());
 
--- Passenger profiles
-create policy "Admins can view all passenger profiles." on public.passenger_profiles for select using (public.is_admin());
-create policy "Admins can update all passenger profiles." on public.passenger_profiles for update using (public.is_admin());
+-- Client profiles
+create policy "Admins can view all client profiles." on public.passenger_profiles for select using (public.is_admin());
+create policy "Admins can update all client profiles." on public.passenger_profiles for update using (public.is_admin());
 
 -- Rides
 create policy "Admins can view all rides." on public.rides for select using (public.is_admin());
@@ -51,9 +51,9 @@ create policy "Admins can view all reviews." on public.reviews for select using 
 create policy "Admins can view all support tickets." on public.support_tickets for select using (public.is_admin());
 create policy "Admins can update all support tickets." on public.support_tickets for update using (public.is_admin());
 
--- Driver documents
-create policy "Admins can view all driver documents." on public.driver_documents for select using (public.is_admin());
-create policy "Admins can update all driver documents." on public.driver_documents for update using (public.is_admin());
+-- Chauffeur documents
+create policy "Admins can view all chauffeur documents." on public.driver_documents for select using (public.is_admin());
+create policy "Admins can update all chauffeur documents." on public.driver_documents for update using (public.is_admin());
 
 -- Transactions
 create policy "Admins can view all transactions." on public.transactions for select using (public.is_admin());
@@ -67,7 +67,7 @@ create policy "Admins can view all ledger entries." on public.ledger_entries for
 -- Notifications
 create policy "Admins can view all notifications." on public.notifications for select using (public.is_admin());
 
--- Driver telemetry
+-- Chauffeur telemetry
 create policy "Admins can view all telemetry." on public.driver_telemetry for select using (public.is_admin());
 
 -- Surge zones
@@ -91,11 +91,11 @@ begin
 
   select json_build_object(
     'total_users', (select count(*) from public.users),
-    'total_passengers', (select count(*) from public.users where role = 'passenger'),
-    'total_drivers', (select count(*) from public.users where role = 'driver'),
-    'approved_drivers', (select count(*) from public.driver_profiles where status = 'approved'),
-    'pending_drivers', (select count(*) from public.driver_profiles where status = 'pending'),
-    'online_drivers', (select count(*) from public.driver_profiles where is_online = true),
+    'total_clients', (select count(*) from public.users where role = 'client'),
+    'total_chauffeurs', (select count(*) from public.users where role = 'chauffeur'),
+    'approved_chauffeurs', (select count(*) from public.driver_profiles where status = 'approved'),
+    'pending_chauffeurs', (select count(*) from public.driver_profiles where status = 'pending'),
+    'online_chauffeurs', (select count(*) from public.driver_profiles where is_online = true),
     'total_rides', (select count(*) from public.rides),
     'active_rides', (select count(*) from public.rides where status in ('requested', 'accepted', 'arriving', 'in_progress')),
     'completed_rides', (select count(*) from public.rides where status = 'completed'),

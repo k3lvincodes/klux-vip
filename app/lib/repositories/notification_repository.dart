@@ -60,7 +60,7 @@ class NotificationRepository {
     try {
       await _supabase
           .from('notifications')
-          .update({'status': 'read'})
+          .update({'is_read': true})
           .eq('id', notificationId);
     } catch (e) {
       throw Exception('Failed to mark notification as read: $e');

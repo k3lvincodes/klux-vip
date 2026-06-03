@@ -6,6 +6,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 
@@ -18,6 +20,8 @@ class StartRideScreen extends StatefulWidget {
 
 class _StartRideScreenState extends State<StartRideScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
+  late LatLng _currentPosition;
+  final MapController _mapController = MapController();
 
   int _waitSeconds = 0;
   Timer? _timer;
@@ -25,6 +29,11 @@ class _StartRideScreenState extends State<StartRideScreen> {
   @override
   void initState() {
     super.initState();
+    final mem = MapMemory();
+    _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapController.move(_currentPosition, mem.lastZoom);
+    });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _waitSeconds++;
@@ -35,6 +44,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    MapMemory().save(_currentPosition, _mapController.camera.zoom);
     super.dispose();
   }
 
@@ -52,10 +62,11 @@ class _StartRideScreenState extends State<StartRideScreen> {
         children: [
           // Map Background
           FlutterMap(
-            options: const MapOptions(
-              initialCenter: _initialPosition,
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentPosition,
               initialZoom: 14.5,
-              interactionOptions: InteractionOptions(
+              interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
             ),
@@ -69,6 +80,11 @@ class _StartRideScreenState extends State<StartRideScreen> {
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
+              ),
+              MarkerLayer(
+                markers: [
+                  AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                ],
               ),
             ],
           ),

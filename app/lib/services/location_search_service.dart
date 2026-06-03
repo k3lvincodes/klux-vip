@@ -16,50 +16,98 @@ class LocationSearchResult {
 }
 
 class LocationSearchService {
-  static String? _token;
+  static final http.Client _client = http.Client();
+  static DateTime _lastRequest = DateTime(2000);
+  static final Map<String, List<LocationSearchResult>> _searchCache = {};
+  static final Map<String, LocationSearchResult?> _reverseCache = {};
 
-  static String get _accessToken {
-    _token ??= dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
-    return _token!;
+  static Future<void> _throttle() async {
+    final now = DateTime.now();
+    final diff = now.difference(_lastRequest).inMilliseconds;
+    if (diff < 1000) {
+      await Future.delayed(Duration(milliseconds: 1000 - diff));
+    }
+    _lastRequest = DateTime.now();
+  }
+
+  static Future<Map<String, String>> _headers() async {
+    return {
+      'User-Agent': 'KluxVip/1.0 (passenger-app)',
+      'Accept': 'application/json',
+    };
   }
 
   static Future<List<LocationSearchResult>> search(String query) async {
-    if (query.trim().length < 3) return [];
+    if (query.trim().isEmpty) return [];
 
-    final url = Uri.parse(
-      'https://api.mapbox.com/geocoding/v5/mapbox.places/${Uri.encodeComponent(query)}.json'
-      '?access_token=$_accessToken'
-      '&types=address,place,locality,neighborhood,poi'
-      '&limit=5'
-      '&country=US',
+    final key = query.trim().toLowerCase();
+    final cached = _searchCache[key];
+    if (cached != null) return cached;
+
+    await _throttle();
+
+    final uri = Uri.parse(
+      'https://nominatim.openstreetmap.org/search'
+      '?q=${Uri.encodeComponent(query)}'
+      '&format=json'
+      '&addressdetails=1'
+      '&limit=20'
+      '&countrycodes=ng,us,gb,ca,au,br',
     );
 
     try {
-      final response = await http.get(url);
+      final response = await _client.get(uri, headers: await _headers());
       if (response.statusCode != 200) return [];
 
-      final data = jsonDecode(response.body);
-      final features = data['features'] as List? ?? [];
-
-      return features.map((f) {
-        final coords = f['center'] as List;
+      final data = jsonDecode(response.body) as List? ?? [];
+      final results = data.map((f) {
         return LocationSearchResult(
-          placeName: f['place_name'] ?? '',
-          latitude: (coords[1] as num).toDouble(),
-          longitude: (coords[0] as num).toDouble(),
+          placeName: f['display_name'] ?? '',
+          latitude: double.parse(f['lat'] as String),
+          longitude: double.parse(f['lon'] as String),
         );
       }).toList();
+
+      _searchCache[key] = results;
+      return results;
     } catch (_) {
       return [];
     }
   }
 
-  static Future<LocationSearchResult?> reverseGeocode(LatLng point) async {
+  static Future<String?> detectCountryCodeByIP() async {
+    try {
+      final url = Uri.parse('http://ip-api.com/json');
+      final response = await http.get(url);
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body) as Map?;
+      if (data == null || data['status'] != 'success') return null;
+      return data['countryCode'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<String?> detectCountryCode(LatLng point) async {
+    final code = await detectCountryCodeByIP();
+    if (code != null) return code;
+
+    final result = await reverseGeocode(point);
+    if (result == null) return null;
+
+    final parts = result.placeName.split(', ');
+    return parts.isNotEmpty ? parts.last : null;
+  }
+
+  static Future<List<LatLng>?> getRoute(LatLng from, LatLng to) async {
+    final token = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+    if (token.isEmpty) return null;
+
     final url = Uri.parse(
-      'https://api.mapbox.com/geocoding/v5/mapbox.places/${point.longitude},${point.latitude}.json'
-      '?access_token=$_accessToken'
-      '&types=address,place,locality,neighborhood'
-      '&limit=1',
+      'https://api.mapbox.com/directions/v5/mapbox/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
+      '?geometries=geojson'
+      '&overview=full'
+      '&access_token=$token',
     );
 
     try {
@@ -67,16 +115,53 @@ class LocationSearchService {
       if (response.statusCode != 200) return null;
 
       final data = jsonDecode(response.body);
-      final features = data['features'] as List? ?? [];
-      if (features.isEmpty) return null;
+      final routes = data['routes'] as List? ?? [];
+      if (routes.isEmpty) return null;
 
-      final f = features[0];
-      final coords = f['center'] as List;
-      return LocationSearchResult(
-        placeName: f['place_name'] ?? '',
-        latitude: (coords[1] as num).toDouble(),
-        longitude: (coords[0] as num).toDouble(),
+      final geometry = routes[0]['geometry'] as Map?;
+      if (geometry == null) return null;
+
+      final coords = geometry['coordinates'] as List? ?? [];
+      return coords.map((c) {
+        final lng = (c[0] as num).toDouble();
+        final lat = (c[1] as num).toDouble();
+        return LatLng(lat, lng);
+      }).toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<LocationSearchResult?> reverseGeocode(LatLng point) async {
+    final key = '${point.latitude},${point.longitude}';
+    final cached = _reverseCache[key];
+    if (cached != null) return cached;
+
+    await _throttle();
+
+    final uri = Uri.parse(
+      'https://nominatim.openstreetmap.org/reverse'
+      '?lat=${point.latitude}'
+      '&lon=${point.longitude}'
+      '&format=json'
+      '&addressdetails=1',
+    );
+
+    try {
+      final response = await _client.get(uri, headers: await _headers());
+      if (response.statusCode != 200) return null;
+
+      final data = jsonDecode(response.body) as Map?;
+      if (data == null || data['error'] != null) return null;
+
+      final result = LocationSearchResult(
+        placeName: data['display_name'] ?? '',
+        latitude: double.parse(data['lat'] as String),
+        longitude: double.parse(data['lon'] as String),
       );
+
+      _reverseCache[key] = result;
+      return result;
     } catch (_) {
       return null;
     }

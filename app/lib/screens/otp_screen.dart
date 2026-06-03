@@ -88,12 +88,27 @@ class _OtpScreenState extends State<OtpScreen> {
     );
     
     if (success) {
+      if (widget.isPasswordReset != true) {
+        final user = auth.currentUser;
+        if (user != null) {
+          await ProfileRepository().markEmailVerified(user.id);
+        }
+      }
       if (mounted) {
         if (widget.isPasswordReset == true) {
           context.go('/new-password');
         } else if (widget.isSignup == true) {
-          context.go('/role-selection');
-        } else if (widget.role == 'Passenger') {
+          final user = auth.currentUser;
+          if (user != null) {
+            try {
+              await Supabase.instance.client
+                  .from('profiles')
+                  .update({'role': null})
+                  .eq('id', user.id);
+            } catch (_) {}
+          }
+          if (mounted) context.go('/role-selection');
+        } else if (widget.role == 'Client') {
           final user = auth.currentUser;
           if (user != null) {
             final profile = await ProfileRepository().getPassengerProfile(user.id);
@@ -105,7 +120,7 @@ class _OtpScreenState extends State<OtpScreen> {
               }
             }
           }
-        } else if (widget.role == 'Driver' || widget.role == 'Affiliate') {
+        } else if (widget.role == 'Chauffeur' || widget.role == 'Affiliate') {
           final user = auth.currentUser;
           if (user != null) {
             final profile = await ProfileRepository().getDriverProfile(user.id);
@@ -152,7 +167,7 @@ class _OtpScreenState extends State<OtpScreen> {
               const Text('Demo: Where do you want to go?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               ListTile(
-                title: const Text('Passenger Flow'),
+                title: const Text('Client Flow'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(context);
@@ -161,7 +176,7 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
               const Divider(),
               ListTile(
-                title: const Text('Driver Flow'),
+                title: const Text('Chauffeur Flow'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(context);
@@ -247,8 +262,10 @@ class _OtpScreenState extends State<OtpScreen> {
                             );
                           }
                           _startTimer();
+                          if (!context.mounted) return;
                           CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
                         } catch (e) {
+                          if (!context.mounted) return;
                           CustomToast.showError(context, 'Failed to resend OTP');
                         }
                       }

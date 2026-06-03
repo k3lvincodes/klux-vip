@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function HowItWorks() {
+  const { t } = useTranslation();
+
   return (
     <section className="how-it-works section-padding" id="how-it-works">
       <div className="container">
@@ -21,43 +24,43 @@ export default function HowItWorks() {
 
             {/* Big circle */}
             <div className="hiw-big-circle">
-              <h2>How it<br />works</h2>
+              <h2 dangerouslySetInnerHTML={{ __html: t('how_it_works.title').replace(' ', '<br />') }} />
             </div>
 
             {/* Step 1 - top */}
             <div className="hiw-step hiw-step-1">
               <div className="hiw-step-icon">
-                <img src="/ride choose.png" alt="Choose ride type" />
+                <img src="/ride choose.png" alt={t('how_it_works.step1_title')} />
               </div>
-              <p className="hiw-step-label">1. Choose ride type</p>
+              <p className="hiw-step-label">1. {t('how_it_works.step1_title')}</p>
             </div>
 
             {/* Step 2 - middle */}
             <div className="hiw-step hiw-step-2">
               <div className="hiw-step-icon">
-                <img src="/location search.png" alt="Set pick up" />
+                <img src="/location search.png" alt={t('how_it_works.step2_title')} />
               </div>
-              <p className="hiw-step-label">2. Set pick up and<br />drop off details</p>
+              <p className="hiw-step-label">2. {t('how_it_works.step2_title')}</p>
             </div>
 
             {/* Step 3 - bottom */}
             <div className="hiw-step hiw-step-3">
               <div className="hiw-step-icon">
-                <img src="/confirm.png" alt="Confirm booking" />
+                <img src="/confirm.png" alt={t('how_it_works.step3_title')} />
               </div>
-              <p className="hiw-step-label">3. Confirm booking</p>
+              <p className="hiw-step-label">3. {t('how_it_works.step3_title')}</p>
             </div>
           </div>
 
           {/* Right: Phone mockup */}
           <div className="hiw-phone">
-            <img src="/Payment successful Mockup.png" alt="Payment successful phone mockup" className="hiw-phone-img" />
+            <img src="/Payment successful Mockup.png" alt={t('how_it_works.step3_title')} className="hiw-phone-img" />
           </div>
         </div>
         
         <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-          <Link to="/book" className="nav-cta" style={{ display: 'inline-block', textDecoration: 'none' }}>
-            Book a ride now
+          <Link to="/book" className="nav-cta" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', width: '209px', height: '59px', fontSize: '1.05rem' }}>
+            {t('how_it_works.book_a_ride_now')}
           </Link>
         </div>
       </div>

@@ -3,12 +3,40 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/widgets/active_trip_card.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
 
-class ActiveRideScreen extends StatelessWidget {
+class ActiveRideScreen extends StatefulWidget {
   const ActiveRideScreen({super.key});
 
+  @override
+  State<ActiveRideScreen> createState() => _ActiveRideScreenState();
+}
+
+class _ActiveRideScreenState extends State<ActiveRideScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
+  late LatLng _currentPosition;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    final mem = MapMemory();
+    _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapController.move(_currentPosition, mem.lastZoom);
+    });
+  }
+
+  @override
+  void dispose() {
+    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +46,11 @@ class ActiveRideScreen extends StatelessWidget {
         children: [
           // Map Background
           FlutterMap(
-            options: const MapOptions(
-              initialCenter: _initialPosition,
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentPosition,
               initialZoom: 14.5,
-              interactionOptions: InteractionOptions(
+              interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
             ),
@@ -35,6 +64,11 @@ class ActiveRideScreen extends StatelessWidget {
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
+              ),
+              MarkerLayer(
+                markers: [
+                  AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                ],
               ),
             ],
           ),
@@ -56,46 +90,23 @@ class ActiveRideScreen extends StatelessWidget {
             ),
           ),
 
-          // Bottom - End Ride Button
+          // Bottom - Active Trip Card
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : const Color(0xFFF5EFEE),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        context.push('/end-ride-confirmation');
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Colors.red, width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'End ride',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+            child: Consumer<RideProvider>(
+              builder: (context, rideProv, child) {
+                return ActiveTripCard(
+                  passengerName: 'Client',
+                  pickupAddress: rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location',
+                  dropoffAddress: rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location',
+                  fare: rideProv.currentRideDetails?['fare_amount']?.toString() ?? '0.00',
+                  status: 'in_progress',
+                  timeElapsed: '12:30',
+                  onEndRide: () => context.push('/end-ride-confirmation'),
+                );
+              },
             ),
           ),
         ],

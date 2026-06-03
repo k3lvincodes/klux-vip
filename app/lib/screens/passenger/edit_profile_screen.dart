@@ -60,7 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (profile != null && mounted) {
           _firstNameController.text = profile['first_name'] ?? '';
           _lastNameController.text = profile['last_name'] ?? '';
-          _profileImageUrl = profile['profile_image_url'];
+          _profileImageUrl = profile['avatar_url'];
         }
       } catch (e) {
         if (mounted) {
@@ -88,7 +88,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           {
             'first_name': _firstNameController.text.trim(),
             'last_name': _lastNameController.text.trim(),
-            if (_profileImageUrl != null) 'profile_image_url': _profileImageUrl,
+            if (_profileImageUrl != null) 'avatar_url': _profileImageUrl,
           },
         );
         if (mounted) {

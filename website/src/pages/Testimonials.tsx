@@ -1,7 +1,9 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, ChevronLeft, Star, User } from 'lucide-react';
 
 export default function Testimonials() {
+  const { t } = useTranslation();
   const testCarouselRef = useRef<HTMLDivElement>(null);
 
   const scrollTestLeft = () => {
@@ -19,26 +21,19 @@ export default function Testimonials() {
   return (
     <section className="testimonials section-padding page-layout" id="testimonials">
       <div className="testimonials-header">
-        <h2 className="section-title">Testimonials</h2>
+        <h2 className="section-title">{t('testimonials.title')}</h2>
       </div>
       <div className="testimonials-content">
         <div className="test-cards" ref={testCarouselRef}>
-          {[
-            { name: 'DAVID JOE', text: "Such a lovely ride! I wouldn't use any other service for my executive travel", stars: 5 },
-            { name: 'SARAH JENKINS', text: 'We hire a limo to our wedding, and it was the highlights of the day. The driver was punctual and incredibly polite.', stars: 5 },
-            { name: 'MICHAEL T.', text: "Such a lovely ride! I wouldn't use any other service for my executive travel", stars: 5 },
-            { name: 'EMILY R.', text: 'The absolute best car service in the city. Always on time and the vehicles are spotless.', stars: 5 },
-            { name: 'JOHN D.', text: 'Booked them for an airport transfer. Seamless experience from start to finish.', stars: 5 },
-            { name: 'AMANDA W.', text: 'Their corporate travel package makes organizing team events a breeze. Highly recommended.', stars: 5 },
-          ].map((t, i) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div className="test-card" key={i}>
               <div className="test-card-avatar">
                  <User size={60} color="#1c1c1c" fill="#1c1c1c" />
               </div>
-              <h4>{t.name}</h4>
-              <p>{t.text}</p>
+              <h4>{t(`testimonials.t${i}_name`)}</h4>
+              <p>{t(`testimonials.t${i}_text`)}</p>
               <div className="test-stars">
-                {[...Array(t.stars)].map((_, idx) => (
+                {[...Array(5)].map((_, idx) => (
                   <Star key={idx} fill="#F4C522" stroke="none" size={26} />
                 ))}
               </div>

@@ -1,6 +1,96 @@
-import { Plus, Search, Filter } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Search, Download } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+
+interface VehicleRow {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  license_plate: string;
+  is_active: boolean;
+  driver_name: string | null;
+  driver_id: string | null;
+}
 
 export default function VehiclesPage() {
+  const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      const { data: vehiclesData, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id, driver_id, make, model, year, color, license_plate, is_active')
+        .order('created_at', { ascending: false });
+
+      if (vehicleError) throw vehicleError;
+
+      const ids = vehiclesData?.map((v) => v.driver_id).filter(Boolean) || [];
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']);
+
+      if (profileError) throw profileError;
+
+      const profileMap = new Map<string, { first_name: string | null; last_name: string | null; email: string }>();
+      profiles?.forEach((p) => profileMap.set(p.id, p));
+
+      setVehicles(
+        (vehiclesData || []).map((v) => {
+          const driver = v.driver_id ? profileMap.get(v.driver_id) : null;
+          return {
+            ...v,
+            driver_name: driver
+              ? [driver.first_name, driver.last_name].filter(Boolean).join(' ') || driver.email
+              : null,
+          };
+        })
+      );
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return vehicles;
+    const q = search.toLowerCase();
+    return vehicles.filter(
+      (v) =>
+        v.license_plate.toLowerCase().includes(q) ||
+        v.make.toLowerCase().includes(q) ||
+        v.model.toLowerCase().includes(q) ||
+        (v.driver_name?.toLowerCase() || '').includes(q)
+    );
+  }, [vehicles, search]);
+
+  const exportCSV = () => {
+    const headers = ['Vehicle Model', 'License Plate', 'Assigned Chauffeur', 'Status'];
+    const rows = filtered.map((v) => {
+      const model = `${v.make} ${v.model} (${v.year} ${v.color})`;
+      return [model, v.license_plate, v.driver_name || '--', v.is_active ? 'Active' : 'In Maintenance'];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vehicles_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <div className="admin-page-header">
@@ -9,13 +99,9 @@ export default function VehiclesPage() {
           <p>Manage vehicle details, classes, and inspections</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="admin-btn admin-btn-outline">
-            <Filter size={16} />
-            Filter
-          </button>
-          <button className="admin-btn">
-            <Plus size={16} />
-            Add Vehicle
+          <button className="admin-btn" onClick={exportCSV}>
+            <Download size={16} />
+            Export CSV
           </button>
         </div>
       </div>
@@ -24,48 +110,57 @@ export default function VehiclesPage() {
         <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
-            <input 
-              type="text" 
-              placeholder="Search vehicles by plate or model..." 
+            <input
+              type="text"
+              placeholder="Search vehicles by plate or model..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
             />
           </div>
         </div>
 
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Vehicle Model</th>
-              <th>License Plate</th>
-              <th>Class</th>
-              <th>Assigned Driver</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><div style={{ fontWeight: 500 }}>Mercedes-Benz S-Class</div><span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>2024 Black</span></td>
-              <td><div style={{ fontFamily: 'monospace' }}>VIP-001</div></td>
-              <td>First Class</td>
-              <td>Alex Johnson</td>
-              <td><span className="admin-badge admin-badge-success">Active</span></td>
-            </tr>
-            <tr>
-              <td><div style={{ fontWeight: 500 }}>BMW 7 Series</div><span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>2023 White</span></td>
-              <td><div style={{ fontFamily: 'monospace' }}>VIP-042</div></td>
-              <td>Business Class</td>
-              <td>Sarah Williams</td>
-              <td><span className="admin-badge admin-badge-success">Active</span></td>
-            </tr>
-            <tr>
-              <td><div style={{ fontWeight: 500 }}>Cadillac Escalade</div><span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>2024 Black</span></td>
-              <td><div style={{ fontFamily: 'monospace' }}>VIP-015</div></td>
-              <td>SUV VIP</td>
-              <td>--</td>
-              <td><span className="admin-badge admin-badge-warning">In Maintenance</span></td>
-            </tr>
-          </tbody>
-        </table>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>Loading vehicles...</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Vehicle Model</th>
+                <th>License Plate</th>
+                <th>Assigned Chauffeur</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa' }}>
+                    {search ? 'No vehicles match your search.' : 'No vehicles found.'}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((v) => (
+                  <tr key={v.id}>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{v.make} {v.model}</div>
+                      <span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>{v.year} {v.color}</span>
+                    </td>
+                    <td><div style={{ fontFamily: 'monospace' }}>{v.license_plate}</div></td>
+                    <td>{v.driver_name || '--'}</td>
+                    <td>
+                      {v.is_active ? (
+                        <span className="admin-badge admin-badge-success">Active</span>
+                      ) : (
+                        <span className="admin-badge admin-badge-warning">In Maintenance</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

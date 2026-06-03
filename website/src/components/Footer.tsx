@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="footer">
       <div className="container">
@@ -8,15 +11,15 @@ export default function Footer() {
           <div className="footer-left">
             <div className="footer-brand">
                <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" />
-               <h2>Kenick</h2>
+               <h2>{t('common.app_name')}</h2>
             </div>
             <div className="footer-links-grid">
-              <a href="/#about-us" className="footer-link-main">About</a>
-              <a href="/#services" className="footer-link-main">Services</a>
+              <a href="/#about-us" className="footer-link-main">{t('footer.about')}</a>
+              <a href="/#services" className="footer-link-main">{t('footer.services')}</a>
               <div className="footer-contact">
-                <a href="/#contact" className="footer-link-main">Contact Us</a>
+                <a href="/#contact" className="footer-link-main">{t('footer.contact_us')}</a>
                 <p>booking@kenicktransportation.com</p>
-                <p>+1260-210-3519</p>
+                <p>+1 260-210-3519</p>
                 <div className="footer-social">
                   <a href="#" className="social-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
@@ -39,10 +42,10 @@ export default function Footer() {
             </div>
           </div>
           <div className="footer-right">
-            <h4>Get the latest news from us</h4>
+            <h4>{t('footer.get_latest_news')}</h4>
             <div className="footer-subscribe">
-              <input type="email" placeholder="Your email address" />
-              <button className="footer-subscribe-btn">Subscribe</button>
+              <input type="email" placeholder={t('footer.email_placeholder')} />
+              <button className="footer-subscribe-btn">{t('footer.subscribe')}</button>
             </div>
             <div className="footer-app-badges">
               <button className="store-badge">
@@ -56,14 +59,14 @@ export default function Footer() {
         </div>
         <div className="footer-bottom">
           <div className="footer-bottom-links">
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms & Conditions</Link>
-            <Link to="/privacy">Cookies</Link>
-            <Link to="/terms">Legal</Link>
-            <Link to="/admin/login" style={{ color: '#F4C522', marginLeft: 'auto' }}>Admin Portal</Link>
+            <Link to="/privacy">{t('footer.privacy_policy')}</Link>
+            <Link to="/terms">{t('footer.terms_conditions')}</Link>
+            <Link to="/cookies">{t('footer.cookies')}</Link>
+            <Link to="/terms">{t('footer.legal')}</Link>
+            <Link to="/admin/login" style={{ color: '#F4C522', marginLeft: 'auto' }}>{t('footer.admin_portal')}</Link>
           </div>
           <div className="footer-copyright">
-            2026 Copyright @ Kenick Transportation LLC
+            {t('footer.copyright')}
           </div>
         </div>
       </div>

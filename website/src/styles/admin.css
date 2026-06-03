@@ -214,14 +214,14 @@
 }
 
 .admin-topbar-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .admin-content {
-  padding: 2.5rem;
+  padding: 2rem;
   flex: 1;
   max-width: 1600px;
   margin: 0 auto;
@@ -238,8 +238,8 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: var(--glass-border);
-  border-radius: 16px;
-  padding: 1.75rem;
+  border-radius: 24px;
+  padding: 1.25rem;
   box-shadow: var(--glass-shadow);
   position: relative;
   overflow: hidden;
@@ -266,10 +266,10 @@
 }
 
 .admin-card-title {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--admin-text);
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -283,26 +283,26 @@
 }
 
 .admin-stat-value {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--admin-text);
-  margin: 0.25rem 0;
+  margin: 0.35rem 0 0.5rem;
   line-height: 1;
   letter-spacing: -0.03em;
 }
 
 .admin-stat-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--admin-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .admin-stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -312,9 +312,9 @@
 .admin-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 0.65rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 100px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -335,7 +335,7 @@
 }
 
 .admin-page-header h1 {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.02em;
@@ -351,7 +351,7 @@
 .admin-table-wrapper {
   background: var(--admin-surface);
   border: var(--glass-border);
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
   box-shadow: var(--glass-shadow);
 }
@@ -399,13 +399,13 @@
   color: #000;
   font-weight: 600;
   padding: 0.6rem 1.25rem;
-  border-radius: 10px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
   box-shadow: 0 2px 10px rgba(244,197,34,0.15);
 }
@@ -427,6 +427,70 @@
   box-shadow: none;
 }
 
+.admin-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  color: #fafafa;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.admin-input:focus {
+  border-color: var(--admin-primary);
+}
+
+/* ---- Modal ---- */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.admin-modal {
+  background: var(--admin-surface);
+  border: var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 440px;
+  max-width: 90vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+.admin-modal h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+}
+
+.admin-modal .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.admin-modal .form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-modal .form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
 /* ---- Recharts Customization ---- */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background-color: rgba(18, 18, 20, 0.9) !important;
@@ -445,7 +509,14 @@
 /* =============================================
    RESPONSIVE
    ============================================= */
+.admin-menu-btn {
+  display: none;
+}
+
 @media (max-width: 1024px) {
+  .admin-menu-btn {
+    display: block;
+  }
   .admin-sidebar {
     transform: translateX(-100%);
   }
@@ -457,6 +528,386 @@
     margin-left: 0;
   }
   .admin-content {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
+}
+
+/* =============================================
+   VIP COUNTRY PRICING
+   ============================================= */
+
+.vip-country-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vip-country-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.vip-country-card:hover {
+  border-color: var(--admin-border-hover);
+}
+
+.vip-country-card.expanded {
+  border-color: rgba(244, 197, 34, 0.2);
+  box-shadow: 0 0 0 1px rgba(244, 197, 34, 0.1);
+}
+
+.vip-country-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  gap: 1rem;
+  transition: background-color 0.2s;
+}
+
+.vip-country-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vip-country-info {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.vip-country-flag {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.vip-country-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.vip-country-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--admin-text);
+  line-height: 1.2;
+}
+
+.vip-country-code {
+  font-size: 0.7rem;
+  color: var(--admin-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.vip-country-amount {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.vip-currency {
+  color: var(--admin-text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.vip-amount-input {
+  width: 90px;
+  padding: 0.4rem 0.6rem;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  color: #fafafa;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+
+.vip-amount-input:focus {
+  border-color: var(--admin-primary);
+}
+
+.vip-amount-input.inherited {
+  color: var(--admin-text-muted);
+  font-weight: 400;
+}
+
+.vip-remove-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--admin-danger);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.vip-country-header:hover .vip-remove-btn {
+  opacity: 1;
+}
+
+.vip-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.vip-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-muted);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.vip-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ---- Accordion ---- */
+.vip-accordion-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  border-top: 1px solid transparent;
+}
+
+.vip-accordion-wrapper.open {
+  grid-template-rows: 1fr;
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.vip-accordion-inner {
+  overflow: hidden;
+}
+
+.vip-states-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--admin-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vip-inherit-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--admin-text-faint);
+  font-size: 0.65rem;
+}
+
+.vip-state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem 0.5rem 2.5rem;
+  transition: background-color 0.2s;
+}
+
+.vip-state-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vip-state-name {
+  font-size: 0.85rem;
+  color: var(--admin-text);
+  font-weight: 400;
+}
+
+.vip-state-amount-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vip-inherit-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-text-faint);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  cursor: help;
+}
+
+.vip-reset-btn {
+  background: none;
+  border: none;
+  color: var(--admin-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.15rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.vip-reset-btn:hover {
+  opacity: 1;
+}
+
+/* ---- Country Selection Modal ---- */
+.vip-modal {
+  width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+
+.vip-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.vip-modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.vip-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--admin-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vip-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--admin-text);
+}
+
+.vip-modal-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  color: var(--admin-text-muted);
+  transition: border-color 0.2s;
+}
+
+.vip-modal-search:focus-within {
+  border-color: var(--admin-primary);
+}
+
+.vip-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+}
+
+.vip-search-input::placeholder {
+  color: var(--admin-text-faint);
+}
+
+.vip-country-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vip-country-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.vip-country-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vip-country-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.vip-country-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  color: var(--admin-text);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background-color 0.15s;
+}
+
+.vip-country-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vip-country-option-flag {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.vip-country-option-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.vip-country-option-code {
+  font-size: 0.65rem;
+  color: var(--admin-text-faint);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vip-no-results {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
 }

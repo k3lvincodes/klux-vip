@@ -205,7 +205,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
               _buildSelector(
                 hintText: _country.isEmpty ? 'Country of residence' : _country,
                 icon: Icons.public_outlined,
-                onTap: () => _showSelectionDialog('Select Country', ['United States', 'United Kingdom', 'Canada', 'Australia'], (val) => setState(() => _country = val)),
+                onTap: () => _showSelectionDialog('Select Country', ['United States', 'United Kingdom', 'Canada', 'Australia', 'Brazil'], (val) => setState(() => _country = val)),
                 showChevron: true,
               ),
               const SizedBox(height: 80),
@@ -336,13 +336,13 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         await ProfileRepository().createOrUpdateDriverProfile(user.id, {
           'first_name': _firstNameController.text.trim(),
           'last_name': _lastNameController.text.trim(),
-          'rating': 0.0,
-          if (_profileImageUrl != null) 'profile_image_url': _profileImageUrl,
+          if (_profileImageUrl != null) 'avatar_url': _profileImageUrl,
         });
       }
       if (mounted) context.push('/driver-id-verification');
     } catch (e) {
-      if (mounted) CustomToast.showError(context, 'Failed to save profile');
+      debugPrint('Driver profile save error: $e');
+      if (mounted) CustomToast.showError(context, 'Failed to save profile: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

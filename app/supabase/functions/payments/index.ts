@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
         await supabase.from('payment_methods').insert({
           user_id,
           provider_token: payment_method_id,
+          stripe_pm_id: payment_method_id,
           type: 'card',
           last4: payment_method_id.slice(-4),
         })
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(amount * 100),
           currency: 'usd',
-          payment_method: paymentMethod.provider_token,
+          payment_method: paymentMethod.stripe_pm_id || paymentMethod.provider_token,
           confirm: true,
           metadata: { ride_id, user_id },
         })
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
           await supabase.from('transactions').insert({
             ride_id,
             user_id,
+            payer_id: user_id,
             amount,
             type: 'ride_payment',
             status: 'completed',
@@ -109,6 +111,7 @@ Deno.serve(async (req) => {
           await supabase.from('transactions').insert({
             ride_id,
             user_id,
+            payer_id: user_id,
             amount,
             type: 'ride_payment',
             status: 'pending',
@@ -145,6 +148,7 @@ Deno.serve(async (req) => {
         await supabase.from('transactions').insert({
           ride_id,
           user_id: driver_id,
+          payee_id: driver_id,
           amount,
           type: 'withdrawal',
           status: 'completed',

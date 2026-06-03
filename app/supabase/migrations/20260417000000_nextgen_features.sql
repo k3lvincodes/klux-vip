@@ -60,7 +60,7 @@ $$ language plpgsql security definer;
 -- C. IMMUTABLE DOUBLE-ENTRY LEDGER (WALLET)
 -- ============================================
 
-create type ledger_account_type as enum ('user', 'driver', 'system', 'promo');
+create type ledger_account_type as enum ('user', 'chauffeur', 'system', 'promo');
 
 create table public.ledger_accounts (
   id uuid default gen_random_uuid() primary key,
@@ -113,8 +113,8 @@ create table public.driver_telemetry (
 
 alter table public.driver_telemetry enable row level security;
 
--- Drivers can insert their own telemetry
-create policy "Drivers can insert telemetry." on public.driver_telemetry for insert with check (auth.uid() = driver_id);
+-- Chauffeurs can insert their own telemetry
+create policy "Chauffeurs can insert telemetry." on public.driver_telemetry for insert with check (auth.uid() = driver_id);
 
 -- System can read all telemetry
 create policy "Service role reads telemetry." on public.driver_telemetry for select using (false);

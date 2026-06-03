@@ -2,7 +2,7 @@
 create extension if not exists postgis schema extensions;
 
 -- Create Enums
-create type user_role as enum ('passenger', 'driver');
+create type user_role as enum ('client', 'chauffeur');
 create type profile_status as enum ('pending', 'approved', 'suspended');
 create type ride_status as enum ('requested', 'accepted', 'arriving', 'in_progress', 'completed', 'cancelled');
 create type booking_type as enum ('instant', 'scheduled', 'special');
@@ -88,31 +88,31 @@ alter table public.transactions enable row level security;
 create policy "Users can view own profile." on public.users for select using (auth.uid() = id);
 create policy "Users can update own profile." on public.users for update using (auth.uid() = id);
 
--- Driver Profiles: Publicly viewable for matchmaking, updateable by driver
-create policy "Driver profiles are viewable by everyone." on public.driver_profiles for select using (true);
-create policy "Drivers can insert their own profile." on public.driver_profiles for insert with check (auth.uid() = user_id);
-create policy "Drivers can update their own profile." on public.driver_profiles for update using (auth.uid() = user_id);
+-- Chauffeur Profiles: Publicly viewable for matchmaking, updateable by chauffeur
+create policy "Chauffeur profiles are viewable by everyone." on public.driver_profiles for select using (true);
+create policy "Chauffeurs can insert their own profile." on public.driver_profiles for insert with check (auth.uid() = user_id);
+create policy "Chauffeurs can update their own profile." on public.driver_profiles for update using (auth.uid() = user_id);
 
--- Passenger Profiles: Updateable by passenger
-create policy "Passenger profiles viewable by everyone." on public.passenger_profiles for select using (true);
-create policy "Passengers can insert their own profile." on public.passenger_profiles for insert with check (auth.uid() = user_id);
-create policy "Passengers can update their own profile." on public.passenger_profiles for update using (auth.uid() = user_id);
+-- Client Profiles: Updateable by client
+create policy "Client profiles viewable by everyone." on public.passenger_profiles for select using (true);
+create policy "Clients can insert their own profile." on public.passenger_profiles for insert with check (auth.uid() = user_id);
+create policy "Clients can update their own profile." on public.passenger_profiles for update using (auth.uid() = user_id);
 
--- Rides: Passengers and drivers can see their own rides
-create policy "Passengers can view their rides." on public.rides for select using (auth.uid() = passenger_id);
-create policy "Drivers can view their assigned rides." on public.rides for select using (auth.uid() = driver_id);
-create policy "Drivers can see requested rides." on public.rides for select using (status = 'requested');
+-- Rides: Clients and chauffeurs can see their own rides
+create policy "Clients can view their rides." on public.rides for select using (auth.uid() = passenger_id);
+create policy "Chauffeurs can view their assigned rides." on public.rides for select using (auth.uid() = driver_id);
+create policy "Chauffeurs can see requested rides." on public.rides for select using (status = 'requested');
 
-create policy "Passengers can insert rides." on public.rides for insert with check (auth.uid() = passenger_id);
-create policy "Passengers can update their unassigned rides." on public.rides for update using (auth.uid() = passenger_id and driver_id is null);
-create policy "Drivers can accept and update their assigned rides." on public.rides for update using (auth.uid() = driver_id or driver_id is null);
+create policy "Clients can insert rides." on public.rides for insert with check (auth.uid() = passenger_id);
+create policy "Clients can update their unassigned rides." on public.rides for update using (auth.uid() = passenger_id and driver_id is null);
+create policy "Chauffeurs can accept and update their assigned rides." on public.rides for update using (auth.uid() = driver_id or driver_id is null);
 
 -- Function and Trigger to automatically create a user record on Auth Signup
 create or replace function public.handle_new_user() 
 returns trigger as $$
 begin
   insert into public.users (id, role)
-  values (new.id, 'passenger'); -- Default role, can be updated during onboarding
+  values (new.id, 'client'); -- Default role, can be updated during onboarding
   return new;
 end;
 $$ language plpgsql security definer;

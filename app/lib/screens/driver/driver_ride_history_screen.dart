@@ -15,7 +15,7 @@ class DriverRideHistoryScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
           onPressed: () => context.pop(),
         ),
-        title:  Text('Driver Ride History', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold)),
+        title:  Text('Chauffeur Ride History', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold)),
       ),
       body: const Center(
         child: Text('Completed trips will appear here.', style: TextStyle(fontSize: 16, color: Colors.grey)),

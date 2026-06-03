@@ -32,32 +32,33 @@ interface DashboardStats {
   total_vehicles: number;
 }
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function buildDayRange() {
+  const now = new Date();
+  const days: { name: string; start: Date; end: Date }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    days.push({
+      name: DAY_NAMES[d.getDay()],
+      start: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+      end: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1),
+    });
+  }
+  return days;
+}
+
 export default function Overview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const revenueData = [
-    { name: 'Mon', amount: 400 },
-    { name: 'Tue', amount: 300 },
-    { name: 'Wed', amount: 550 },
-    { name: 'Thu', amount: 450 },
-    { name: 'Fri', amount: 700 },
-    { name: 'Sat', amount: 800 },
-    { name: 'Sun', amount: 950 },
-  ];
-
-  const ridesData = [
-    { name: 'Mon', rides: 24 },
-    { name: 'Tue', rides: 18 },
-    { name: 'Wed', rides: 35 },
-    { name: 'Thu', rides: 28 },
-    { name: 'Fri', rides: 45 },
-    { name: 'Sat', rides: 55 },
-    { name: 'Sun', rides: 62 },
-  ];
+  const [revenueData, setRevenueData] = useState<{ name: string; amount: number }[]>([]);
+  const [ridesData, setRidesData] = useState<{ name: string; rides: number }[]>([]);
+  const [revenueChange, setRevenueChange] = useState(0);
 
   useEffect(() => {
     fetchStats();
+    fetchChartData();
   }, []);
 
   const fetchStats = async () => {
@@ -67,6 +68,76 @@ export default function Overview() {
       setStats(data as DashboardStats);
     } catch (err) {
       console.error('Error fetching stats:', err);
+    }
+  };
+
+  const fetchChartData = async () => {
+    try {
+      const now = new Date();
+      const twoWeeksAgo = new Date(now);
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+      const { data: rides, error } = await supabase
+        .from('rides')
+        .select('created_at, fare_amount, status')
+        .in('status', ['completed'])
+        .gte('created_at', twoWeeksAgo.toISOString())
+        .order('created_at');
+
+      if (error) throw error;
+
+      const currentDays = buildDayRange();
+      const previousDays = buildDayRange().map((d, i) => {
+        const prev = new Date(now);
+        prev.setDate(prev.getDate() - 14 + i);
+        return {
+          name: d.name,
+          start: new Date(prev.getFullYear(), prev.getMonth(), prev.getDate()),
+          end: new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1),
+        };
+      });
+
+      const currentWeekRevenue = currentDays.map((day) => {
+        const dayRides = (rides || []).filter((r) => {
+          const c = new Date(r.created_at);
+          return c >= day.start && c < day.end;
+        });
+        return {
+          name: day.name,
+          amount: dayRides.reduce((sum, r) => sum + Number(r.fare_amount), 0),
+        };
+      });
+
+      const currentWeekRides = currentDays.map((day) => {
+        const dayRides = (rides || []).filter((r) => {
+          const c = new Date(r.created_at);
+          return c >= day.start && c < day.end;
+        });
+        return { name: day.name, rides: dayRides.length };
+      });
+
+      const previousWeekRevenue = previousDays.reduce((sum, day) => {
+        const dayRides = (rides || []).filter((r) => {
+          const c = new Date(r.created_at);
+          return c >= day.start && c < day.end;
+        });
+        return sum + dayRides.reduce((s, r) => s + Number(r.fare_amount), 0);
+      }, 0);
+
+      const currentWeekTotal = currentWeekRevenue.reduce((sum, d) => sum + d.amount, 0);
+      const change = previousWeekRevenue > 0
+        ? ((currentWeekTotal - previousWeekRevenue) / previousWeekRevenue) * 100
+        : currentWeekTotal > 0
+          ? 100
+          : 0;
+
+      setRevenueData(currentWeekRevenue);
+      setRidesData(currentWeekRides);
+      setRevenueChange(change);
+    } catch (err) {
+      console.error('Error fetching chart data:', err);
+      setRevenueData([]);
+      setRidesData([]);
     } finally {
       setLoading(false);
     }
@@ -80,8 +151,11 @@ export default function Overview() {
     );
   }
 
+  const changeColor = revenueChange >= 0 ? 'var(--admin-success)' : 'var(--admin-danger)';
+  const changeIcon = revenueChange >= 0 ? '+' : '';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* Stat Cards Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
@@ -90,8 +164,8 @@ export default function Overview() {
           <div>
             <p className="admin-stat-label">Total Revenue</p>
             <h3 className="admin-stat-value">${stats?.total_revenue?.toLocaleString() || '0'}</h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <TrendingUp size={14} /> +12.5% this week
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: changeColor, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <TrendingUp size={14} /> {changeIcon}{revenueChange.toFixed(1)}% this week
             </p>
           </div>
           <div className="admin-stat-icon" style={{ background: 'var(--admin-primary-dim)', color: 'var(--admin-primary)' }}>
@@ -103,7 +177,7 @@ export default function Overview() {
           <div>
             <p className="admin-stat-label">Active Rides</p>
             <h3 className="admin-stat-value">{stats?.active_rides || '0'}</h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-info)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--admin-info)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Map size={14} /> En route currently
             </p>
           </div>
@@ -116,7 +190,7 @@ export default function Overview() {
           <div>
             <p className="admin-stat-label">Total Users</p>
             <h3 className="admin-stat-value">{stats?.total_users || '0'}</h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--admin-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Users size={14} /> Registered accounts
             </p>
           </div>
@@ -127,9 +201,9 @@ export default function Overview() {
 
         <div className="admin-card admin-card-interactive admin-stat-card">
           <div>
-            <p className="admin-stat-label">Online Drivers</p>
+            <p className="admin-stat-label">Online Chauffeurs</p>
             <h3 className="admin-stat-value">{stats?.online_drivers || '0'}</h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--admin-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <CheckCircle2 size={14} /> Ready for dispatch
             </p>
           </div>
@@ -143,7 +217,7 @@ export default function Overview() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
         
         {/* Revenue Chart */}
-        <div className="admin-card" style={{ height: '420px', display: 'flex', flexDirection: 'column' }}>
+        <div className="admin-card" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
           <div className="admin-card-title">
             <TrendingUp size={18} color="var(--admin-primary)" />
             Revenue Flow
@@ -168,7 +242,7 @@ export default function Overview() {
         </div>
 
         {/* Rides Chart */}
-        <div className="admin-card" style={{ height: '420px', display: 'flex', flexDirection: 'column' }}>
+        <div className="admin-card" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
           <div className="admin-card-title">
             <Map size={18} color="var(--admin-info)" />
             Rides Completed
@@ -197,26 +271,26 @@ export default function Overview() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--admin-danger)' }}></div>
-                <span style={{ fontSize: '0.9rem', color: 'var(--admin-text)' }}>Open Support Tickets</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--admin-text)' }}>Open Support Tickets</span>
               </div>
               <span className="admin-badge admin-badge-danger">{stats?.open_tickets || 0}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--admin-warning)' }}></div>
-                <span style={{ fontSize: '0.9rem', color: 'var(--admin-text)' }}>Pending Driver Approvals</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--admin-text)' }}>Pending Chauffeur Approvals</span>
               </div>
               <span className="admin-badge admin-badge-warning">{stats?.pending_drivers || 0}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--admin-info)' }}></div>
-                <span style={{ fontSize: '0.9rem', color: 'var(--admin-text)' }}>Pending Documents</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--admin-text)' }}>Pending Documents</span>
               </div>
               <span className="admin-badge admin-badge-info">{stats?.pending_documents || 0}</span>
             </div>
@@ -231,28 +305,28 @@ export default function Overview() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Car size={16} color="var(--admin-text-muted)" />
-                <span style={{ fontSize: '0.9rem' }}>Total Vehicles</span>
+                <span style={{ fontSize: '0.85rem' }}>Total Vehicles</span>
               </div>
-              <span style={{ fontWeight: 600 }}>{stats?.total_vehicles || 0}</span>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{stats?.total_vehicles || 0}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <CarFront size={16} color="var(--admin-text-muted)" />
-                <span style={{ fontSize: '0.9rem' }}>Approved Drivers</span>
+                <span style={{ fontSize: '0.85rem' }}>Approved Chauffeurs</span>
               </div>
-              <span style={{ fontWeight: 600 }}>{stats?.approved_drivers || 0}</span>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{stats?.approved_drivers || 0}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Clock size={16} color="var(--admin-text-muted)" />
-                <span style={{ fontSize: '0.9rem' }}>Total Completed Rides</span>
+                <span style={{ fontSize: '0.85rem' }}>Total Completed Rides</span>
               </div>
-              <span style={{ fontWeight: 600 }}>{stats?.completed_rides || 0}</span>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{stats?.completed_rides || 0}</span>
             </div>
 
           </div>

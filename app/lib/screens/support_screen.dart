@@ -160,6 +160,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
+                    filled: false,
                   ),
                 ),
               ),
@@ -198,7 +199,7 @@ class _SupportScreenState extends State<SupportScreen> {
           Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
+              child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
               controller: controller,
               decoration: InputDecoration(
                 hintText: hintText,
@@ -209,6 +210,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
+                filled: false,
               ),
               style: TextStyle(
                 fontSize: 14,

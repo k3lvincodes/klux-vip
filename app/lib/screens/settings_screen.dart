@@ -21,6 +21,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushEnabled = false;
   bool _faceIdEnabled = false;
+  String _biometricLabel = 'Face ID / Touch ID';
   final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
@@ -31,13 +32,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Check actual notification permission status
+
     final status = await Permission.notification.status;
-    
+    final label = await DeviceBiometricsService.getBiometricLabel();
+
     setState(() {
       _pushEnabled = status.isGranted;
       _faceIdEnabled = prefs.getBool('face_id_enabled') ?? false;
+      _biometricLabel = label;
     });
   }
 
@@ -55,7 +57,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _pushEnabled = false);
       }
     } else {
-      // We can't revoke permissions programmatically, so we just show a message or save preference
       if (mounted) {
         CustomToast.showSuccess(context, 'Please disable notifications in system settings');
         openAppSettings();
@@ -69,14 +70,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         final canCheckBiometrics = await _localAuth.canCheckBiometrics;
         final isDeviceSupported = await _localAuth.isDeviceSupported();
-        
+
         if (!canCheckBiometrics || !isDeviceSupported) {
           if (mounted) CustomToast.showError(context, 'Biometrics not supported on this device');
           return;
         }
 
         final didAuthenticate = await _localAuth.authenticate(
-          localizedReason: 'Please authenticate to enable Face ID / Biometrics',
+          localizedReason: 'Authenticate to enable $_biometricLabel',
           biometricOnly: true,
         );
 
@@ -88,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
           setState(() => _faceIdEnabled = true);
           if (mounted) {
-            CustomToast.showSuccess(context, 'Biometrics enabled. Use fingerprint or face to log in.');
+            CustomToast.showSuccess(context, '$_biometricLabel enabled');
           }
         }
       } catch (e) {
@@ -96,73 +97,237 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) CustomToast.showError(context, 'Failed: $e');
       }
     } else {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('face_id_enabled', false);
-      if (user != null) {
-        await DeviceBiometricsService.unregisterDevice(user.id);
-      }
-      setState(() => _faceIdEnabled = false);
-    }
-  }
-
-  void _handleLogout() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Log Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && mounted) {
-      await context.read<AuthProvider>().signOut();
-      if (mounted) context.go('/sign-in');
-    }
-  }
-
-  void _handleDeleteAccount() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-        content: const Text('This action is irreversible. All your data will be permanently deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && mounted) {
       try {
-        // Call the RPC function to delete account and log to deleted_accounts table
-        await Supabase.instance.client.rpc('delete_my_account');
-        if (mounted) {
-          await context.read<AuthProvider>().signOut();
-        }
-        if (mounted) {
-          context.go('/onboarding');
+        final didAuthenticate = await _localAuth.authenticate(
+          localizedReason: 'Authenticate to disable $_biometricLabel',
+          biometricOnly: true,
+        );
+
+        if (didAuthenticate) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('face_id_enabled', false);
+          if (user != null) {
+            await DeviceBiometricsService.unregisterDevice(user.id);
+          }
+          setState(() => _faceIdEnabled = false);
+          if (mounted) {
+            CustomToast.showSuccess(context, '$_biometricLabel disabled');
+          }
         }
       } catch (e) {
-        if (mounted) CustomToast.showError(context, 'Failed to delete account. Please contact support.');
+        if (mounted) CustomToast.showError(context, 'Failed to disable biometrics');
       }
+    }
+  }
+
+  void _handleLogout() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 28),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.logout, size: 28, color: AppColors.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Log Out',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.white : AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Are you sure you want to sign out?',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await context.read<AuthProvider>().signOut();
+                  if (mounted) context.go('/sign-in');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.black,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Sign Out',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleDeleteAccount() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_outline, size: 28, color: Colors.red),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Delete Account',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.white : AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'This action is irreversible. All your data will be permanently deleted.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _performDeleteAccount();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Delete My Account',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performDeleteAccount() async {
+    try {
+      await Supabase.instance.client.rpc('delete_my_account');
+      if (mounted) {
+        await context.read<AuthProvider>().signOut();
+      }
+      if (mounted) {
+        context.go('/onboarding');
+      }
+    } catch (e) {
+      if (mounted) CustomToast.showError(context, 'Failed to delete account. Please contact support.');
     }
   }
 
@@ -198,7 +363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
             _buildSectionHeader('Security', isDark),
             _buildSwitchTile(
-              title: 'Face ID / Touch ID',
+              title: _biometricLabel,
               icon: Icons.fingerprint,
               value: _faceIdEnabled,
               onChanged: _toggleFaceId,
@@ -251,13 +416,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Privacy Policy',
               icon: Icons.privacy_tip_outlined,
               isDark: isDark,
-              onTap: () {},
+              onTap: () => context.push('/privacy-policy'),
             ),
             _buildListTile(
               title: 'Terms of Service',
               icon: Icons.description_outlined,
               isDark: isDark,
-              onTap: () {},
+              onTap: () => context.push('/terms-of-service'),
             ),
 
             const SizedBox(height: 32),

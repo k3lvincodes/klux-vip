@@ -153,14 +153,14 @@ Deno.serve(async (req) => {
     const docStatus = status === 'approved' ? 'approved' : 'rejected'
 
     const { error: profileError } = await supabase
-      .from('driver_profiles')
+      .from('driver_details')
       .update({ verification_status: docStatus })
-      .eq('user_id', userId)
+      .eq('profile_id', userId)
 
     if (profileError) {
       console.error('Failed to update driver profile status:', profileError)
     } else {
-      console.log(`Updated driver_profiles.verification_status to ${docStatus} for user ${userId}`)
+      console.log(`Updated driver_details.verification_status to ${docStatus} for user ${userId}`)
     }
 
     const { error: docError, data: updatedDocs } = await supabase

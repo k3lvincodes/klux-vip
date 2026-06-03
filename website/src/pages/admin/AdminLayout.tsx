@@ -10,9 +10,8 @@ import {
   Ticket, 
   WalletCards, 
   FileCheck,
-  LogOut,
+  DollarSign,
   Menu,
-  X,
   Bell
 } from 'lucide-react';
 import '../../styles/admin.css';
@@ -35,12 +34,13 @@ export default function AdminLayout() {
   const navItems = [
     { name: 'Overview', path: '/admin', icon: <LayoutDashboard size={18} />, exact: true },
     { name: 'Users', path: '/admin/users', icon: <Users size={18} /> },
-    { name: 'Drivers', path: '/admin/drivers', icon: <CarFront size={18} /> },
+    { name: 'Chauffeurs', path: '/admin/drivers', icon: <CarFront size={18} /> },
     { name: 'Rides', path: '/admin/rides', icon: <Map size={18} /> },
     { name: 'Vehicles', path: '/admin/vehicles', icon: <Car size={18} /> },
     { name: 'Support', path: '/admin/support', icon: <Ticket size={18} /> },
     { name: 'Transactions', path: '/admin/transactions', icon: <WalletCards size={18} /> },
     { name: 'Documents', path: '/admin/documents', icon: <FileCheck size={18} /> },
+    { name: 'Pricing', path: '/admin/pricing', icon: <DollarSign size={18} /> },
   ];
 
   return (
@@ -57,13 +57,6 @@ export default function AdminLayout() {
         <div className="admin-sidebar-header">
           <img src="/Kenick-logo-favicon.png" alt="Kenick" />
           <h2>Kenick Admin</h2>
-          <button 
-            className="ml-auto text-[#a1a1aa] hover:text-white lg:hidden"
-            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={20} />
-          </button>
         </div>
 
         <nav className="admin-nav">
@@ -90,10 +83,6 @@ export default function AdminLayout() {
               <p className="admin-user-role">Super Admin</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="admin-logout-btn">
-            <LogOut size={16} />
-            Sign Out
-          </button>
         </div>
       </aside>
 
@@ -101,7 +90,7 @@ export default function AdminLayout() {
         <header className="admin-topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button 
-              className="lg:hidden"
+              className="admin-menu-btn"
               style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
               onClick={() => setSidebarOpen(true)}
             >

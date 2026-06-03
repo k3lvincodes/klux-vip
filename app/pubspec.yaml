@@ -95,17 +95,6 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-flutter_native_splash:
-  color: "#F3EFE0"
-  color_dark: "#08060D"
-  image: assets/images/kenick_logo_transparent_light.png
-  image_dark: assets/images/kenick_logo_transparent_dark.png
-  android_12:
-    color: "#F3EFE0"
-    color_dark: "#08060D"
-    image: assets/images/kenick_logo_transparent_light.png
-    image_dark: assets/images/kenick_logo_transparent_dark.png
-
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

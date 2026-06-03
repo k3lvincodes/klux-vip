@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (driversError) {
       return new Response(
-        JSON.stringify({ error: 'Failed to find drivers', details: driversError }),
+        JSON.stringify({ error: 'Failed to find chauffeurs', details: driversError }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         .eq('id', ride_id)
 
       return new Response(
-        JSON.stringify({ error: 'No drivers available nearby' }),
+        JSON.stringify({ error: 'No chauffeurs available nearby' }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -77,14 +77,14 @@ Deno.serve(async (req) => {
     const selectedDriver = nearbyDrivers[0]
 
     const { data: driverProfile, error: profileError } = await supabase
-      .from('driver_profiles')
-      .select('*, user:user_id(*)')
-      .eq('user_id', selectedDriver.user_id)
+      .from('profiles')
+      .select('*, driver_details:profile_id(*)')
+      .eq('id', selectedDriver.user_id)
       .single()
 
     if (profileError) {
       return new Response(
-        JSON.stringify({ error: 'Failed to get driver profile' }),
+        JSON.stringify({ error: 'Failed to get chauffeur profile' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
     if (!driverHasVehicle) {
       return new Response(
-        JSON.stringify({ error: 'Driver has no active vehicle' }),
+        JSON.stringify({ error: 'Chauffeur has no active vehicle' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
 
     if (!driverHasApprovedDocs) {
       return new Response(
-        JSON.stringify({ error: 'Driver documents not approved' }),
+        JSON.stringify({ error: 'Chauffeur documents not approved' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
           rating: selectedDriver.rating,
           distance_meters: selectedDriver.distance_meters,
         },
-        message: 'Ride assigned to closest available driver',
+        message: 'Ride assigned to closest available chauffeur',
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )

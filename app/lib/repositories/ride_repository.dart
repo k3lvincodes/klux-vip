@@ -38,14 +38,18 @@ class RideRepository {
       final rideId = response['id'] as String;
 
       if (type == 'instant') {
-        await _supabase.functions.invoke(
-          'matchmaker',
-          body: {
-            'ride_id': rideId,
-            'pickup_lat': pickupLat,
-            'pickup_lng': pickupLng,
-          },
-        );
+        try {
+          await _supabase.functions.invoke(
+            'matchmaker',
+            body: {
+              'ride_id': rideId,
+              'pickup_lat': pickupLat,
+              'pickup_lng': pickupLng,
+            },
+          );
+        } catch (e) {
+          debugPrint('Matchmaker dispatch (non-fatal): $e');
+        }
       }
 
       return rideId;

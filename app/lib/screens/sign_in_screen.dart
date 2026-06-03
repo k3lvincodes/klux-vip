@@ -4,7 +4,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
@@ -12,6 +11,7 @@ import 'package:kenick_vip/repositories/document_repository.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -24,7 +24,6 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _rememberMe = false;
   bool _biometricAvailable = false;
   Map<String, dynamic>? _biometricData;
   final LocalAuthentication _localAuth = LocalAuthentication();
@@ -73,30 +72,24 @@ class _SignInScreenState extends State<SignInScreen> {
       final didAuth = await _localAuth.authenticate(
         localizedReason: 'Log in with biometrics',
         biometricOnly: true,
-        persistAcrossBackgrounding: true,
       );
 
       if (didAuth && mounted && _biometricData != null) {
         final userId = _biometricData!['user_id'] as String;
         final auth = context.read<AuthProvider>();
 
-        // Refresh the session timestamp locally via biometrics RPC
         await DeviceBiometricsService.refreshSession(userId);
-        
-        // Restore Supabase Session using saved refresh token
+
         final prefs = await SharedPreferences.getInstance();
         final refreshToken = prefs.getString('bio_refresh_token');
         if (refreshToken != null) {
           try {
             await Supabase.instance.client.auth.setSession(refreshToken);
-          } catch (_) {
-            // Ignore if refresh token is invalid/expired, it will fall through to null check below
-          }
+          } catch (_) {}
         }
-        
+
         if (!mounted) return;
 
-        // Get user role and redirect
         final user = auth.currentUser;
         if (user == null) {
           CustomToast.showError(context, 'Session expired. Please log in with your password.');
@@ -105,7 +98,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
         final role = user.userMetadata?['role'];
 
-        if (role == 'Driver' || role == 'Affiliate') {
+        if (role == null) {
+          if (mounted) context.go('/role-selection');
+        } else if (role == 'Chauffeur' || role == 'Affiliate') {
           final profile = await ProfileRepository().getDriverProfile(user.id);
           if (mounted) {
             if (profile == null || profile['first_name'] == null) {
@@ -136,26 +131,28 @@ class _SignInScreenState extends State<SignInScreen> {
       CustomToast.showError(context, 'Please enter email and password');
       return;
     }
-    
+
     final auth = context.read<AuthProvider>();
     setState(() => _isNavigating = true);
     final success = await auth.signIn(_emailController.text.trim(), _passwordController.text);
-    
+
     if (success && mounted) {
       final user = auth.currentUser;
       final role = user?.userMetadata?['role'];
-      
+
       if (user != null) {
         try {
-          if (role == 'Driver' || role == 'Affiliate') {
+          if (role == null) {
+            if (mounted) context.go('/role-selection');
+          } else if (role == 'Chauffeur' || role == 'Affiliate') {
             final results = await Future.wait([
               ProfileRepository().getDriverProfile(user.id),
               DocumentRepository().getDocumentByType(user.id, 'driver_license'),
             ]);
-            
+
             final profile = results[0];
             final idDoc = results[1];
-            
+
             if (mounted) {
               if (profile == null || (profile as Map)['first_name'] == null) {
                 context.go('/driver-profile-setup');
@@ -198,47 +195,70 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
       body: Stack(
-          children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? AppColors.darkBackground 
-                  : AppColors.background,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 22.0),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 180, 0, 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome back',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black,
-                        ),
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: isDark ? AppColors.darkBackground : AppColors.background,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 120, 0, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      slideOffset: 0.04,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome back',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w600,
+                              height: 1.15,
+                              letterSpacing: -0.5,
+                              color: isDark ? AppColors.white : AppColors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Sign in to continue to Kenick',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Login to your account',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey),
-                      ),
-                      const SizedBox(height: 34),
-                      _buildInput(
+                    ),
+                    const SizedBox(height: 44),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 80),
+                      slideOffset: 0.04,
+                      child: _buildInput(
                         controller: _emailController,
-                        hintText: 'Enter your full name/Email',
+                        hintText: 'Email address',
                         icon: Icons.person_outline,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInput(
+                    ),
+                    const SizedBox(height: 16),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 120),
+                      slideOffset: 0.04,
+                      child: _buildInput(
                         controller: _passwordController,
-                        hintText: 'Enter your password',
+                        hintText: 'Password',
                         icon: Icons.lock_outline,
                         isPassword: true,
                         isPasswordVisible: _isPasswordVisible,
@@ -248,186 +268,128 @@ class _SignInScreenState extends State<SignInScreen> {
                           });
                         },
                       ),
-                      const SizedBox(height: 14),
-                      Row(
+                    ),
+                    const SizedBox(height: 12),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 160),
+                      slideOffset: 0.04,
+                      child: Row(
                         children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
-                            activeColor: AppColors.primary,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          Text(
-                            'Remember me',
-                            style: TextStyle(fontSize: 11, color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black),
-                          ),
                           const Spacer(),
                           GestureDetector(
                             onTap: () => context.push('/forgot-password'),
-                            child: const Text(
+                            child: Text(
                               'Forgot password?',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                                decoration: TextDecoration.underline,
-                                decorationColor: AppColors.primary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 26),
-                      Consumer<AuthProvider>(
+                    ),
+                    const SizedBox(height: 28),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 200),
+                      slideOffset: 0.04,
+                      child: Consumer<AuthProvider>(
                         builder: (context, auth, _) {
                           final isLoading = auth.isLoading || _isNavigating;
                           return CustomButton(
-                            title: isLoading ? 'Loading...' : 'Login',
+                            title: isLoading ? 'Signing in...' : 'Sign In',
                             onPress: isLoading ? () {} : _handleLogin,
                             variant: ButtonVariant.primary,
-                            height: 40,
-                            borderRadius: 25,
-                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                            height: 52,
+                            borderRadius: 30,
+                            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                             isLoading: isLoading,
                           );
-                        }
+                        },
                       ),
-                      if (_biometricAvailable) ...[
-                        const SizedBox(height: 16),
-                        CustomButton(
-                          title: 'Login with Biometrics',
+                    ),
+                    if (_biometricAvailable) ...[
+                      const SizedBox(height: 14),
+                      FadeSlideIn(
+                        duration: AppDurations.slow,
+                        delay: const Duration(milliseconds: 240),
+                        slideOffset: 0.04,
+                        child: CustomButton(
+                          title: 'Log in with Biometrics',
                           onPress: _handleBiometricLogin,
                           variant: ButtonVariant.outline,
-                          height: 40,
-                          borderRadius: 25,
-                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                          height: 52,
+                          borderRadius: 30,
+                          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          icon: Icons.fingerprint,
                         ),
-                      ],
-                      const SizedBox(height: 20),
-                      _buildOrContinue(),
-                      const SizedBox(height: 18),
-                      _buildSocialButtons(),
-                    ].animate(interval: 50.ms).fade(duration: 400.ms, curve: Curves.easeOutQuad).slideY(begin: 0.1, end: 0),
-                  ),
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account? ",
-                          style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black),
-                        ),
-                        GestureDetector(
-                          onTap: _handleSignUp,
-                          child: const Text(
-                            'Sign up',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                              decoration: TextDecoration.underline,
-                              decorationColor: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 280),
+                      slideOffset: 0.04,
+                      child: _buildDivider(isDark),
                     ),
                   ],
                 ),
-              ).animate().fade(duration: 400.ms, delay: 600.ms).slideY(begin: 0.2, end: 0),
+              ),
             ),
-          ],
-        ),
-    );
-  }
-
-  Widget _buildOrContinue() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      children: [
-        Expanded(
-          child: Divider(
-            height: 1,
-            thickness: 1,
-            color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.5),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'Or continue with',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey.shade400 : Colors.black54),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            height: 1,
-            thickness: 1,
-            color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.5),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _socialButton(
-          label: 'G',
-          color: const Color(0xFFDB4437),
-        ),
-        const SizedBox(width: 18),
-        _socialButton(
-          iconWidget: Icon(Icons.apple, size: 22, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-        ),
-      ],
-    );
-  }
-
-  Widget _socialButton({String? label, Widget? iconWidget, required Color color}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 36),
+              child: FadeSlideIn(
+                duration: AppDurations.slow,
+                delay: const Duration(milliseconds: 360),
+                slideOffset: 0.06,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _handleSignUp,
+                      child: Text(
+                        'Sign up',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      child: Center(
-        child: label != null
-            ? Text(
-                label,
-                style: TextStyle(
-                  fontSize: label.length == 1 && label.toLowerCase() == 'f' ? 20 : 22,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              )
-            : (iconWidget ?? const SizedBox()),
-      ),
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.15),
+          ),
+        ),
+      ],
     );
   }
 
@@ -442,48 +404,53 @@ class _SignInScreenState extends State<SignInScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      height: 40,
+      height: 52,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? Colors.grey.shade800
+              : const Color(0xFFE5E7EB),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
+            color: Colors.black.withValues(alpha: isDark ? 0.0 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
+          Icon(icon, color: Colors.grey.shade400, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
+            child: TextField(
+              scrollPadding: const EdgeInsets.only(bottom: 10),
               controller: controller,
               obscureText: isPassword && !isPasswordVisible,
               keyboardType: keyboardType,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 filled: true,
-                fillColor: isDark ? AppColors.darkSurface : AppColors.white,
+                fillColor: isDark ? AppColors.darkSurface : Colors.white,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
-              style: TextStyle(fontSize: 12, color: isDark ? AppColors.white : AppColors.black),
+              style: TextStyle(fontSize: 14, color: isDark ? AppColors.white : AppColors.black),
             ),
           ),
           if (isPassword)
             IconButton(
               icon: Icon(
                 isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                color: const Color(0xFF9CA3AF),
+                color: Colors.grey.shade400,
               ),
               onPressed: onToggleVisibility,
             ),

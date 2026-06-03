@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -14,7 +15,24 @@ class RoleSelectionScreen extends StatefulWidget {
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
-  final List<String> _roles = ['Affiliate', 'Driver', 'Passenger'];
+  final List<String> _roles = ['Affiliate', 'Chauffeur', 'Client'];
+
+  @override
+  void initState() {
+    super.initState();
+    _resetRole();
+  }
+
+  Future<void> _resetRole() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'role': null})
+          .eq('id', user.id);
+    } catch (_) {}
+  }
 
   Future<void> _handleSelectRole(String role) async {
     // Call AuthProvider to update role
@@ -22,7 +40,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     final success = await auth.updateUserRole(role);
 
     if (success && mounted) {
-      if (role == 'Passenger') {
+      if (role == 'Client') {
         context.push('/passenger-profile-setup');
       } else {
         context.push('/driver-profile-setup');
@@ -58,14 +76,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const SizedBox(height: 40),
               Column(
                 children: _roles.map((role) {
-                  final isPrimary = role == 'Passenger';
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: CustomButton(
                       title: role,
-                      variant: isPrimary
-                          ? ButtonVariant.primary
-                          : ButtonVariant.outline,
+                      variant: ButtonVariant.outline,
                       height: 48,
                       borderRadius: 24,
                       onPress: () => _handleSelectRole(role),

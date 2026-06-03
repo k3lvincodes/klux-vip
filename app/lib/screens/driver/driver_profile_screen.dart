@@ -48,11 +48,11 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       );
     }
 
-    final String firstName = _profile?['first_name'] ?? 'Driver';
+    final String firstName = _profile?['first_name'] ?? 'Chauffeur';
     final String lastName = _profile?['last_name'] ?? '';
     final String fullName = '$firstName $lastName'.trim();
-    final String imageUrl = _profile?['profile_image_url'] ?? '';
-    final double rating = (_profile?['rating'] ?? 0.0).toDouble();
+    final String imageUrl = _profile?['avatar_url'] ?? '';
+    final double rating = (_profile?['driver_details']?['rating'] ?? 0.0).toDouble();
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -64,7 +64,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           onPressed: () => context.pop(),
         ),
         title:  Text(
-          'Driver Profile',
+          'Chauffeur Profile',
           style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,

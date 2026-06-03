@@ -107,6 +107,31 @@
   pointer-events: none;
 }
 
+/* ---- Top Left Logo ---- */
+.al-top-logo {
+  position: absolute;
+  top: 2rem;
+  left: 3rem;
+  z-index: 10;
+}
+
+.al-top-logo img {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid #27272a;
+  box-shadow: 0 0 0 4px rgba(244, 197, 34, 0.06);
+}
+
+@media (max-width: 1024px) {
+  .al-top-logo { left: 2rem; }
+}
+
+@media (max-width: 640px) {
+  .al-top-logo { left: 1.5rem; top: 1.5rem; }
+  .al-top-logo img { width: 40px; height: 40px; }
+}
+
 /* ---- Brand Content ---- */
 .al-brand-content {
   position: relative;
@@ -120,21 +145,6 @@
 .al-brand-content.al-visible {
   opacity: 1;
   transform: translateY(0);
-}
-
-.al-brand-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 100px;
-  background: rgba(244, 197, 34, 0.1);
-  border: 1px solid rgba(244, 197, 34, 0.2);
-  color: #F4C522;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  margin-bottom: 2rem;
 }
 
 .al-brand-title {
@@ -226,19 +236,6 @@
 .al-form-container.al-visible {
   opacity: 1;
   transform: translateY(0);
-}
-
-/* ---- Logo ---- */
-.al-form-logo {
-  margin-bottom: 2.5rem;
-}
-
-.al-form-logo img {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  border: 1px solid #27272a;
-  box-shadow: 0 0 0 4px rgba(244, 197, 34, 0.06);
 }
 
 /* ---- Header ---- */

@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
+import CookiesPage from './pages/CookiesPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import Overview from './pages/admin/Overview';
@@ -13,6 +14,7 @@ import VehiclesPage from './pages/admin/VehiclesPage';
 import SupportPage from './pages/admin/SupportPage';
 import TransactionsPage from './pages/admin/TransactionsPage';
 import DocumentsPage from './pages/admin/DocumentsPage';
+import PricingPage from './pages/admin/PricingPage';
 import UserDetail from './pages/admin/UserDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import PublicLayout from './components/PublicLayout';
@@ -26,6 +28,7 @@ function App() {
         <Route path="/book" element={<BookingPage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsConditions />} />
+        <Route path="/cookies" element={<CookiesPage />} />
       </Route>
       
       {/* Admin Login */}
@@ -43,6 +46,7 @@ function App() {
           <Route path="support" element={<SupportPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
           <Route path="documents" element={<DocumentsPage />} />
+          <Route path="pricing" element={<PricingPage />} />
         </Route>
       </Route>
     </Routes>
