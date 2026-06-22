@@ -857,13 +857,13 @@
   width: 4px;
 }
 
-.vip-country-list::-webkit-scrollbar-track {
-  background: transparent;
+.vip-country-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
 }
 
-.vip-country-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+.vip-country-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .vip-country-option {
