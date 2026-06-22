@@ -63,7 +63,7 @@ export default function DriversPage() {
           first_name: p.first_name,
           last_name: p.last_name,
           email: p.email,
-          driver_details: (p.driver_details as DriverRow['driver_details']),
+          driver_details: p.driver_details as unknown as DriverRow['driver_details'],
           vehicle: vehicleMap.get(p.id) || null,
           completed_rides: rideCountMap.get(p.id) || 0,
         }))
