@@ -74,38 +74,38 @@ export default function Fleets() {
             {[
               {
                 name: 'GMC Yukon',
-                img: '/GMC.png',
+                img: '/GMC.webp',
                 features: ['Three row SUV', '16-way power front seats with massage', 'Air ride adaptive suspension', '18-speaker performance series']
               },
               {
                 name: 'Cadillac Escalade',
-                img: '/cadillac.png',
+                img: '/cadillac.webp',
                 features: ['55 inch curved oled dashboard', 'High-end audio system', 'Semi-aniline leather, wood accents', '16-way power adjustable massaging seats']
               },
               {
                 name: 'Ford Expedition',
-                img: '/ford.png',
+                img: '/ford.webp',
                 features: ['24-inch panoramic display', 'Cargo tailgate manager', 'Accommodates 7 to 8 passenger', '3.5L Ecoboost, Twin-turbo v6']
               },
               {
                 name: 'GMC Yukon VIP',
-                img: '/GMC.png',
+                img: '/GMC.webp',
                 features: ['Three row SUV', '16-way power front seats with massage', 'Air ride adaptive suspension', '18-speaker performance series']
               },
               {
                 name: 'Cadillac Escalade Platinum',
-                img: '/cadillac.png',
+                img: '/cadillac.webp',
                 features: ['55 inch curved oled dashboard', 'High-end audio system', 'Semi-aniline leather, wood accents', '16-way power adjustable massaging seats']
               },
               {
                 name: 'Ford Expedition Max',
-                img: '/ford.png',
+                img: '/ford.webp',
                 features: ['24-inch panoramic display', 'Cargo tailgate manager', 'Accommodates 7 to 8 passenger', '3.5L Ecoboost, Twin-turbo v6']
               }
             ].map((car, idx) => (
               <div className="fleet-card" key={`${car.name}-${idx}`}>
                 <div className="fleet-card-img">
-                  <img src={car.img} alt={car.name} />
+                  <img src={car.img} alt={car.name} loading="lazy" />
                 </div>
                 <h3>{t(VEHICLE_NAMES[car.name] || car.name)}</h3>
                 <div className="fleet-features">

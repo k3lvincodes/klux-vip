@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="footer-top">
           <div className="footer-left">
             <div className="footer-brand">
-               <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" />
+               <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" loading="lazy" />
                <h2>{t('common.app_name')}</h2>
             </div>
             <div className="footer-links-grid">

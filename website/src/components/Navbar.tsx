@@ -56,7 +56,7 @@ export default function Navbar() {
         <div className="navbar-inner">
           <Link to="/" className="nav-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="nav-logo-icon">
-              <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} />
+              <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} loading="lazy" />
             </div>
             {t('common.app_name')}
           </Link>

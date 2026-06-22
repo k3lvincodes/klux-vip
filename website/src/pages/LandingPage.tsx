@@ -10,7 +10,7 @@ import Contact from './Contact';
 import FAQ from '../components/FAQ';
 import '../App.css';
 
-const HERO_IMAGES = ['/1.png', '/2.png', '/3.png', '/4.png'];
+const HERO_IMAGES = ['/1.webp', '/2.webp', '/3.webp', '/4.webp'];
 
 export default function LandingPage() {
   const { t } = useTranslation();
@@ -86,7 +86,7 @@ export default function LandingPage() {
           </div>
           <div className="download-layout">
             <div className="download-img-col">
-              <img src="/kenick phone mockup.png" alt={t('common.download_app')} />
+              <img src="/kenick phone mockup.webp" alt={t('common.download_app')} loading="lazy" />
             </div>
             <div className="download-text-col">
               <h2 dangerouslySetInnerHTML={{ __html: String(t('common.your_premium_ride_awaits')) }} />

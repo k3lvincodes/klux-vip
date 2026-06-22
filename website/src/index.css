@@ -1003,7 +1003,7 @@ ul { list-style: none; }
 .why-choose {
   position: relative;
   background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
-    url('/services.png');
+    url('/services.webp');
   background-size: cover;
   background-position: center;
   min-height: 700px;
@@ -1051,7 +1051,7 @@ ul { list-style: none; }
   position: relative;
   padding-top: 40px;
   padding-bottom: 6rem;
-  background-image: url('/cheerful-black-woman.png');
+  background-image: url('/cheerful-black-woman.webp');
   background-size: cover;
   background-position: center;
   color: var(--black);
