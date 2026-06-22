@@ -174,11 +174,11 @@ export default function RidesPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Ride ID</th>
-                <th>Client</th>
-                <th>Chauffeur</th>
-                <th>Fare</th>
-                <th>Status</th>
+                <th scope="col">Ride ID</th>
+                <th scope="col">Client</th>
+                <th scope="col">Chauffeur</th>
+                <th scope="col">Fare</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

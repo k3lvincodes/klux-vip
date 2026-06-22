@@ -17,6 +17,9 @@ import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
 import 'package:kenick_vip/widgets/shimmer_loading.dart';
 import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/repositories/review_repository.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TripSummaryScreen extends StatefulWidget {
   const TripSummaryScreen({super.key});
@@ -44,6 +47,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
   bool _isPaymentSuccess = false;
   bool _showRatingModal = false;
   int _ratingStars = 0;
+  String _driverName = '';
   final TextEditingController _commentController = TextEditingController();
 
   AnimationController? _simAnimationController;
@@ -238,6 +242,20 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
         _showRatingModal = false;
       });
 
+      final driverId = rideProv.currentRideDetails?['driver_id'] as String?;
+      if (driverId != null) {
+        Supabase.instance.client
+            .from('profiles')
+            .select('first_name')
+            .eq('id', driverId)
+            .maybeSingle()
+            .then((data) {
+          if (data != null && mounted) {
+            setState(() => _driverName = data['first_name'] as String? ?? '');
+          }
+        });
+      }
+
       Future.delayed(const Duration(milliseconds: 2500), () {
         if (mounted) {
           setState(() {
@@ -321,11 +339,23 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                         : AppColors.primary.withValues(alpha: 0.4),
                     strokeWidth: isInProgress ? 4.5 : 3.0,
                   ),
+                  if (rideProv.driverPosition != null && (status == 'arriving' || status == 'accepted'))
+                    Polyline(
+                      points: [rideProv.driverPosition!, pickup],
+                      color: Colors.green.withValues(alpha: 0.5),
+                      strokeWidth: 3.0,
+                    ),
+                  if (rideProv.driverPosition != null && status == 'in_progress')
+                    Polyline(
+                      points: [rideProv.driverPosition!, dropoff],
+                      color: AppColors.primary,
+                      strokeWidth: 4.0,
+                    ),
                 ],
               ),
               MarkerLayer(
                 markers: [
-                  if (_simulatedDriverPosition == null)
+                  if (_simulatedDriverPosition == null && rideProv.driverPosition == null)
                     AnimatedMarker.locationDot(
                         point: pickup, color: AppColors.primary),
                   AnimatedMarker.pickupPin(
@@ -333,7 +363,13 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                     animateOut: _pickupPinRemoved,
                   ),
                   AnimatedMarker.dropoffPin(point: dropoff),
-                  if (_simulatedDriverPosition != null)
+                  if (rideProv.driverPosition != null)
+                    AnimatedMarker.driverCar(
+                      point: rideProv.driverPosition!,
+                      size: 40,
+                      isStationary: status == 'arriving',
+                    )
+                  else if (_simulatedDriverPosition != null)
                     AnimatedMarker.driverCar(
                       point: _simulatedDriverPosition!,
                       rotationAngle: _simulatedDriverRotation,
@@ -904,8 +940,8 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Rate your active experience with Michael',
+          Text(
+            'Rate your experience with your chauffeur${_driverName.isNotEmpty ? ", $_driverName" : ""}',
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -964,9 +1000,25 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           const SizedBox(height: 24),
           CustomButton(
             title: 'Submit Review',
-            onPress: () {
+            onPress: () async {
+              final ride = rideProv.currentRideDetails;
+              final user = Supabase.instance.client.auth.currentUser;
+              if (ride == null || user == null || _ratingStars == 0) {
+                if (mounted) CustomToast.showError(context, 'Please select a rating');
+                return;
+              }
+              try {
+                await ReviewRepository().submitReview(
+                  rideId: ride['id'],
+                  reviewerId: user.id,
+                  revieweeId: ride['driver_id'],
+                  rating: _ratingStars,
+                  comment: _commentController.text.isNotEmpty ? _commentController.text : null,
+                );
+                if (mounted) CustomToast.showSuccess(context, 'Rating submitted!');
+              } catch (_) {}
               rideProv.clearRide();
-              context.go('/passenger-home');
+              if (mounted) context.go('/passenger-home');
             },
             variant: ButtonVariant.primary,
           ),

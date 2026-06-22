@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -25,27 +26,48 @@ class _StartRideScreenState extends State<StartRideScreen> {
 
   int _waitSeconds = 0;
   Timer? _timer;
+  StreamSubscription<Position>? _gpsSubscription;
 
   @override
   void initState() {
     super.initState();
     final mem = MapMemory();
     _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
+    _startGps();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(_currentPosition, mem.lastZoom);
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _waitSeconds++;
-      });
+      if (mounted) setState(() => _waitSeconds++);
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _gpsSubscription?.cancel();
     MapMemory().save(_currentPosition, _mapController.camera.zoom);
     super.dispose();
+  }
+
+  Future<void> _startGps() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return;
+    }
+    if (permission == LocationPermission.deniedForever) return;
+
+    final pos = await Geolocator.getCurrentPosition();
+    if (mounted) setState(() => _currentPosition = LatLng(pos.latitude, pos.longitude));
+
+    _gpsSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
+    ).listen((position) {
+      if (mounted) setState(() => _currentPosition = LatLng(position.latitude, position.longitude));
+    });
   }
 
   String get _formattedTime {
@@ -57,10 +79,21 @@ class _StartRideScreenState extends State<StartRideScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rideProv = context.watch<RideProvider>();
+    final ride = rideProv.currentRideDetails;
+    final dropoffStr = ride?['dropoff_location']?.toString() ?? '';
+    final regExp = RegExp(r'POINT\s*\(\s*([-\d\.]+)\s+([-\d\.]+)\s*\)');
+    final match = regExp.firstMatch(dropoffStr);
+    LatLng? dropoffPos;
+    if (match != null) {
+      final lng = double.tryParse(match.group(1) ?? '');
+      final lat = double.tryParse(match.group(2) ?? '');
+      if (lat != null && lng != null) dropoffPos = LatLng(lat, lng);
+    }
+
     return Scaffold(
       body: Stack(
         children: [
-          // Map Background
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -81,18 +114,29 @@ class _StartRideScreenState extends State<StartRideScreen> {
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
               ),
+              if (dropoffPos != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [_currentPosition, dropoffPos],
+                      color: AppColors.primary,
+                      strokeWidth: 4.0,
+                      borderColor: AppColors.primary.withValues(alpha: 0.3),
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                  if (dropoffPos != null) AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
                 ],
               ),
             ],
           ),
 
-          // Back Button
           Positioned(
-            top: 50,
-            left: 16,
+            top: 50, left: 16,
             child: GestureDetector(
               onTap: () => context.pop(),
               child: Container(
@@ -106,11 +150,8 @@ class _StartRideScreenState extends State<StartRideScreen> {
             ),
           ),
 
-          // Bottom Sheet
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: 0, left: 0, right: 0,
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -121,35 +162,13 @@ class _StartRideScreenState extends State<StartRideScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Waiting time',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        _formattedTime,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
-                        ),
-                      ),
-                    ],
-                  ),
+                  Row(children: [
+                    Text('Waiting time', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+                    const SizedBox(width: 16),
+                    Text(_formattedTime, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+                  ]),
                   const SizedBox(height: 8),
-                  Text(
-                    'You may cancel the offer',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey,
-                    ),
-                  ),
+                  Text('You may cancel the offer', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
                   const SizedBox(height: 24),
                   Consumer<RideProvider>(
                     builder: (context, rideProv, _) {
@@ -157,9 +176,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
                         title: rideProv.isLoading ? 'Starting...' : 'Start the ride',
                         onPress: rideProv.isLoading ? () {} : () async {
                           final success = await rideProv.updateRideStatus('in_progress');
-                          if (success && context.mounted) {
-                            context.push('/active-ride');
-                          }
+                          if (success && context.mounted) context.push('/active-ride');
                         },
                         variant: ButtonVariant.primary,
                       );
@@ -173,18 +190,9 @@ class _StartRideScreenState extends State<StartRideScreen> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      child:  Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: isDark ? AppColors.white : AppColors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
+                      child: Text('Cancel', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -197,4 +205,3 @@ class _StartRideScreenState extends State<StartRideScreen> {
     );
   }
 }
-

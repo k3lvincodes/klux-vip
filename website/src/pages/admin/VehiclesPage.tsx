@@ -126,10 +126,10 @@ export default function VehiclesPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Vehicle Model</th>
-                <th>License Plate</th>
-                <th>Assigned Chauffeur</th>
-                <th>Status</th>
+                <th scope="col">Vehicle Model</th>
+                <th scope="col">License Plate</th>
+                <th scope="col">Assigned Chauffeur</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

@@ -14,16 +14,19 @@ class OnboardingScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Full-screen background image (car headlight)
+          // Full-screen background image
           Positioned.fill(
             child: ColorFiltered(
               colorFilter: const ColorFilter.mode(
                 Colors.grey,
                 BlendMode.saturation,
               ),
-              child: Image.asset(
-                'assets/images/car1.png',
-                fit: BoxFit.cover,
+              child: Transform.translate(
+                offset: const Offset(0, -40),
+                child: Image.asset(
+                  'assets/images/mobile_1.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),

@@ -1,10 +1,20 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, ChevronLeft, Star, User } from 'lucide-react';
 
 export default function Testimonials() {
   const { t } = useTranslation();
   const testCarouselRef = useRef<HTMLDivElement>(null);
+
+  const testimonialCount = useMemo(() => {
+    let count = 0;
+    for (let i = 1; i <= 20; i++) {
+      const name = t(`testimonials.t${i}_name`);
+      if (name && !name.startsWith('testimonials.t')) count++;
+      else break;
+    }
+    return Math.max(count, 1);
+  }, [t]);
 
   const scrollTestLeft = () => {
     if (testCarouselRef.current) {
@@ -25,7 +35,7 @@ export default function Testimonials() {
       </div>
       <div className="testimonials-content">
         <div className="test-cards" ref={testCarouselRef}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {Array.from({ length: testimonialCount }, (_, i) => i + 1).map((i) => (
             <div className="test-card" key={i}>
               <div className="test-card-avatar">
                  <User size={60} color="#1c1c1c" fill="#1c1c1c" />

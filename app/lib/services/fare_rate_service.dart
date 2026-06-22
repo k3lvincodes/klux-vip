@@ -32,14 +32,16 @@ class FareRate {
 class FareRateService {
   static final _supabase = Supabase.instance.client;
 
-  static FareRate? _cached;
+  static final Map<String, _CachedRate> _cache = {};
+  static const Duration _cacheTtl = Duration(minutes: 15);
   static double get _defaultPerKmRate => 1.85;
   static double get _defaultBaseFare => 3.50;
   static double get _defaultPerMinuteRate => 0.45;
 
   static Future<FareRate> getRate(String countryCode) async {
-    if (_cached != null && _cached!.countryCode == countryCode) {
-      return _cached!;
+    final cached = _cache[countryCode];
+    if (cached != null && !cached.isExpired) {
+      return cached.rate;
     }
 
     try {
@@ -51,17 +53,27 @@ class FareRateService {
           .maybeSingle();
 
       if (data != null) {
-        _cached = FareRate.fromMap(data);
-        return _cached!;
+        final rate = FareRate.fromMap(data);
+        _cache[countryCode] = _CachedRate(rate);
+        return rate;
       }
     } catch (_) {}
 
-    return FareRate(
+    final fallback = FareRate(
       id: 'default',
       countryCode: countryCode,
       perKmRate: _defaultPerKmRate,
       baseFare: _defaultBaseFare,
       perMinuteRate: _defaultPerMinuteRate,
     );
+    _cache[countryCode] = _CachedRate(fallback);
+    return fallback;
   }
+}
+
+class _CachedRate {
+  final FareRate rate;
+  final DateTime cachedAt;
+  _CachedRate(this.rate) : cachedAt = DateTime.now();
+  bool get isExpired => DateTime.now().difference(cachedAt) > FareRateService._cacheTtl;
 }

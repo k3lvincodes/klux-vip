@@ -167,11 +167,16 @@ export default function PricingPage() {
       expanded: false,
     };
 
-    await supabase.from('fare_rates').insert({
+    const { error } = await supabase.from('fare_rates').insert({
       country_code: code.toLowerCase(),
       state_or_region: null,
       vip_amount: 0,
     });
+
+    if (error) {
+      console.error('Failed to add country:', error);
+      return;
+    }
 
     setSelectedCountries(prev => [...prev, newCountry]);
     setShowModal(false);
@@ -179,19 +184,15 @@ export default function PricingPage() {
   }
 
   async function removeCountry(code: string) {
-    await supabase.from('fare_rates').delete().eq('country_code', code.toLowerCase());
+    const { error } = await supabase.from('fare_rates').delete().eq('country_code', code.toLowerCase());
+    if (error) {
+      console.error('Failed to remove country:', error);
+      return;
+    }
     setSelectedCountries(prev => prev.filter(c => c.code !== code));
   }
 
   async function updateCountryVip(code: string, amount: number) {
-    setSelectedCountries(prev =>
-      prev.map(c =>
-        c.code === code
-          ? { ...c, vipAmount: amount, states: c.states.map(s => s.inherited ? { ...s, vipAmount: amount } : s) }
-          : c
-      )
-    );
-
     const { data: existing } = await supabase
       .from('fare_rates')
       .select('id')
@@ -199,14 +200,51 @@ export default function PricingPage() {
       .is('state_or_region', null)
       .maybeSingle();
 
+    let error;
     if (existing) {
-      await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id);
+      ({ error } = await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id));
     } else {
-      await supabase.from('fare_rates').insert({ country_code: code.toLowerCase(), state_or_region: null, vip_amount: amount });
+      ({ error } = await supabase.from('fare_rates').insert({ country_code: code.toLowerCase(), state_or_region: null, vip_amount: amount }));
     }
+
+    if (error) {
+      console.error('Failed to update country VIP amount:', error);
+      return;
+    }
+
+    setSelectedCountries(prev =>
+      prev.map(c =>
+        c.code === code
+          ? { ...c, vipAmount: amount, states: c.states.map(s => s.inherited ? { ...s, vipAmount: amount } : s) }
+          : c
+      )
+    );
   }
 
   async function updateStateVip(code: string, stateName: string, amount: number) {
+    const { data: existing } = await supabase
+      .from('fare_rates')
+      .select('id')
+      .eq('country_code', code.toLowerCase())
+      .eq('state_or_region', stateName)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      ({ error } = await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id));
+    } else {
+      ({ error } = await supabase.from('fare_rates').insert({
+        country_code: code.toLowerCase(),
+        state_or_region: stateName,
+        vip_amount: amount,
+      }));
+    }
+
+    if (error) {
+      console.error('Failed to update state VIP amount:', error);
+      return;
+    }
+
     setSelectedCountries(prev =>
       prev.map(c =>
         c.code === code
@@ -219,26 +257,20 @@ export default function PricingPage() {
           : c
       )
     );
-
-    const { data: existing } = await supabase
-      .from('fare_rates')
-      .select('id')
-      .eq('country_code', code.toLowerCase())
-      .eq('state_or_region', stateName)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id);
-    } else {
-      await supabase.from('fare_rates').insert({
-        country_code: code.toLowerCase(),
-        state_or_region: stateName,
-        vip_amount: amount,
-      });
-    }
   }
 
   async function resetStateToInherit(code: string, stateName: string) {
+    const { error } = await supabase
+      .from('fare_rates')
+      .delete()
+      .eq('country_code', code.toLowerCase())
+      .eq('state_or_region', stateName);
+
+    if (error) {
+      console.error('Failed to reset state:', error);
+      return;
+    }
+
     const country = selectedCountries.find(c => c.code === code);
     if (!country) return;
 
@@ -254,12 +286,6 @@ export default function PricingPage() {
           : c
       )
     );
-
-    await supabase
-      .from('fare_rates')
-      .delete()
-      .eq('country_code', code.toLowerCase())
-      .eq('state_or_region', stateName);
   }
 
   function toggleExpand(code: string) {

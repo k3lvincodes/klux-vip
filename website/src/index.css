@@ -275,11 +275,17 @@ ul { list-style: none; }
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('/hero-bg.png');
-  background-size: cover;
-  background-position: center;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.hero-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1s ease-in-out;
 }
 
 .navbar {
@@ -474,6 +480,8 @@ ul { list-style: none; }
    SECTION 1: HERO CONTENT
    ======================================== */
 .hero-content {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   align-items: center;
@@ -831,6 +839,38 @@ ul { list-style: none; }
   background: var(--yellow-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(244, 197, 34, 0.3);
+}
+
+.fleet-scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--black);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.fleet-scroll-btn:hover {
+  background: #e0b01e;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+.fleet-scroll-btn--left {
+  left: 2rem;
+}
+
+.fleet-scroll-btn--right {
+  right: 2rem;
 }
 
 /* ========================================

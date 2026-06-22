@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CheckCircle2, MapPin, Calendar, Clock, Car } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { supabase } from '../lib/supabase';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -14,6 +15,7 @@ export default function BookingPage() {
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const leafletRef = useRef<{ map: any; script: HTMLScriptElement | null } | null>(null);
 
   const [bookingForm, setBookingForm] = useState({
     pickup: '',
@@ -31,7 +33,7 @@ export default function BookingPage() {
     if (searchParams.get('vehicle')) {
       setBookingForm(prev => ({ ...prev, vehicle: searchParams.get('vehicle')! }));
     }
-  }, [searchParams]);
+  }, [searchParams.get('vehicle')]);
 
   // Initialize Mapbox
   // Initialize Mapbox / Fallback Map
@@ -69,6 +71,8 @@ export default function BookingPage() {
         const L = window.L;
         if (!L) return;
 
+        leafletRef.current = { map: null, script };
+
         const lMap = L.map(mapContainerRef.current, {
           zoomControl: false
         }).setView([40.7128, -74.006], 12);
@@ -82,6 +86,8 @@ export default function BookingPage() {
         L.control.zoom({
           position: 'bottomleft'
         }).addTo(lMap);
+
+        leafletRef.current!.map = lMap;
 
         // Add a custom marker
         const customIcon = L.divIcon({
@@ -231,6 +237,19 @@ export default function BookingPage() {
         }
         mapRef.current = null;
       }
+      if (leafletRef.current) {
+        try {
+          if (leafletRef.current.map) {
+            leafletRef.current.map.remove();
+          }
+        } catch (e) {
+          console.warn('Leaflet cleanup error:', e);
+        }
+        if (leafletRef.current.script?.parentNode) {
+          leafletRef.current.script.parentNode.removeChild(leafletRef.current.script);
+        }
+        leafletRef.current = null;
+      }
     };
   }, []);
 
@@ -241,9 +260,20 @@ export default function BookingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: bookingForm.pickup,
+        email: bookingForm.dropoff,
+        subject: 'Booking Request',
+        message: `Vehicle: ${bookingForm.vehicle}, Date: ${bookingForm.date}, Time: ${bookingForm.time}, Passengers: ${bookingForm.passengers}`,
+      });
+      if (error) throw error;
+      setSubmitSuccess(true);
+    } catch (err) {
+      console.error('Booking submission failed:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

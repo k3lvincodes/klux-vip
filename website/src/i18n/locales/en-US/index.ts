@@ -195,6 +195,7 @@ const enUS = {
     name: 'Your Name',
     email: 'Your Email',
     phone: 'Your Phone',
+    subject: 'Subject',
     message: 'Your Message',
     send_message: 'Send Message',
     message_sent: 'Message sent successfully! We will get back to you shortly.',

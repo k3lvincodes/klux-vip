@@ -25,7 +25,7 @@ export default function UsersPage() {
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, email, first_name, last_name, created_at')
-        .eq('role', 'passenger')
+        .eq('role', 'client')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
@@ -139,11 +139,11 @@ export default function UsersPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Joined Date</th>
-                <th>Total Rides</th>
-                <th>Status</th>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Joined Date</th>
+                <th scope="col">Total Rides</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

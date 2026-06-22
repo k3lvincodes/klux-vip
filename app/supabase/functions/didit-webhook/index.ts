@@ -1,10 +1,38 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { crypto } from 'https://deno.land/std@0.208.0/crypto/mod.ts'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const resendApiKey = Deno.env.get('RESEND_API_KEY')!
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const resendApiKey = Deno.env.get('RESEND_API_KEY')
+const webhookSecret = Deno.env.get('DIDIT_WEBHOOK_SECRET')
+
+if (!supabaseUrl) throw new Error('Missing SUPABASE_URL environment variable')
+if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+if (!webhookSecret) throw new Error('Missing DIDIT_WEBHOOK_SECRET environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+const WEBHOOK_SIG_HEADER = 'x-didit-signature'
+
+async function verifySignature(rawBody: string, signature: string): Promise<boolean> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(webhookSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  )
+  const sigBytes = hexToBytes(signature)
+  return await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(rawBody))
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
+}
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   if (!resendApiKey) {
@@ -116,7 +144,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const payload = await req.json()
+    const rawBody = await req.text()
+    const signature = req.headers.get(WEBHOOK_SIG_HEADER)
+
+    if (!signature) {
+      console.error('Missing webhook signature header')
+      return new Response(
+        JSON.stringify({ error: 'Missing signature header' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const valid = await verifySignature(rawBody, signature)
+    if (!valid) {
+      console.error('Invalid webhook signature')
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const payload = JSON.parse(rawBody)
     console.log('Didit webhook received:', JSON.stringify(payload))
 
     const event = payload.event || ''

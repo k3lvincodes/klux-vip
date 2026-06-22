@@ -89,7 +89,7 @@ export default function Overview() {
       const currentDays = buildDayRange();
       const previousDays = buildDayRange().map((d, i) => {
         const prev = new Date(now);
-        prev.setDate(prev.getDate() - 14 + i);
+        prev.setDate(prev.getDate() - 7 + i);
         return {
           name: d.name,
           start: new Date(prev.getFullYear(), prev.getMonth(), prev.getDate()),

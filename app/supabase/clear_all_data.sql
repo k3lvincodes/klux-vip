@@ -10,20 +10,11 @@ declare
   tbl text;
 begin
   for tbl in
-    select unnest(array[
-      'fare_rates',
-      'surge_zones',
-      'profiles'
-    ])
+    select tablename from pg_tables
+    where schemaname = 'public'
+    order by tablename
   loop
-    if exists (
-      select from pg_tables
-      where schemaname = 'public' and tablename = tbl
-    ) then
-      execute format('truncate public.%I cascade', tbl);
-      raise notice 'Truncated public.%', tbl;
-    else
-      raise notice 'Skipped public.% (table does not exist)', tbl;
-    end if;
+    execute format('truncate public.%I cascade', tbl);
+    raise notice 'Truncated public.%', tbl;
   end loop;
 end $$;

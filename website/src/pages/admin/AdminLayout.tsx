@@ -12,7 +12,8 @@ import {
   FileCheck,
   DollarSign,
   Menu,
-  Bell
+  Bell,
+  LogOut
 } from 'lucide-react';
 import '../../styles/admin.css';
 
@@ -83,6 +84,9 @@ export default function AdminLayout() {
               <p className="admin-user-role">Super Admin</p>
             </div>
           </div>
+          <button className="admin-logout-btn" onClick={handleLogout} title="Sign out">
+            <LogOut size={18} />
+          </button>
         </div>
       </aside>
 

@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 class EmailNotificationService {
   String? get _apiKey => dotenv.env['RESEND_API_KEY'];
+  String get _fromEmail =>
+      dotenv.env['RESEND_FROM_EMAIL'] ?? 'Kenick Transportation LLC <onboarding@kenicktransportation.com>';
 
   Future<bool> sendVerificationSuccessEmail({
     required String toEmail,
@@ -20,7 +22,7 @@ class EmailNotificationService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'from': 'Kenick Transportation LLC <onboarding@kenicktransportation.com>',
+          'from': _fromEmail,
           'to': [toEmail],
           'subject': 'Identity Verification Successful – Klux VIP',
           'html': '''
@@ -56,7 +58,7 @@ class EmailNotificationService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'from': 'Kenick Transportation LLC <onboarding@kenicktransportation.com>',
+          'from': _fromEmail,
           'to': [toEmail],
           'subject': 'Identity Verification Failed – Klux VIP',
           'html': '''

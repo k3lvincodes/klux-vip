@@ -58,7 +58,11 @@ class _DriverIdVerificationScreenState
                 CustomToast.showSuccess(context, 'Identity verified successfully!');
                 context.go('/vehicle-registration');
               }
-            } catch (_) {}
+            } catch (e) {
+              if (mounted) {
+                CustomToast.showError(context, 'Failed to save verification: $e');
+              }
+            }
           case VerificationStatus.pending:
             try {
               await _saveDocuments(session.sessionId);
@@ -70,7 +74,11 @@ class _DriverIdVerificationScreenState
                 );
                 context.go('/vehicle-registration');
               }
-            } catch (_) {}
+            } catch (e) {
+              if (mounted) {
+                CustomToast.showError(context, 'Failed to save verification: $e');
+              }
+            }
           case VerificationStatus.declined:
             await _updateVerificationStatus('declined');
             _sendResultEmail(isSuccess: false);
@@ -136,7 +144,7 @@ class _DriverIdVerificationScreenState
       
       await Supabase.instance.client
           .from('driver_details')
-          .update({'status': dbStatus})
+          .update({'status': dbStatus, 'verification_status': status})
           .eq('profile_id', user.id);
     }
   }

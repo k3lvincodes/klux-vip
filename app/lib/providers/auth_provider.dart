@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,10 +75,10 @@ class AuthProvider extends ChangeNotifier {
         _setSessionState(SessionState.authenticated);
       } else {
         final prefs = await SharedPreferences.getInstance();
-        final refreshToken = prefs.getString('bio_refresh_token');
-        if (refreshToken != null) {
+        final sessionJson = prefs.getString('bio_session');
+        if (sessionJson != null) {
           try {
-            await _supabase.auth.setSession(refreshToken);
+            await _supabase.auth.setSession(sessionJson);
             _cachedUser = _supabase.auth.currentUser;
             if (_cachedUser != null) {
               _userRole = _cachedUser?.userMetadata?['role'] as String?;
@@ -191,7 +192,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.session?.refreshToken != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('bio_refresh_token', response.session!.refreshToken!);
+        await prefs.setString('bio_session', jsonEncode(response.session!.toJson()));
       }
 
       return true;

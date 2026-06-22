@@ -26,7 +26,7 @@ export default function DriversPage() {
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, email, first_name, last_name, driver_details ( status, is_online, rating, rating_count )')
-        .eq('role', 'driver')
+        .eq('role', 'chauffeur')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
@@ -161,11 +161,11 @@ export default function DriversPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Chauffeur</th>
-                <th>Vehicle</th>
-                <th>Rating</th>
-                <th>Completed Rides</th>
-                <th>Status</th>
+                <th scope="col">Chauffeur</th>
+                <th scope="col">Vehicle</th>
+                <th scope="col">Rating</th>
+                <th scope="col">Completed Rides</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

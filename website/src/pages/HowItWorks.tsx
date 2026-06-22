@@ -24,7 +24,7 @@ export default function HowItWorks() {
 
             {/* Big circle */}
             <div className="hiw-big-circle">
-              <h2 dangerouslySetInnerHTML={{ __html: t('how_it_works.title').replace(' ', '<br />') }} />
+              <h2 dangerouslySetInnerHTML={{ __html: String(t('how_it_works.title')).replace(' ', '<br />') }} />
             </div>
 
             {/* Step 1 - top */}

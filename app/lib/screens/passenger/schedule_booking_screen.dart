@@ -212,8 +212,10 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
       _distanceKm = km;
       final rate = await FareRateService.getRate(_countryCode ?? 'US');
       _calculatedFare = rate.baseFare + (km * rate.perKmRate);
-      _sheetExtent = _initialChildSize(context);
-      if (mounted) setState(() {});
+      if (mounted) {
+        _sheetExtent = _initialChildSize(context);
+        setState(() {});
+      }
     }
   }
 

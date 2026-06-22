@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:kenick_vip/services/cloudinary_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
@@ -22,6 +25,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   String _selectedColor = '';
   bool _isLoading = false;
   final VehicleRepository _vehicleRepo = VehicleRepository();
+  final List<File> _pickedImages = [];
+  bool _isUploadingImages = false;
 
   final List<String> _colors = [
     'Black',
@@ -47,6 +52,40 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImages() async {
+    final remaining = 5 - _pickedImages.length;
+    if (remaining <= 0) {
+      CustomToast.showError(context, 'Maximum 5 images allowed');
+      return;
+    }
+
+    final picker = ImagePicker();
+    final picked = await picker.pickMultiImage(imageQuality: 95);
+    if (picked.isEmpty) return;
+
+    final toAdd = picked.take(remaining).map((f) => File(f.path)).toList();
+    setState(() => _pickedImages.addAll(toAdd));
+
+    if (toAdd.length < picked.length && mounted) {
+      CustomToast.showInfo(context, 'Only $remaining images added (max 5)');
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() => _pickedImages.removeAt(index));
+  }
+
+  Future<List<String>> _uploadImages() async {
+    final urls = <String>[];
+    setState(() => _isUploadingImages = true);
+    for (final image in _pickedImages) {
+      final url = await CloudinaryService.uploadImage(image);
+      if (url != null) urls.add(url);
+    }
+    setState(() => _isUploadingImages = false);
+    return urls;
+  }
+
   Future<void> _handleSubmit() async {
     if (_makeController.text.trim().isEmpty ||
         _modelController.text.trim().isEmpty ||
@@ -54,6 +93,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         _yearController.text.trim().isEmpty ||
         _selectedColor.isEmpty) {
       CustomToast.showError(context, 'Please fill all fields');
+      return;
+    }
+
+    if (_pickedImages.isEmpty) {
+      CustomToast.showError(context, 'Please upload at least one car image');
       return;
     }
 
@@ -66,6 +110,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final imageUrls = await _uploadImages();
+
+      if (imageUrls.isEmpty) {
+        if (mounted) {
+          CustomToast.showError(context, 'Failed to upload images');
+        }
+        return;
+      }
+
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         await _vehicleRepo.registerVehicle(
@@ -75,6 +128,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           year: year,
           color: _selectedColor,
           licensePlate: _licensePlateController.text.trim(),
+          images: imageUrls,
         );
       }
 
@@ -106,6 +160,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           ),
           onPressed: () => context.pop(),
         ),
+        title: const Text(
+          'Register Your Vehicle',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -113,20 +172,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(
-                child: Text(
-                  'Register Your Vehicle',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'This information will be shown to passengers',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 4),
+              _buildImagePicker(isDark),
+              const SizedBox(height: 24),
               _buildInput(
                 controller: _makeController,
                 hintText: 'Make (e.g., Toyota, Honda, Ford)',
@@ -153,17 +201,183 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                 hintText: 'License Plate',
                 icon: Icons.tag,
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
               CustomButton(
-                title: _isLoading ? 'Registering...' : 'Register Vehicle',
-                onPress: _isLoading ? () {} : _handleSubmit,
+                title: _isLoading || _isUploadingImages
+                    ? 'Uploading...'
+                    : 'Register Vehicle',
+                onPress:
+                    _isLoading || _isUploadingImages ? () {} : _handleSubmit,
                 variant: ButtonVariant.primary,
                 height: 48,
               ),
+              const SizedBox(height: 16),
+              Center(
+                child: GestureDetector(
+                  onTap: () => context.go('/driver-home'),
+                  child: Text(
+                    'Skip',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildImagePicker(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Car Images',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
+            ),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              if (_pickedImages.isNotEmpty)
+                SizedBox(
+                  height: 100,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _pickedImages.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              _pickedImages[index],
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              if (_pickedImages.isNotEmpty)
+                const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _pickedImages.length >= 5 ? null : _pickImages,
+                child: Container(
+                  width: double.infinity,
+                  height: _pickedImages.isEmpty ? 140 : 56,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.grey.shade800.withValues(alpha: 0.3)
+                        : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                      style: BorderStyle.solid,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: _pickedImages.isEmpty
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 40,
+                              color: isDark
+                                  ? Colors.grey.shade500
+                                  : Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap to upload car images',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_pickedImages.length}/5',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade400,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 22,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Add more (${_pickedImages.length}/5)',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

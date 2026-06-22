@@ -7,9 +7,9 @@ class ProfileRepository {
     try {
       final data = await _supabase
           .from('profiles')
-          .select('*, driver_details:profile_id(*)')
+          .select('*, driver_details(*)')
           .eq('id', userId)
-          .eq('role', 'chauffeur')
+          .or('role.eq.chauffeur,role.is.null')
           .maybeSingle();
       return data;
     } catch (e) {
@@ -22,9 +22,12 @@ class ProfileRepository {
       final email = _supabase.auth.currentUser?.email;
       await _supabase.from('profiles').upsert({
         'id': userId,
-        'email': ?email,
+        'email': email ?? '',
         'role': 'chauffeur',
         ...profileData,
+      });
+      await _supabase.from('driver_details').upsert({
+        'profile_id': userId,
       });
     } catch (e) {
       throw Exception('Failed to update chauffeur profile: $e');
@@ -49,7 +52,7 @@ class ProfileRepository {
           .from('profiles')
           .select()
           .eq('id', userId)
-          .eq('role', 'client')
+          .or('role.eq.client,role.is.null')
           .maybeSingle();
       return data;
     } catch (e) {
@@ -62,7 +65,7 @@ class ProfileRepository {
       final email = _supabase.auth.currentUser?.email;
       await _supabase.from('profiles').upsert({
         'id': userId,
-        'email': ?email,
+        'email': email ?? '',
         'role': 'client',
         ...profileData,
       });

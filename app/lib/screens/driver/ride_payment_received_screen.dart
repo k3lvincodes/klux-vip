@@ -79,10 +79,9 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                 child: Padding(
                   padding: const EdgeInsets.only(left: 16.0, top: 16.0),
                   child: PressScale(
-                    onTap: () {
-                      // Navigate back to chauffeur home
-                      context.go('/driver-home');
-                    },
+                  onTap: () {
+                    context.pushReplacement('/rate-client');
+                  },
                     child: Container(
                       width: 44,
                       height: 44,

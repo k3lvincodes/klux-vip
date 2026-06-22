@@ -35,6 +35,7 @@ import 'package:kenick_vip/screens/ride_review_screen.dart';
 import 'package:kenick_vip/screens/driver/driver_ride_history_screen.dart';
 import 'package:kenick_vip/screens/driver/vehicle_management_screen.dart';
 import 'package:kenick_vip/screens/driver/driver_performance_screen.dart';
+import 'package:kenick_vip/screens/driver/rate_client_screen.dart';
 import 'package:kenick_vip/screens/passenger/trip_summary_screen.dart';
 import 'package:kenick_vip/screens/passenger/passenger_profile_screen.dart';
 import 'package:kenick_vip/screens/driver/driver_profile_screen.dart';
@@ -118,12 +119,21 @@ final GoRouter _router = GoRouter(
 
     final publicRoutes = <String>{
       '/', '/onboarding', '/sign-in', '/sign-up', '/forgot-password',
-      '/new-password', '/otp', '/role-selection',
+      '/new-password', '/otp', '/role-selection', '/home',
       '/privacy-policy', '/terms-of-service',
     };
 
     if (session == null && !publicRoutes.contains(location)) {
       return '/onboarding';
+    }
+
+    if (location == '/home') {
+      if (session == null) return '/onboarding';
+      final role = session.user.userMetadata?['role'];
+      if (role == 'Chauffeur' || role == 'Affiliate') {
+        return '/driver-home';
+      }
+      return '/passenger-home';
     }
 
     return null;
@@ -286,6 +296,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/ride-payment-received',
       builder: (context, state) => const RidePaymentReceivedScreen(),
+    ),
+    GoRoute(
+      path: '/rate-client',
+      builder: (context, state) => const RateClientScreen(),
     ),
     GoRoute(
       path: '/account',

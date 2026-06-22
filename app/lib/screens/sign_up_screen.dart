@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? role;
@@ -43,7 +44,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
     
     if (success) {
-      router.push('/otp?email=$email&isSignup=true');
+      try {
+        await Supabase.instance.client.auth.resend(
+          type: OtpType.signup,
+          email: email,
+        );
+      } catch (_) {}
+      if (!context.mounted) return;
+      router.go('/otp?email=$email&isSignup=true');
     } else {
       if (mounted) {
         CustomToast.showError(context, auth.errorMessage ?? 'Sign up failed');
@@ -52,7 +60,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _handleSignIn() {
-    context.push('/sign-in');
+    context.go('/sign-in');
   }
 
   @override
@@ -297,18 +305,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(OAuthProvider.google);
+    } catch (e) {
+      if (mounted) {
+        CustomToast.showError(context, 'Google sign in failed: $e');
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(OAuthProvider.apple);
+    } catch (e) {
+      if (mounted) {
+        CustomToast.showError(context, 'Apple sign in failed: $e');
+      }
+    }
+  }
+
   Widget _buildSocialButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _socialButton(
-          label: 'G',
-          color: const Color(0xFFDB4437),
+        GestureDetector(
+          onTap: _handleGoogleSignIn,
+          child: _socialButton(
+            label: 'G',
+            color: const Color(0xFFDB4437),
+          ),
         ),
         const SizedBox(width: 18),
-        _socialButton(
-          iconWidget: Icon(Icons.apple, size: 22, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+        GestureDetector(
+          onTap: _handleAppleSignIn,
+          child: _socialButton(
+            iconWidget: Icon(Icons.apple, size: 22, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+          ),
         ),
       ],
     );

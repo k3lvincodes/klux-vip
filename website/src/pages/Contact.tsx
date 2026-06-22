@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Send, MapPin, Phone, Mail } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Contact() {
   const { t } = useTranslation();
   const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setContactForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -15,11 +17,23 @@ export default function Contact() {
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setContactForm({ name: '', email: '', subject: '', message: '' });
-    setTimeout(() => setSubmitSuccess(false), 4000);
+    setSubmitError('');
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: contactForm.name,
+        email: contactForm.email,
+        subject: contactForm.subject,
+        message: contactForm.message,
+      });
+      if (error) throw error;
+      setSubmitSuccess(true);
+      setContactForm({ name: '', email: '', subject: '', message: '' });
+      setTimeout(() => setSubmitSuccess(false), 4000);
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -36,7 +50,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4>{t('contact.our_address')}</h4>
-                  <p dangerouslySetInnerHTML={{ __html: (t('contact.address') as string).replace(', ', '<br />') }} />
+                  <p dangerouslySetInnerHTML={{ __html: String(t('contact.address')).replace(', ', '<br />') }} />
                 </div>
               </div>
               <div className="contact-info-item">
@@ -72,6 +86,11 @@ export default function Contact() {
                 {t('contact.message_sent')}
               </div>
             )}
+            {submitError && (
+              <div className="contact-error" style={{ color: '#ef4444', marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', fontSize: '0.9rem' }}>
+                {submitError}
+              </div>
+            )}
             <div className="contact-form-row">
               <div className="contact-field">
                 <label htmlFor="contact-name">{t('contact.name')}</label>
@@ -99,12 +118,12 @@ export default function Contact() {
               </div>
             </div>
             <div className="contact-field">
-              <label htmlFor="contact-subject">{t('contact.name')}</label>
+              <label htmlFor="contact-subject">{t('contact.subject')}</label>
               <input
                 id="contact-subject"
                 type="text"
                 name="subject"
-                placeholder={t('contact.name')}
+                placeholder={t('contact.subject')}
                 value={contactForm.subject}
                 onChange={handleContactChange}
                 required

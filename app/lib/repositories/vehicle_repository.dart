@@ -37,6 +37,7 @@ class VehicleRepository {
     required int year,
     required String color,
     required String licensePlate,
+    List<String> images = const [],
   }) async {
     try {
       await _supabase
@@ -54,6 +55,7 @@ class VehicleRepository {
             'color': color,
             'license_plate': licensePlate.toUpperCase(),
             'is_active': true,
+            if (images.isNotEmpty) 'images': images,
           })
           .select()
           .single();

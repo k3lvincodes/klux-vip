@@ -90,8 +90,12 @@ class FirebaseService {
     FirebaseMessaging.onMessage.listen(handler);
   }
 
-  void setBackgroundHandler(Function(RemoteMessage) handler) {
+  void setNotificationOpenedHandler(Function(RemoteMessage) handler) {
     FirebaseMessaging.onMessageOpenedApp.listen(handler);
+  }
+
+  static void setBackgroundHandler(Future<void> Function(RemoteMessage) handler) {
+    FirebaseMessaging.onBackgroundMessage(handler);
   }
 
   static Future<void> firebaseMessagingBackgroundHandler(

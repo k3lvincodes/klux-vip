@@ -14,6 +14,7 @@ import 'package:kenick_vip/widgets/premium_drawer.dart';
 import 'package:kenick_vip/widgets/drawer_item.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -30,14 +31,39 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   String _userName = 'Loading...';
   String? _profileImageUrl;
   final Map<String, String> _passengerNames = {};
+  final Set<String> _fetchedPassengerIds = {};
   final Set<String> _declinedRideIds = {};
+  final Set<String> _notifiedRideIds = {};
   String _lastRideIds = '';
+  Future<List<Map<String, dynamic>>>? _completedRidesFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
     _fetchProfile();
+    _loadDeclinedRides();
+    _initCompletedRidesFuture();
+  }
+
+  void _initCompletedRidesFuture() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      _completedRidesFuture = RideRepository().getDriverCompletedRides(user.id);
+    }
+  }
+
+  Future<void> _loadDeclinedRides() async {
+    final prefs = await SharedPreferences.getInstance();
+    final declined = prefs.getStringList('declined_ride_ids') ?? [];
+    if (mounted) {
+      setState(() => _declinedRideIds.addAll(declined));
+    }
+  }
+
+  Future<void> _saveDeclinedRides() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('declined_ride_ids', _declinedRideIds.toList());
   }
 
   Future<void> _fetchProfile() async {
@@ -61,7 +87,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Future<void> _fetchPassengerNames(List<Map<String, dynamic>> rides) async {
     for (final ride in rides) {
       final passengerId = ride['passenger_id'] as String?;
-      if (passengerId != null && !_passengerNames.containsKey(passengerId)) {
+      if (passengerId != null && !_fetchedPassengerIds.contains(passengerId)) {
+        _fetchedPassengerIds.add(passengerId);
         try {
           final profile = await Supabase.instance.client
               .from('profiles')
@@ -70,7 +97,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               .maybeSingle();
           if (profile != null && mounted) {
             final name = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
-            setState(() => _passengerNames[passengerId] = name.isNotEmpty ? name : 'Client');
+            _passengerNames[passengerId] = name.isNotEmpty ? name : 'Client';
+            setState(() {});
           }
         } catch (_) {}
       }
@@ -170,11 +198,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
   // Completed Tab
   Widget _buildCompletedTab(bool isDark) {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return const SizedBox();
+    if (_completedRidesFuture == null) return const SizedBox();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: RideRepository().getDriverCompletedRides(user.id),
+      future: _completedRidesFuture!,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -287,11 +314,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
           );
         }
-        final rides = (snapshot.data ?? []).where((r) => !_declinedRideIds.contains(r['id'])).toList();
+        final fifteenMinsAgo = DateTime.now().subtract(const Duration(minutes: 15));
+        final rides = (snapshot.data ?? []).where((r) {
+          if (_declinedRideIds.contains(r['id'])) return false;
+          final createdAt = r['created_at'] != null ? DateTime.tryParse(r['created_at'].toString()) : null;
+          if (createdAt != null && createdAt.isBefore(fifteenMinsAgo)) return false;
+          return true;
+        }).toList();
         
         final currentRideIds = rides.map((e) => e['id']).join(',');
         if (currentRideIds != _lastRideIds) {
           _lastRideIds = currentRideIds;
+          final newRides = rides.where((r) => !_notifiedRideIds.contains(r['id'])).toList();
+          if (newRides.isNotEmpty && _tabController.index == 1) {
+            _notifiedRideIds.addAll(newRides.map((r) => r['id'] as String));
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showRideNotification(newRides.first, isDark);
+            });
+          }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _fetchPassengerNames(rides);
           });
@@ -315,6 +355,136 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               : _buildRidesList(rides, isDark),
         );
       },
+    );
+  }
+
+  void _showRideNotification(Map<String, dynamic> ride, bool isDark) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Icon(Icons.notifications_active, size: 48, color: AppColors.primary),
+              const SizedBox(height: 16),
+              Text(
+                'New Booking Request!',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.white : AppColors.black,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildNotifRow(Icons.my_location, 'Pickup', ride['pickup_address'] ?? 'Unknown', isDark),
+              const SizedBox(height: 6),
+              _buildNotifRow(Icons.location_on, 'Dropoff', ride['dropoff_address'] ?? 'Unknown', isDark),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.attach_money, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '\$${ride['fare_amount'] ?? '0.00'}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          setState(() => _declinedRideIds.add(ride['id']));
+                          _saveDeclinedRides();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
+                        child: Text('Decline', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          final auth = context.read<AuthProvider>();
+                          if (auth.currentUser == null) return;
+                          final rideProv = context.read<RideProvider>();
+                          rideProv.acceptRide(rideId: ride['id'], driverId: auth.currentUser!.id).then((success) {
+                            if (success && mounted) {
+                              context.push('/confirm-arrival');
+                            } else if (mounted) {
+                              CustomToast.showError(context, rideProv.errorMessage ?? 'Failed to accept ride');
+                            }
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Accept', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotifRow(IconData icon, String label, String value, bool isDark) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: label == 'Pickup' ? Colors.green : Colors.red),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '$label: $value',
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -392,6 +562,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               setState(() {
                 _declinedRideIds.add(ride['id']);
               });
+              _saveDeclinedRides();
             },
           );
         },

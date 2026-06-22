@@ -222,7 +222,6 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
                         onTap: rideProv.isLoading ? null : () async {
                           final success = await rideProv.updateRideStatus('completed');
                           if (success && context.mounted) {
-                            rideProv.clearRide();
                             context.push('/ride-payment-received');
                           }
                         },
@@ -231,7 +230,6 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
                           onPress: rideProv.isLoading ? () {} : () async {
                             final success = await rideProv.updateRideStatus('completed');
                             if (success && context.mounted) {
-                              rideProv.clearRide();
                               context.push('/ride-payment-received');
                             }
                           },

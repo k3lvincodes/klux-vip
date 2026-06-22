@@ -161,12 +161,12 @@ export default function DocumentsPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Chauffeur</th>
-                <th>Document Type</th>
-                <th>Submitted</th>
-                <th>Expiry</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th scope="col">Chauffeur</th>
+                <th scope="col">Document Type</th>
+                <th scope="col">Submitted</th>
+                <th scope="col">Expiry</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>

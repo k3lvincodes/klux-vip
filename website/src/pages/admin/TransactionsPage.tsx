@@ -98,8 +98,9 @@ export default function TransactionsPage() {
     ]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
@@ -172,12 +173,12 @@ export default function TransactionsPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Transaction ID</th>
-                <th>Type</th>
-                <th>User</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Status</th>
+                <th scope="col">Transaction ID</th>
+                <th scope="col">Type</th>
+                <th scope="col">User</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Date</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

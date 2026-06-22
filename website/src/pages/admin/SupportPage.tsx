@@ -160,12 +160,12 @@ export default function SupportPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Ticket ID</th>
-                <th>Subject</th>
-                <th>User</th>
-                <th>Last Updated</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th scope="col">Ticket ID</th>
+                <th scope="col">Subject</th>
+                <th scope="col">User</th>
+                <th scope="col">Last Updated</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody>

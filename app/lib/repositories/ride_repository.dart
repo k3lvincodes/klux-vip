@@ -19,7 +19,7 @@ class RideRepository {
   }) async {
     try {
       final response = await _supabase
-          .from('rides')
+          .from('ride_requests')
           .insert({
             'passenger_id': passengerId,
             'pickup_location': 'POINT($pickupLng $pickupLat)',
@@ -30,19 +30,19 @@ class RideRepository {
             'type': type,
             'scheduled_time': scheduledTime?.toIso8601String(),
             if (passengerNote != null && passengerNote.isNotEmpty) 'passenger_note': passengerNote,
-            'status': 'requested',
+            'status': 'pending',
           })
           .select()
           .single();
 
-      final rideId = response['id'] as String;
+      final requestId = response['id'] as String;
 
       if (type == 'instant') {
         try {
           await _supabase.functions.invoke(
             'matchmaker',
             body: {
-              'ride_id': rideId,
+              'ride_id': requestId,
               'pickup_lat': pickupLat,
               'pickup_lng': pickupLng,
             },
@@ -52,7 +52,7 @@ class RideRepository {
         }
       }
 
-      return rideId;
+      return requestId;
     } catch (e) {
       throw Exception('Failed to request ride: $e');
     }
@@ -77,6 +77,17 @@ class RideRepository {
     }
   }
 
+  Future<void> updateDriverLocation(String rideId, double lat, double lng) async {
+    try {
+      await _supabase.from('rides').update({
+        'driver_lat': lat,
+        'driver_lng': lng,
+      }).eq('id', rideId);
+    } catch (e) {
+      debugPrint('Failed to update driver location: $e');
+    }
+  }
+
   Stream<Map<String, dynamic>> listenToRide(String rideId) {
     return _supabase
         .from('rides')
@@ -87,9 +98,9 @@ class RideRepository {
 
   Stream<List<Map<String, dynamic>>> listenToRequestedRides() {
     return _supabase
-        .from('rides')
+        .from('ride_requests')
         .stream(primaryKey: ['id'])
-        .eq('status', 'requested')
+        .eq('status', 'pending')
         .map((events) => events)
         .handleError((Object error) {
           debugPrint('listenToRequestedRides error: $error');

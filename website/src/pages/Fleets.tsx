@@ -1,4 +1,5 @@
-import { CheckCircle2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -28,6 +29,38 @@ const VEHICLE_NAMES: Record<string, string> = {
 
 export default function Fleets() {
   const { t } = useTranslation();
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollButtons = () => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const tolerance = 2;
+    setCanScrollLeft(el.scrollLeft > tolerance);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - tolerance);
+  };
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener('scroll', updateScrollButtons);
+    const observer = new ResizeObserver(updateScrollButtons);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      observer.disconnect();
+    };
+  }, []);
+
+  const scrollBy = (direction: 'left' | 'right') => {
+    if (!carouselRef.current) return;
+    const card = carouselRef.current.querySelector<HTMLElement>('.fleet-card');
+    if (!card) return;
+    const scrollAmount = card.offsetWidth + 16;
+    carouselRef.current.scrollBy({ left: direction === 'right' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+  };
 
   return (
     <section className="fleets section-padding page-layout" id="fleets">
@@ -37,7 +70,7 @@ export default function Fleets() {
       </div>
         
       <div className="fleets-carousel-wrapper">
-          <div className="fleets-carousel">
+          <div className="fleets-carousel" ref={carouselRef}>
             {[
               {
                 name: 'GMC Yukon',
@@ -87,6 +120,16 @@ export default function Fleets() {
               </div>
             ))}
           </div>
+          {canScrollLeft && (
+            <button className="fleet-scroll-btn fleet-scroll-btn--left" onClick={() => scrollBy('left')} aria-label="Scroll fleet left">
+              <ChevronLeft size={28} />
+            </button>
+          )}
+          {canScrollRight && (
+            <button className="fleet-scroll-btn fleet-scroll-btn--right" onClick={() => scrollBy('right')} aria-label="Scroll fleet right">
+              <ChevronRight size={28} />
+            </button>
+          )}
         </div>
     </section>
   );

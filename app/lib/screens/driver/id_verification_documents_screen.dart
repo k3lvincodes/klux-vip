@@ -87,7 +87,7 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String? status = _profile?['driver_details']?['verification_status'];
+    final String? status = _profile?['driver_details']?['verification_status'] as String? ?? _profile?['verification_status'] as String?;
     final List<dynamic>? verificationUrls = _profile?['verification_urls'] as List<dynamic>?;
 
     return Scaffold(

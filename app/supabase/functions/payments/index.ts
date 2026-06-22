@@ -1,9 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@13.14.0?target=deno'
+import Stripe from 'https://esm.sh/stripe@17.6.0?target=deno'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
+
+if (!supabaseUrl) throw new Error('Missing SUPABASE_URL environment variable')
+if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' }) : null
@@ -33,25 +36,30 @@ Deno.serve(async (req) => {
       case 'create-setup-intent': {
         const { customer_id, user_id, payment_method_id } = data
 
-        if (!user_id || !payment_method_id) {
+        if (!user_id || !payment_method_id || !customer_id) {
           return new Response(
-            JSON.stringify({ error: 'Missing user_id or payment_method_id' }),
+            JSON.stringify({ error: 'Missing required fields' }),
             { status: 400, headers: { 'Content-Type': 'application/json' } }
           )
         }
 
-        const setupIntent = await stripe.setupIntents.create({
-          payment_method: payment_method_id,
-          customer: customer_id,
-          metadata: { user_id },
-        })
+        const [paymentMethod, setupIntent] = await Promise.all([
+          stripe.paymentMethods.retrieve(payment_method_id),
+          stripe.setupIntents.create({
+            payment_method: payment_method_id,
+            customer: customer_id,
+            metadata: { user_id },
+          }),
+        ])
+
+        const last4 = paymentMethod?.card?.last4 ?? payment_method_id.slice(-4)
 
         await supabase.from('payment_methods').insert({
           user_id,
           provider_token: payment_method_id,
           stripe_pm_id: payment_method_id,
           type: 'card',
-          last4: payment_method_id.slice(-4),
+          last4,
         })
 
         return new Response(

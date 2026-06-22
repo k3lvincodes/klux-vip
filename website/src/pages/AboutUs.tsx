@@ -24,7 +24,7 @@ export default function AboutUs() {
               <div className="wcu-item"><CheckCircle2 size={24} strokeWidth={1.5} /> {t('about.real_time_tracking')}</div>
               <div className="wcu-item"><CheckCircle2 size={24} strokeWidth={1.5} /> {t('about.premium_fleet')}</div>
               <div className="wcu-item"><CheckCircle2 size={24} strokeWidth={1.5} /> {t('about.247_support')}</div>
-              <div className="wcu-item wcu-item-full"><CheckCircle2 size={24} strokeWidth={1.5} /> {t('about.mission_title')}</div>
+              <div className="wcu-item"><CheckCircle2 size={24} strokeWidth={1.5} /> {t('about.mission_title')}</div>
             </div>
           </div>
         </div>

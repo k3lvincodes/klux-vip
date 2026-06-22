@@ -22,6 +22,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _ringController;
   late final Animation<double> _ringAngle;
   String? _nextRoute;
+  bool _resolved = false;
 
   @override
   void initState() {
@@ -70,30 +71,31 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
     await _determineNextRoute();
 
-    if (!mounted) return;
+    if (!mounted || _resolved) return;
     await _controller.forward(from: _controller.value);
 
-    if (mounted) {
+    if (mounted && !_resolved) {
       await Future.delayed(const Duration(milliseconds: 400));
-      if (mounted) _navigate();
+      if (mounted && !_resolved) _navigate();
     }
   }
 
   void _resolveImmediately(AuthProvider auth) {
+    _resolved = true;
     final user = auth.currentUser;
     if (user == null) {
-      context.go('/onboarding');
+      if (mounted) context.go('/onboarding');
       return;
     }
     final role = user.userMetadata?['role'];
     if (role == null) {
-      context.go('/role-selection');
+      if (mounted) context.go('/role-selection');
       return;
     }
     if (role == 'Chauffeur' || role == 'Affiliate') {
-      context.go('/driver-home');
+      if (mounted) context.go('/driver-home');
     } else {
-      context.go('/passenger-home');
+      if (mounted) context.go('/passenger-home');
     }
   }
 

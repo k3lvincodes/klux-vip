@@ -199,8 +199,10 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
       _perKmRate = rate.perKmRate;
       _baseFare = rate.baseFare;
       _calculatedFare = _baseFare + (km * _perKmRate);
-      _sheetExtent = _initialChildSize(context);
-      setState(() {});
+      if (mounted) {
+        _sheetExtent = _initialChildSize(context);
+        setState(() {});
+      }
     }
   }
 

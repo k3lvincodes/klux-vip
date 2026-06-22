@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ArrowRight, Eye, EyeOff } from 'lucide-react';
@@ -10,24 +10,33 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, loading: authLoading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  if (authLoading) {
+    return (
+      <div className="al-page">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh' }}>
+          <div className="al-loader"><div className="al-loader-bar"></div></div>
+        </div>
+      </div>
+    );
+  }
+
   if (user && isSuperAdmin) {
-    navigate('/admin');
-    return null;
+    return <Navigate to="/admin" replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -47,7 +56,7 @@ export default function AdminLogin() {
         if (userError) throw userError;
 
         if (userData?.is_super_admin) {
-          navigate('/admin');
+          navigate('/admin', { replace: true });
         } else {
           await supabase.auth.signOut();
           setError('Access denied. Super admin privileges required.');
@@ -56,7 +65,7 @@ export default function AdminLogin() {
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please try again.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -165,8 +174,8 @@ export default function AdminLogin() {
             </div>
 
             {/* Submit */}
-            <button type="submit" className="al-submit" disabled={loading}>
-              {loading ? (
+            <button type="submit" className="al-submit" disabled={submitting}>
+              {submitting ? (
                 <div className="al-loader">
                   <div className="al-loader-bar"></div>
                 </div>

@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const ProtectedRoute = () => {
   const { user, isSuperAdmin, loading } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -17,13 +18,12 @@ export const ProtectedRoute = () => {
   }
 
   if (!isSuperAdmin) {
-    // Authenticated but not a super admin, deny access
     return (
       <div className="flex flex-col items-center justify-center h-screen w-full bg-[#030303] text-white">
         <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
         <p className="text-gray-400 mb-8">You do not have super admin privileges.</p>
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="bg-[#F4C522] text-black font-semibold py-2 px-6 rounded-full"
         >
           Return to Home

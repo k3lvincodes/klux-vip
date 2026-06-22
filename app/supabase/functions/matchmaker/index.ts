@@ -1,7 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+if (!supabaseUrl) throw new Error('Missing SUPABASE_URL environment variable')
+if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -17,7 +20,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ride_id, pickup_lat, pickup_lng, radius_meters = 5000 } = await req.json()
+    const { ride_id, pickup_lat, pickup_lng, radius_meters: raw_radius = 5000 } = await req.json()
+    const radius_meters = Math.max(100, Math.min(50000, raw_radius))
 
     if (!ride_id || !pickup_lat || !pickup_lng) {
       return new Response(
@@ -26,16 +30,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { data: ride, error: rideError } = await supabase
-      .from('rides')
-      .select('*, passenger:passenger_id(first_name, last_name)')
-      .eq('id', ride_id)
-      .single()
-
-    if (rideError || !ride) {
+    if (!ride_id || !pickup_lat || !pickup_lng) {
       return new Response(
-        JSON.stringify({ error: 'Ride not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Missing required fields: ride_id, pickup_lat, pickup_lng' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
@@ -63,13 +61,8 @@ Deno.serve(async (req) => {
     }
 
     if (!nearbyDrivers || nearbyDrivers.length === 0) {
-      await supabase
-        .from('rides')
-        .update({ status: 'cancelled' })
-        .eq('id', ride_id)
-
       return new Response(
-        JSON.stringify({ error: 'No chauffeurs available nearby' }),
+        JSON.stringify({ error: 'No chauffeurs available nearby', ride_id, retry: true }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -89,25 +82,25 @@ Deno.serve(async (req) => {
       )
     }
 
-    const driverHasVehicle = await supabase
+    const { data: driverVehicle, error: vehicleError } = await supabase
       .from('vehicles')
       .select('id')
       .eq('driver_id', selectedDriver.user_id)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
-    if (!driverHasVehicle) {
+    if (vehicleError || !driverVehicle) {
       return new Response(
         JSON.stringify({ error: 'Chauffeur has no active vehicle' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
-    const driverHasApprovedDocs = await supabase.rpc('driver_documents_approved', {
+    const { data: docsApproved, error: docsError } = await supabase.rpc('driver_documents_approved', {
       driver_uuid: selectedDriver.user_id,
     })
 
-    if (!driverHasApprovedDocs) {
+    if (docsError || !docsApproved) {
       return new Response(
         JSON.stringify({ error: 'Chauffeur documents not approved' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }

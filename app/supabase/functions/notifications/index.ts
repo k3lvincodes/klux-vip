@@ -1,8 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const fcmServerKey = Deno.env.get('FCM_SERVER_KEY')!
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const fcmServerKey = Deno.env.get('FCM_SERVER_KEY')
+
+if (!supabaseUrl) throw new Error('Missing SUPABASE_URL environment variable')
+if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+if (!fcmServerKey) throw new Error('Missing FCM_SERVER_KEY environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -85,15 +89,15 @@ Deno.serve(async (req) => {
       )
     }
 
-    const notificationRecord = await supabase.from('notifications').insert({
-      user_id,
-      type,
-      title,
-      body,
-      data,
-      status: 'sent',
-      delivery_status: 'sent',
-    })
+    const { data: notificationRecord, error: insertError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id, type, title, body, data,
+        status: 'sent',
+        delivery_status: 'sent',
+      })
+      .select()
+      .single()
 
     const fcmSent = await sendFCM({
       to: fcmToken.fcm_token,
@@ -101,7 +105,7 @@ Deno.serve(async (req) => {
       data: data || {},
     })
 
-    if (!fcmSent) {
+    if (!fcmSent && notificationRecord?.id) {
       await supabase
         .from('notifications')
         .update({ status: 'failed', delivery_status: 'failed' })
