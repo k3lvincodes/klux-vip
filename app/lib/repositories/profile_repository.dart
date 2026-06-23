@@ -1,9 +1,10 @@
+import 'package:kenick_vip/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<Map<String, dynamic>?> getDriverProfile(String userId) async {
+  Future<UserProfile?> getDriverProfile(String userId) async {
     try {
       final data = await _supabase
           .from('profiles')
@@ -11,7 +12,8 @@ class ProfileRepository {
           .eq('id', userId)
           .or('role.eq.chauffeur,role.is.null')
           .maybeSingle();
-      return data;
+      if (data == null) return null;
+      return UserProfile.fromJson(data);
     } catch (e) {
       throw Exception('Failed to fetch chauffeur profile: $e');
     }
@@ -46,7 +48,7 @@ class ProfileRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> getPassengerProfile(String userId) async {
+  Future<UserProfile?> getPassengerProfile(String userId) async {
     try {
       final data = await _supabase
           .from('profiles')
@@ -54,7 +56,8 @@ class ProfileRepository {
           .eq('id', userId)
           .or('role.eq.client,role.is.null')
           .maybeSingle();
-      return data;
+      if (data == null) return null;
+      return UserProfile.fromJson(data);
     } catch (e) {
       throw Exception('Failed to fetch client profile: $e');
     }

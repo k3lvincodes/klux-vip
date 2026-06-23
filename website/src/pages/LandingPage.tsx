@@ -86,7 +86,7 @@ export default function LandingPage() {
           </div>
           <div className="download-layout">
             <div className="download-img-col">
-              <img src="/kenick phone mockup.webp" alt={t('common.download_app')} loading="lazy" />
+              <img src="/ken_mockup_1.webp" alt={t('common.download_app')} loading="lazy" />
             </div>
             <div className="download-text-col">
               <h2 dangerouslySetInnerHTML={{ __html: String(t('common.your_premium_ride_awaits')) }} />

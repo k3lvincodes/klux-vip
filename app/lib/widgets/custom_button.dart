@@ -7,17 +7,6 @@ enum ButtonVariant { primary, secondary, outline }
 enum ButtonStatus { normal, loading, success, error }
 
 class CustomButton extends StatefulWidget {
-  final String title;
-  final VoidCallback onPress;
-  final ButtonVariant variant;
-  final double height;
-  final double borderRadius;
-  final TextStyle? textStyle;
-  final IconData? icon;
-  final bool isLoading;
-  final bool isDisabled;
-  final ButtonStatus status;
-  final VoidCallback? onStatusComplete;
 
   const CustomButton({
     super.key,
@@ -33,6 +22,17 @@ class CustomButton extends StatefulWidget {
     this.status = ButtonStatus.normal,
     this.onStatusComplete,
   });
+  final String title;
+  final VoidCallback onPress;
+  final ButtonVariant variant;
+  final double height;
+  final double borderRadius;
+  final TextStyle? textStyle;
+  final IconData? icon;
+  final bool isLoading;
+  final bool isDisabled;
+  final ButtonStatus status;
+  final VoidCallback? onStatusComplete;
 
   @override
   State<CustomButton> createState() => _CustomButtonState();
@@ -154,7 +154,6 @@ class _CustomButtonState extends State<CustomButton> {
                     color: isDark
                         ? Colors.grey.shade700
                         : AppColors.primary.withValues(alpha: 0.5),
-                    width: 1,
                   )
                 : null,
             boxShadow: widget.status == ButtonStatus.normal

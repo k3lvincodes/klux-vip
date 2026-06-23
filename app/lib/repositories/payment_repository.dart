@@ -1,16 +1,18 @@
+import 'package:kenick_vip/models/payment_method.dart';
+import 'package:kenick_vip/models/transaction.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PaymentRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<List<Map<String, dynamic>>> getPaymentMethods(String userId) async {
+  Future<List<PaymentMethod>> getPaymentMethods(String userId) async {
     try {
       final response = await _supabase
           .from('payment_methods')
           .select()
           .eq('user_id', userId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => PaymentMethod.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch payment methods: $e');
     }
@@ -19,7 +21,7 @@ class PaymentRepository {
   Future<String> addPaymentMethod({
     required String userId,
     required String paymentMethodId,
-    required String last4,
+    required String customerId,
   }) async {
     try {
       final response = await _supabase.functions.invoke(
@@ -29,7 +31,7 @@ class PaymentRepository {
           'data': {
             'user_id': userId,
             'payment_method_id': paymentMethodId,
-            'last4': last4,
+            'customer_id': customerId,
           },
         },
       );
@@ -40,9 +42,53 @@ class PaymentRepository {
         );
       }
 
-      return response.data['id'] ?? paymentMethodId;
+      return response.data['setup_intent'] as String;
     } catch (e) {
       throw Exception('Failed to add payment method: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> captureRidePayment({
+    required String rideId,
+  }) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'payments',
+        body: {
+          'action': 'capture-ride-payment',
+          'data': {'ride_id': rideId},
+        },
+      );
+
+      if (response.data == null || response.data['error'] != null) {
+        throw Exception(response.data?['error'] ?? 'Capture failed');
+      }
+
+      return Map<String, dynamic>.from(response.data);
+    } catch (e) {
+      throw Exception('Failed to capture payment: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> cancelRidePayment({
+    required String rideId,
+  }) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'payments',
+        body: {
+          'action': 'cancel-ride-payment',
+          'data': {'ride_id': rideId},
+        },
+      );
+
+      if (response.data == null || response.data['error'] != null) {
+        throw Exception(response.data?['error'] ?? 'Cancellation failed');
+      }
+
+      return Map<String, dynamic>.from(response.data);
+    } catch (e) {
+      throw Exception('Failed to cancel payment: $e');
     }
   }
 
@@ -50,13 +96,19 @@ class PaymentRepository {
     required String userId,
     required String rideId,
     required double amount,
+    String? paymentMethodId,
   }) async {
     try {
       final response = await _supabase.functions.invoke(
         'payments',
         body: {
           'action': 'process-ride-payment',
-          'data': {'user_id': userId, 'ride_id': rideId, 'amount': amount},
+          'data': {
+            'user_id': userId,
+            'ride_id': rideId,
+            'amount': amount,
+            'payment_method_id': ?paymentMethodId,
+          },
         },
       );
 
@@ -70,14 +122,14 @@ class PaymentRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTransactions(String userId) async {
+  Future<List<Transaction>> getTransactions(String userId) async {
     try {
       final response = await _supabase
           .from('transactions')
           .select()
           .eq('user_id', userId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => Transaction.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch transactions: $e');
     }

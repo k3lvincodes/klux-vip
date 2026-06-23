@@ -159,11 +159,6 @@ class _WithdrawMethodScreenState extends State<WithdrawMethodScreen> {
 }
 
 class _MethodItem {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBg;
-  final String title;
-  final String subtitle;
 
   _MethodItem({
     required this.icon,
@@ -172,5 +167,10 @@ class _MethodItem {
     required this.title,
     required this.subtitle,
   });
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String title;
+  final String subtitle;
 }
 

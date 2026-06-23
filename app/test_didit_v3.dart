@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() async {
-  final apiKey = 'Ljgu4XQ0a_Ux3yMkPi6nLSGijRHOuUmTeBXyzPVVsjA';
-  final workflowId = 'a902bb58-5817-4fda-90ea-306068ea8774';
+  const apiKey = 'Ljgu4XQ0a_Ux3yMkPi6nLSGijRHOuUmTeBXyzPVVsjA';
+  const workflowId = 'a902bb58-5817-4fda-90ea-306068ea8774';
 
   print('Testing Didit v3 API with x-api-key...');
   try {

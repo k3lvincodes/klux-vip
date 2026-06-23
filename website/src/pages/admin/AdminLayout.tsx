@@ -84,8 +84,9 @@ export default function AdminLayout() {
               <p className="admin-user-role">Super Admin</p>
             </div>
           </div>
-          <button className="admin-logout-btn" onClick={handleLogout} title="Sign out">
-            <LogOut size={18} />
+          <button className="admin-logout-btn" onClick={handleLogout}>
+            <LogOut size={14} />
+            <span>Logout</span>
           </button>
         </div>
       </aside>

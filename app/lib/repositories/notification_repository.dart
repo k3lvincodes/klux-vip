@@ -52,7 +52,7 @@ class NotificationRepository {
         .from('notifications')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
-        .order('created_at', ascending: false)
+        .order('created_at')
         .map((events) => events);
   }
 

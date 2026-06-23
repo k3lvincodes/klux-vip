@@ -1,17 +1,18 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 class EndRideConfirmationScreen extends StatefulWidget {
   const EndRideConfirmationScreen({super.key});
@@ -60,10 +61,10 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,

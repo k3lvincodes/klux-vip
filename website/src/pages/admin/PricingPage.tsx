@@ -100,7 +100,9 @@ export default function PricingPage() {
   const [selectedCountries, setSelectedCountries] = useState<SelectedCountry[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [modalError, setModalError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     loadCountries();
@@ -158,6 +160,9 @@ export default function PricingPage() {
     if (!info) return;
     if (selectedCountries.some(c => c.code === code)) return;
 
+    setAdding(true);
+    setModalError('');
+
     const newCountry: SelectedCountry = {
       code,
       name: info.name,
@@ -174,13 +179,15 @@ export default function PricingPage() {
     });
 
     if (error) {
-      console.error('Failed to add country:', error);
+      setModalError(error.message || 'Failed to add country. Please try again.');
+      setAdding(false);
       return;
     }
 
     setSelectedCountries(prev => [...prev, newCountry]);
     setShowModal(false);
     setSearchQuery('');
+    setAdding(false);
   }
 
   async function removeCountry(code: string) {
@@ -354,19 +361,19 @@ export default function PricingPage() {
                     <span className="vip-country-code">{country.code}</span>
                   </div>
                 </div>
-                <div className="vip-country-amount" onClick={e => e.stopPropagation()}>
-                  <span className="vip-currency">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={country.vipAmount}
-                    onChange={e => updateCountryVip(country.code, parseFloat(e.target.value) || 0)}
-                    className="vip-amount-input"
-                    onClick={e => e.stopPropagation()}
-                  />
-                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="vip-country-amount" onClick={e => e.stopPropagation()}>
+                    <span className="vip-currency">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={country.vipAmount}
+                      onChange={e => updateCountryVip(country.code, parseFloat(e.target.value) || 0)}
+                      className="vip-amount-input"
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </div>
                   <button
                     className="vip-remove-btn"
                     onClick={e => {
@@ -389,7 +396,7 @@ export default function PricingPage() {
                     <span>Regions / States</span>
                     <span className="vip-inherit-hint">Inherited amounts update automatically from country default</span>
                   </div>
-                  {country.states.map(state => (
+                  {[...country.states].sort((a, b) => a.name.localeCompare(b.name)).map(state => (
                     <div key={state.name} className="vip-state-row">
                       <span className="vip-state-name">{state.name}</span>
                       <div className="vip-state-amount-group">
@@ -453,6 +460,9 @@ export default function PricingPage() {
               />
             </div>
 
+            {modalError && (
+              <div className="vip-modal-error">{modalError}</div>
+            )}
             <div className="vip-country-list">
               {filteredCountries.length === 0 ? (
                 <div className="vip-no-results">
@@ -464,6 +474,7 @@ export default function PricingPage() {
                     key={country.code}
                     className="vip-country-option"
                     onClick={() => addCountry(country.code)}
+                    disabled={adding}
                   >
                     <span className="vip-country-option-flag">{country.flag}</span>
                     <span className="vip-country-option-name">{country.name}</span>

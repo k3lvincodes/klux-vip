@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/theme_provider.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -150,7 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.logout, size: 28, color: AppColors.primary),
+              child: const Icon(Icons.logout, size: 28, color: AppColors.primary),
             ),
             const SizedBox(height: 20),
             Text(

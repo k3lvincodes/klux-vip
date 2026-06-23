@@ -1,9 +1,12 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:provider/provider.dart';
 
 class RidePaymentReceivedScreen extends StatefulWidget {
   const RidePaymentReceivedScreen({super.key});
@@ -64,6 +67,12 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rideProv = context.watch<RideProvider>();
+    final rideDetails = rideProv.currentRideDetails;
+    final fareAmount = rideDetails?['fare_amount'];
+    final displayAmount = fareAmount != null
+        ? '\$${(fareAmount as num).toStringAsFixed(2)}'
+        : '\$0.00';
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -215,7 +224,7 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
 
               // Amount Received - staggered fade-in
               Text(
-                '\$140 Received',
+                '$displayAmount Received',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -253,7 +262,7 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                           : Colors.grey.shade300,
                     ),
                   ),
-                  child: Text(
+                  child: const Text(
                     'View payment details',
                     style: TextStyle(
                       color: Colors.grey,

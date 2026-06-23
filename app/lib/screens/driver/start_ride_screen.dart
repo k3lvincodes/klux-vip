@@ -1,16 +1,17 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/ride_provider.dart';
 
 class StartRideScreen extends StatefulWidget {
   const StartRideScreen({super.key});
@@ -51,7 +52,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
   }
 
   Future<void> _startGps() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -106,10 +107,10 @@ class _StartRideScreenState extends State<StartRideScreen> {
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,

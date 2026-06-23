@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/repositories/document_repository.dart';
+import 'package:kenick_vip/services/auth_routing_service.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -80,8 +80,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
         await DeviceBiometricsService.refreshSession(userId);
 
-        final prefs = await SharedPreferences.getInstance();
-        final refreshToken = prefs.getString('bio_refresh_token');
+        const storage = FlutterSecureStorage();
+        final refreshToken = await storage.read(key: 'bio_refresh_token');
         if (refreshToken != null) {
           try {
             await Supabase.instance.client.auth.setSession(refreshToken);
@@ -103,7 +103,7 @@ class _SignInScreenState extends State<SignInScreen> {
         } else if (role == 'Chauffeur' || role == 'Affiliate') {
           final profile = await ProfileRepository().getDriverProfile(user.id);
           if (mounted) {
-            if (profile == null || profile['first_name'] == null) {
+            if (profile == null || profile.firstName == null) {
               context.go('/driver-profile-setup');
             } else {
               context.go('/driver-home');
@@ -112,7 +112,7 @@ class _SignInScreenState extends State<SignInScreen> {
         } else {
           final profile = await ProfileRepository().getPassengerProfile(user.id);
           if (mounted) {
-            if (profile == null || profile['first_name'] == null) {
+            if (profile == null || profile.firstName == null) {
               context.go('/passenger-profile-setup');
             } else {
               context.go('/passenger-home');
@@ -138,40 +138,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (success && mounted) {
       final user = auth.currentUser;
-      final role = user?.userMetadata?['role'];
 
       if (user != null) {
         try {
-          if (role == null) {
-            if (mounted) context.go('/role-selection');
-          } else if (role == 'Chauffeur' || role == 'Affiliate') {
-            final results = await Future.wait([
-              ProfileRepository().getDriverProfile(user.id),
-              DocumentRepository().getDocumentByType(user.id, 'driver_license'),
-            ]);
-
-            final profile = results[0];
-            final idDoc = results[1];
-
-            if (mounted) {
-              if (profile == null || (profile as Map)['first_name'] == null) {
-                context.go('/driver-profile-setup');
-              } else if (idDoc == null) {
-                context.go('/driver-id-verification');
-              } else {
-                context.go('/driver-home');
-              }
-            }
-          } else {
-            final profile = await ProfileRepository().getPassengerProfile(user.id);
-            if (mounted) {
-              if (profile == null || profile['first_name'] == null) {
-                context.go('/passenger-profile-setup');
-              } else {
-                context.go('/passenger-home');
-              }
-            }
-          }
+          final routingService = AuthRoutingService();
+          final route = await routingService.determineRouteForUser(user);
+          if (mounted) context.go(route);
         } catch (e) {
           if (mounted) {
             setState(() => _isNavigating = false);
@@ -279,7 +251,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           const Spacer(),
                           GestureDetector(
                             onTap: () => context.push('/forgot-password'),
-                            child: Text(
+                            child: const Text(
                               'Forgot password?',
                               style: TextStyle(
                                 fontSize: 12,
@@ -303,8 +275,6 @@ class _SignInScreenState extends State<SignInScreen> {
                             title: isLoading ? 'Signing in...' : 'Sign In',
                             onPress: isLoading ? () {} : _handleLogin,
                             variant: ButtonVariant.primary,
-                            height: 52,
-                            borderRadius: 30,
                             textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                             isLoading: isLoading,
                           );
@@ -321,8 +291,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           title: 'Log in with Biometrics',
                           onPress: _handleBiometricLogin,
                           variant: ButtonVariant.outline,
-                          height: 52,
-                          borderRadius: 30,
                           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                           icon: Icons.fingerprint,
                         ),
@@ -360,7 +328,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     GestureDetector(
                       onTap: _handleSignUp,
-                      child: Text(
+                      child: const Text(
                         'Sign up',
                         style: TextStyle(
                           fontSize: 13,

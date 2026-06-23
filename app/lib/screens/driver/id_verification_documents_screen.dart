@@ -1,10 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/models/user_profile.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class IdVerificationDocumentsScreen extends StatefulWidget {
   const IdVerificationDocumentsScreen({super.key});
@@ -15,7 +16,7 @@ class IdVerificationDocumentsScreen extends StatefulWidget {
 
 class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsScreen> {
   bool _isLoading = true;
-  Map<String, dynamic>? _profile;
+  UserProfile? _profile;
 
   @override
   void initState() {
@@ -87,8 +88,8 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String? status = _profile?['driver_details']?['verification_status'] as String? ?? _profile?['verification_status'] as String?;
-    final List<dynamic>? verificationUrls = _profile?['verification_urls'] as List<dynamic>?;
+    final String? status = _profile?.driverDetails?['verification_status'] as String?;
+    final List<dynamic>? verificationUrls = _profile?.driverDetails?['verification_urls'] as List<dynamic>?;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -180,7 +181,7 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
                         else if (status == 'approved')
                           Column(
                             children: [
-                              Icon(Icons.check_circle, size: 32, color: Colors.green),
+                              const Icon(Icons.check_circle, size: 32, color: Colors.green),
                               const SizedBox(height: 8),
                               Text(
                                 'Your identity has been verified successfully.',

@@ -1,8 +1,9 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kenick_vip/services/firebase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum SessionState {
   unauthenticated,
@@ -74,8 +75,8 @@ class AuthProvider extends ChangeNotifier {
         _userRole = _cachedUser?.userMetadata?['role'] as String?;
         _setSessionState(SessionState.authenticated);
       } else {
-        final prefs = await SharedPreferences.getInstance();
-        final sessionJson = prefs.getString('bio_session');
+        const storage = FlutterSecureStorage();
+        final sessionJson = await storage.read(key: 'bio_session');
         if (sessionJson != null) {
           try {
             await _supabase.auth.setSession(sessionJson);
@@ -191,8 +192,8 @@ class AuthProvider extends ChangeNotifier {
       }
 
       if (response.session?.refreshToken != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('bio_session', jsonEncode(response.session!.toJson()));
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'bio_session', value: jsonEncode(response.session!.toJson()));
       }
 
       return true;

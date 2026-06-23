@@ -3,21 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class AnimatedInputField extends StatefulWidget {
-  final TextEditingController controller;
-  final String hint;
-  final String? label;
-  final bool isDark;
-  final bool obscureText;
-  final TextInputType keyboardType;
-  final Widget? prefix;
-  final Widget? suffix;
-  final String? Function(String?)? validator;
-  final ValueChanged<String>? onChanged;
-  final int? maxLines;
-  final int? maxLength;
-  final bool enabled;
-  final FocusNode? focusNode;
-  final VoidCallback? onTap;
 
   const AnimatedInputField({
     super.key,
@@ -37,6 +22,21 @@ class AnimatedInputField extends StatefulWidget {
     this.focusNode,
     this.onTap,
   });
+  final TextEditingController controller;
+  final String hint;
+  final String? label;
+  final bool isDark;
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final Widget? prefix;
+  final Widget? suffix;
+  final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final int? maxLines;
+  final int? maxLength;
+  final bool enabled;
+  final FocusNode? focusNode;
+  final VoidCallback? onTap;
 
   @override
   State<AnimatedInputField> createState() => _AnimatedInputFieldState();

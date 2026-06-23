@@ -11,6 +11,7 @@ if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY envi
 if (!webhookSecret) throw new Error('Missing DIDIT_WEBHOOK_SECRET environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') || '*'
 
 const WEBHOOK_SIG_HEADER = 'x-didit-signature'
 
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Methods': 'POST',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },

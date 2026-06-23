@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/models/review.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverPerformanceScreen extends StatefulWidget {
   const DriverPerformanceScreen({super.key});
@@ -15,7 +16,7 @@ class DriverPerformanceScreen extends StatefulWidget {
 class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
   final ReviewRepository _reviewRepo = ReviewRepository();
   final RideRepository _rideRepo = RideRepository();
-  List<Map<String, dynamic>> _reviews = [];
+  List<Review> _reviews = [];
   int _totalRides = 0;
   bool _isLoading = true;
 
@@ -51,7 +52,7 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
     double avgRating = 0;
     if (_reviews.isNotEmpty) {
       final total = _reviews.fold<double>(0.0, (sum, r) {
-        final rating = (r['rating'] as num?) ?? 0;
+        final rating = r.rating;
         return sum + rating.toDouble();
       });
       avgRating = total / _reviews.length;
@@ -148,14 +149,14 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                   const SizedBox(height: 12),
                   ...List.generate(5, (i) {
                     final star = 5 - i;
-                    final count = _reviews.where((r) => (r['rating'] as num?)?.toInt() == star).length;
+                    final count = _reviews.where((r) => r.rating == star).length;
                     final pct = _reviews.isEmpty ? 0.0 : count / _reviews.length;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
                           SizedBox(width: 40, child: Text('$star', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600))),
-                          Icon(Icons.star, size: 14, color: Colors.amber),
+                          const Icon(Icons.star, size: 14, color: Colors.amber),
                           const SizedBox(width: 8),
                           Expanded(
                             child: ClipRRect(
@@ -195,11 +196,9 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                     )
                   else
                     ..._reviews.take(10).map((r) {
-                      final rating = (r['rating'] as num?)?.toInt() ?? 5;
-                      final comment = r['comment'] as String?;
-                      final date = r['created_at'] != null
-                          ? DateTime.tryParse(r['created_at'])?.toLocal().toString().split(' ')[0] ?? ''
-                          : '';
+                      final int rating = r.rating;
+                      final String? comment = r.comment;
+                      final String date = r.createdAt.toLocal().toString().split(' ')[0];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),

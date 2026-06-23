@@ -1,22 +1,23 @@
+import 'package:kenick_vip/models/vehicle.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VehicleRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<List<Map<String, dynamic>>> getDriverVehicles(String driverId) async {
+  Future<List<Vehicle>> getDriverVehicles(String driverId) async {
     try {
       final response = await _supabase
           .from('vehicles')
           .select()
           .eq('driver_id', driverId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => Vehicle.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
-      throw Exception('Failed to fetch vehicles: $e');
+      throw Exception('Failed to get vehicles: $e');
     }
   }
 
-  Future<Map<String, dynamic>?> getActiveVehicle(String driverId) async {
+  Future<Vehicle?> getActiveVehicle(String driverId) async {
     try {
       final response = await _supabase
           .from('vehicles')
@@ -24,9 +25,10 @@ class VehicleRepository {
           .eq('driver_id', driverId)
           .eq('is_active', true)
           .maybeSingle();
-      return response;
+      if (response == null) return null;
+      return Vehicle.fromJson(response);
     } catch (e) {
-      throw Exception('Failed to fetch active vehicle: $e');
+      throw Exception('Failed to get active vehicle: $e');
     }
   }
 
@@ -37,14 +39,9 @@ class VehicleRepository {
     required int year,
     required String color,
     required String licensePlate,
-    List<String> images = const [],
+    required List<String> images,
   }) async {
     try {
-      await _supabase
-          .from('vehicles')
-          .update({'is_active': false})
-          .eq('driver_id', driverId);
-
       final response = await _supabase
           .from('vehicles')
           .insert({
@@ -53,13 +50,12 @@ class VehicleRepository {
             'model': model,
             'year': year,
             'color': color,
-            'license_plate': licensePlate.toUpperCase(),
+            'license_plate': licensePlate,
+            'images': images,
             'is_active': true,
-            if (images.isNotEmpty) 'images': images,
           })
           .select()
           .single();
-
       return response['id'] as String;
     } catch (e) {
       throw Exception('Failed to register vehicle: $e');
@@ -68,25 +64,20 @@ class VehicleRepository {
 
   Future<void> updateVehicle({
     required String vehicleId,
-    String? make,
-    String? model,
-    int? year,
-    String? color,
-    String? licensePlate,
-    bool? isActive,
+    required String make,
+    required String model,
+    required int year,
+    required String color,
+    required String licensePlate,
   }) async {
     try {
-      final updates = <String, dynamic>{};
-      if (make != null) updates['make'] = make;
-      if (model != null) updates['model'] = model;
-      if (year != null) updates['year'] = year;
-      if (color != null) updates['color'] = color;
-      if (licensePlate != null) {
-        updates['license_plate'] = licensePlate.toUpperCase();
-      }
-      if (isActive != null) updates['is_active'] = isActive;
-
-      await _supabase.from('vehicles').update(updates).eq('id', vehicleId);
+      await _supabase.from('vehicles').update({
+        'make': make,
+        'model': model,
+        'year': year,
+        'color': color,
+        'license_plate': licensePlate,
+      }).eq('id', vehicleId);
     } catch (e) {
       throw Exception('Failed to update vehicle: $e');
     }
@@ -94,14 +85,8 @@ class VehicleRepository {
 
   Future<void> setActiveVehicle(String driverId, String vehicleId) async {
     try {
-      await _supabase
-          .from('vehicles')
-          .update({'is_active': false})
-          .eq('driver_id', driverId);
-      await _supabase
-          .from('vehicles')
-          .update({'is_active': true})
-          .eq('id', vehicleId);
+      await _supabase.from('vehicles').update({'is_active': false}).eq('driver_id', driverId).neq('id', vehicleId);
+      await _supabase.from('vehicles').update({'is_active': true}).eq('id', vehicleId);
     } catch (e) {
       throw Exception('Failed to set active vehicle: $e');
     }

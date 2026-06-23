@@ -3,15 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class ActiveTripCard extends StatelessWidget {
-  final String? passengerName;
-  final String? passengerAvatarUrl;
-  final String pickupAddress;
-  final String dropoffAddress;
-  final String fare;
-  final String status;
-  final String? timeElapsed;
-  final VoidCallback? onEndRide;
-  final VoidCallback? onContact;
 
   const ActiveTripCard({
     super.key,
@@ -25,6 +16,15 @@ class ActiveTripCard extends StatelessWidget {
     this.onEndRide,
     this.onContact,
   });
+  final String? passengerName;
+  final String? passengerAvatarUrl;
+  final String pickupAddress;
+  final String dropoffAddress;
+  final String fare;
+  final String status;
+  final String? timeElapsed;
+  final VoidCallback? onEndRide;
+  final VoidCallback? onContact;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,6 @@ class ActiveTripCard extends StatelessWidget {
     final isArriving = status == 'arriving';
 
     return FadeSlideIn(
-      slideOffset: 0.08,
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -103,7 +102,6 @@ class ActiveTripCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                        width: 1,
                       ),
                     ),
                     child: Text(
@@ -150,7 +148,6 @@ class ActiveTripCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: AppColors.primary.withValues(alpha: 0.3),
-                        width: 1,
                       ),
                     ),
                     child: Text(
@@ -175,7 +172,6 @@ class ActiveTripCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                  width: 1,
                 ),
               ),
               child: Column(

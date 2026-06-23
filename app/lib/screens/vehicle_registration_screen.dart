@@ -1,13 +1,14 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kenick_vip/repositories/vehicle_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:kenick_vip/repositories/vehicle_repository.dart';
 
 class VehicleRegistrationScreen extends StatefulWidget {
   const VehicleRegistrationScreen({super.key});
@@ -317,7 +318,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                      style: BorderStyle.solid,
                       width: 1.5,
                     ),
                   ),
@@ -457,9 +457,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.palette_outlined,
-            color: const Color(0xFF9CA3AF),
+            color: Color(0xFF9CA3AF),
             size: 20,
           ),
           const SizedBox(width: 12),

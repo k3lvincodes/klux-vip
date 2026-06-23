@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RateClientScreen extends StatefulWidget {
@@ -78,7 +78,7 @@ class _RateClientScreenState extends State<RateClientScreen> {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              Icon(
+              const Icon(
                 Icons.star_outline,
                 size: 80,
                 color: AppColors.primary,

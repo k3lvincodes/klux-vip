@@ -2,15 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class AnimatedCard extends StatefulWidget {
-  final Widget child;
-  final EdgeInsetsGeometry? margin;
-  final EdgeInsetsGeometry? padding;
-  final double? height;
-  final double? width;
-  final double borderRadius;
-  final Color? color;
-  final VoidCallback? onTap;
-  final int index;
 
   const AnimatedCard({
     super.key,
@@ -24,6 +15,15 @@ class AnimatedCard extends StatefulWidget {
     this.onTap,
     this.index = 0,
   });
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+  final EdgeInsetsGeometry? padding;
+  final double? height;
+  final double? width;
+  final double borderRadius;
+  final Color? color;
+  final VoidCallback? onTap;
+  final int index;
 
   @override
   State<AnimatedCard> createState() => _AnimatedCardState();

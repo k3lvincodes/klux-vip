@@ -1,23 +1,24 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:provider/provider.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/repositories/document_repository.dart';
+import 'package:kenick_vip/services/auth_routing_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:pinput/pinput.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OtpScreen extends StatefulWidget {
+
+  const OtpScreen({super.key, this.role, this.email, this.isSignup, this.isPasswordReset});
   final String? role;
   final String? email;
   final bool? isSignup;
   final bool? isPasswordReset;
-
-  const OtpScreen({super.key, this.role, this.email, this.isSignup, this.isPasswordReset});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -108,37 +109,12 @@ class _OtpScreenState extends State<OtpScreen> {
             } catch (_) {}
           }
           if (mounted) context.go('/role-selection');
-        } else if (widget.role == 'Client') {
+        } else if (widget.role != null && widget.role != 'signup') {
           final user = auth.currentUser;
-          if (user != null) {
-            final profile = await ProfileRepository().getPassengerProfile(user.id);
-            if (mounted) {
-              if (profile == null || profile['first_name'] == null) {
-                context.go('/passenger-profile-setup');
-              } else {
-                context.go('/passenger-home');
-              }
-            }
-          }
-        } else if (widget.role == 'Chauffeur' || widget.role == 'Affiliate') {
-          final user = auth.currentUser;
-          if (user != null) {
-            final profile = await ProfileRepository().getDriverProfile(user.id);
-            if (mounted) {
-              if (profile == null || profile['first_name'] == null) {
-                context.go('/driver-profile-setup');
-              } else {
-                // Check if identity verification has been completed (combined ID + liveness + face match)
-                final docRepo = DocumentRepository();
-                final idDoc = await docRepo.getDocumentByType(user.id, 'driver_license');
-                if (!mounted) return;
-                if (idDoc == null) {
-                  context.go('/driver-id-verification');
-                } else {
-                  context.go('/driver-home');
-                }
-              }
-            }
+          if (user != null && mounted) {
+            final routingService = AuthRoutingService();
+            final route = await routingService.determineRouteForUser(user);
+            if (mounted) context.go(route);
           }
         } else {
           _showDemoRoleSelection();
@@ -201,7 +177,6 @@ class _OtpScreenState extends State<OtpScreen> {
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 180),
               Text(

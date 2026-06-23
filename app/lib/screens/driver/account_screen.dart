@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -75,11 +75,11 @@ class _AccountScreenState extends State<AccountScreen> {
                         child: const Icon(Icons.arrow_back, color: AppColors.black, size: 20),
                       ),
                     ),
-                    Expanded(
+                    const Expanded(
                       child: Text(
                         'Account',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.black,
@@ -94,7 +94,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           color: AppColors.black,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.person, color: AppColors.primary, size: 20),
+                        child: const Icon(Icons.person, color: AppColors.primary, size: 20),
                       ),
                     ),
                   ],
@@ -107,9 +107,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         'Total balance',
-                        style: const TextStyle(fontSize: 12, color: AppColors.black),
+                        style: TextStyle(fontSize: 12, color: AppColors.black),
                       ),
                       const SizedBox(width: 6),
                       Icon(
@@ -258,11 +258,9 @@ class _AccountScreenState extends State<AccountScreen> {
                     itemCount: payProv.transactions.length,
                     itemBuilder: (context, index) {
                       final tx = payProv.transactions[index];
-                      final bool isOutgoing = tx['type'] == 'withdrawal';
-                      final amount = tx['amount'] ?? 0;
-                      final date = tx['created_at'] != null
-                          ? DateTime.tryParse(tx['created_at'])?.toLocal().toString().split(' ')[0] ?? ''
-                          : '';
+                      final bool isOutgoing = tx.type == 'withdrawal';
+                      final amount = tx.amount;
+                      final date = tx.createdAt.toLocal().toString().split(' ')[0];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),

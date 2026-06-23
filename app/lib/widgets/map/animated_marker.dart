@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:latlong2/latlong.dart';
 
 
 class AnimatedMarker {
@@ -186,10 +186,10 @@ class AnimatedMarker {
 }
 
 class _AnimateOutPinWrapper extends StatefulWidget {
-  final Widget child;
-  final bool animateOut;
 
   const _AnimateOutPinWrapper({required this.child, required this.animateOut});
+  final Widget child;
+  final bool animateOut;
 
   @override
   State<_AnimateOutPinWrapper> createState() => _AnimateOutPinWrapperState();
@@ -244,15 +244,15 @@ class _AnimateOutPinWrapperState extends State<_AnimateOutPinWrapper>
 }
 
 class _DriverCarMarker extends StatefulWidget {
-  final double rotationAngle;
-  final double size;
-  final bool isStationary;
 
   const _DriverCarMarker({
     required this.rotationAngle,
     required this.size,
     required this.isStationary,
   });
+  final double rotationAngle;
+  final double size;
+  final bool isStationary;
 
   @override
   State<_DriverCarMarker> createState() => _DriverCarMarkerState();
@@ -370,7 +370,7 @@ class _DriverCarMarkerState extends State<_DriverCarMarker>
                   ),
                 ],
               ),
-              child: Center(
+              child: const Center(
                 child: Icon(
                   Icons.navigation, // oriented straight up for correct rotation
                   color: AppColors.primary,
@@ -387,9 +387,9 @@ class _DriverCarMarkerState extends State<_DriverCarMarker>
 
 
 class _BounceInWrapper extends StatefulWidget {
-  final Widget child;
 
   const _BounceInWrapper({required this.child});
+  final Widget child;
 
   @override
   State<_BounceInWrapper> createState() => _BounceInWrapperState();
@@ -433,15 +433,15 @@ class _BounceInWrapperState extends State<_BounceInWrapper>
 }
 
 class _PulseMarker extends StatefulWidget {
-  final Color color;
-  final double size;
-  final double pulseSize;
 
   const _PulseMarker({
     required this.color,
     required this.size,
     required this.pulseSize,
   });
+  final Color color;
+  final double size;
+  final double pulseSize;
 
   @override
   State<_PulseMarker> createState() => _PulseMarkerState();

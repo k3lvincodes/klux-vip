@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ShimmerLoading extends StatelessWidget {
-  final double width;
-  final double height;
-  final double borderRadius;
-  final BoxShape shape;
 
   const ShimmerLoading({
     super.key,
@@ -14,6 +10,10 @@ class ShimmerLoading extends StatelessWidget {
     this.borderRadius = 8.0,
     this.shape = BoxShape.rectangle,
   });
+  final double width;
+  final double height;
+  final double borderRadius;
+  final BoxShape shape;
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +41,6 @@ class ShimmerLoading extends StatelessWidget {
 }
 
 class ShimmerText extends StatelessWidget {
-  final double width;
-  final double height;
-  final double borderRadius;
 
   const ShimmerText({
     super.key,
@@ -51,6 +48,9 @@ class ShimmerText extends StatelessWidget {
     this.height = 14,
     this.borderRadius = 4,
   });
+  final double width;
+  final double height;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +63,9 @@ class ShimmerText extends StatelessWidget {
 }
 
 class ShimmerCircle extends StatelessWidget {
-  final double size;
 
   const ShimmerCircle({super.key, this.size = 40});
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +78,14 @@ class ShimmerCircle extends StatelessWidget {
 }
 
 class ShimmerCard extends StatelessWidget {
-  final double height;
-  final double borderRadius;
 
   const ShimmerCard({
     super.key,
     this.height = 100,
     this.borderRadius = 16,
   });
+  final double height;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +98,6 @@ class ShimmerCard extends StatelessWidget {
 }
 
 class ShimmerListItem extends StatelessWidget {
-  final double height;
-  final bool showAvatar;
-  final double avatarSize;
 
   const ShimmerListItem({
     super.key,
@@ -108,6 +105,9 @@ class ShimmerListItem extends StatelessWidget {
     this.showAvatar = true,
     this.avatarSize = 40,
   });
+  final double height;
+  final bool showAvatar;
+  final double avatarSize;
 
   @override
   Widget build(BuildContext context) {
@@ -117,14 +117,14 @@ class ShimmerListItem extends StatelessWidget {
           ShimmerCircle(size: avatarSize),
           const SizedBox(width: 12),
         ],
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              ShimmerText(width: 140, height: 14),
-              const SizedBox(height: 8),
-              ShimmerText(width: double.infinity, height: 12),
+              ShimmerText(width: 140),
+              SizedBox(height: 8),
+              ShimmerText(height: 12),
             ],
           ),
         ),
@@ -134,12 +134,6 @@ class ShimmerListItem extends StatelessWidget {
 }
 
 class ShimmerList extends StatelessWidget {
-  final int itemCount;
-  final double itemHeight;
-  final EdgeInsetsGeometry padding;
-  final double spacing;
-  final bool showAvatar;
-  final double avatarSize;
 
   const ShimmerList({
     super.key,
@@ -150,6 +144,12 @@ class ShimmerList extends StatelessWidget {
     this.showAvatar = true,
     this.avatarSize = 40,
   });
+  final int itemCount;
+  final double itemHeight;
+  final EdgeInsetsGeometry padding;
+  final double spacing;
+  final bool showAvatar;
+  final double avatarSize;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +162,6 @@ class ShimmerList extends StatelessWidget {
         if (showAvatar) {
           return ShimmerListItem(
             height: itemHeight,
-            showAvatar: true,
             avatarSize: avatarSize,
           );
         }

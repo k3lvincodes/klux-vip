@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() async {
-  final secret = '4024kdHBy2B3_Fg08Gh2q53F-uAotfsF1LPFf9yGfnk';
-  final clientId = '4ca04a87-4618-4900-8283-971a2f470678';
-  final workflowId = 'a902bb58-5817-4fda-90ea-306068ea8774';
+  const secret = '4024kdHBy2B3_Fg08Gh2q53F-uAotfsF1LPFf9yGfnk';
+  const clientId = '4ca04a87-4618-4900-8283-971a2f470678';
+  const workflowId = 'a902bb58-5817-4fda-90ea-306068ea8774';
 
   print('Testing v1/session with Bearer secret...');
   final res1 = await http.post(

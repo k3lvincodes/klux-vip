@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/payment_provider.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
 
 class AddBankAccountScreen extends StatefulWidget {
   const AddBankAccountScreen({super.key});
@@ -88,7 +88,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       const SizedBox(height: 24),
 
                       // Bank Icon
-                      Center(
+                      const Center(
                         child: Icon(
                           Icons.account_balance,
                           size: 100,
@@ -98,7 +98,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       const SizedBox(height: 32),
 
                       // Bank Name
-                      Text(
+                      const Text(
                         'Bank name',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -110,7 +110,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       const SizedBox(height: 20),
 
                       // Account Holder Name
-                      Text(
+                      const Text(
                         'Account holder name',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -125,7 +125,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                       const SizedBox(height: 20),
 
                       // Account Number
-                      Text(
+                      const Text(
                         'Account number',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -176,7 +176,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                                       userId: auth.currentUser!.id,
                                       paymentMethodId:
                                           'bank_${_bankNameController.text.toLowerCase()}_$last4',
-                                      last4: last4,
+                                      customerId: auth.currentUser!.id,
                                     );
 
                                     if (success && context.mounted) {
@@ -262,14 +262,14 @@ class _SetPinSheetState extends State<_SetPinSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'Set up withdrawal pin',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
 
           // Enter pin
-          Text('Enter your  4 digit pin', style: TextStyle(fontSize: 12)),
+          const Text('Enter your  4 digit pin', style: TextStyle(fontSize: 12)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -301,7 +301,7 @@ class _SetPinSheetState extends State<_SetPinSheet> {
           const SizedBox(height: 24),
 
           // Confirm pin
-          Text(
+          const Text(
             'Confirm pin',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),

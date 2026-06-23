@@ -3,12 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class DrawerItem extends StatefulWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final bool isDark;
-  final bool isActive;
-  final bool isDestructive;
 
   const DrawerItem({
     super.key,
@@ -19,6 +13,12 @@ class DrawerItem extends StatefulWidget {
     this.isActive = false,
     this.isDestructive = false,
   });
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool isDark;
+  final bool isActive;
+  final bool isDestructive;
 
   @override
   State<DrawerItem> createState() => _DrawerItemState();

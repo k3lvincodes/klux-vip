@@ -3,12 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class StatusBanner extends StatefulWidget {
-  final bool isActive;
-  final String activeText;
-  final String inactiveText;
-  final Color? activeColor;
-  final Color? inactiveColor;
-  final bool showBorder;
 
   const StatusBanner({
     super.key,
@@ -19,6 +13,12 @@ class StatusBanner extends StatefulWidget {
     this.inactiveColor,
     this.showBorder = true,
   });
+  final bool isActive;
+  final String activeText;
+  final String inactiveText;
+  final Color? activeColor;
+  final Color? inactiveColor;
+  final bool showBorder;
 
   @override
   State<StatusBanner> createState() => _StatusBannerState();

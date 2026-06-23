@@ -1,25 +1,23 @@
+import 'package:kenick_vip/models/driver_document.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DocumentRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<List<Map<String, dynamic>>> getDriverDocuments(String driverId) async {
+  Future<List<DriverDocument>> getDriverDocuments(String driverId) async {
     try {
       final response = await _supabase
           .from('driver_documents')
           .select()
           .eq('driver_id', driverId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => DriverDocument.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
-      throw Exception('Failed to fetch documents: $e');
+      throw Exception('Failed to get documents: $e');
     }
   }
 
-  Future<Map<String, dynamic>?> getDocumentByType(
-    String driverId,
-    String type,
-  ) async {
+  Future<DriverDocument?> getDocumentByType(String driverId, String type) async {
     try {
       final response = await _supabase
           .from('driver_documents')
@@ -27,9 +25,10 @@ class DocumentRepository {
           .eq('driver_id', driverId)
           .eq('type', type)
           .maybeSingle();
-      return response;
+      if (response == null) return null;
+      return DriverDocument.fromJson(response);
     } catch (e) {
-      throw Exception('Failed to fetch document: $e');
+      throw Exception('Failed to get document by type: $e');
     }
   }
 
@@ -42,32 +41,21 @@ class DocumentRepository {
     try {
       final existingDoc = await getDocumentByType(driverId, type);
 
+      final Map<String, dynamic> payload = {
+        'driver_id': driverId,
+        'type': type,
+        'file_url': fileUrl,
+        'status': 'pending',
+        if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+      };
+
       if (existingDoc != null) {
-        await _supabase
-            .from('driver_documents')
-            .update({
-              'file_url': fileUrl,
-              'status': 'pending',
-              'expires_at': expiresAt?.toIso8601String(),
-            })
-            .eq('id', existingDoc['id']);
-
-        return existingDoc['id'] as String;
+        await _supabase.from('driver_documents').update(payload).eq('id', existingDoc.id);
+        return existingDoc.id;
+      } else {
+        final response = await _supabase.from('driver_documents').insert(payload).select().single();
+        return response['id'] as String;
       }
-
-      final response = await _supabase
-          .from('driver_documents')
-          .insert({
-            'driver_id': driverId,
-            'type': type,
-            'file_url': fileUrl,
-            'status': 'pending',
-            'expires_at': expiresAt?.toIso8601String(),
-          })
-          .select()
-          .single();
-
-      return response['id'] as String;
     } catch (e) {
       throw Exception('Failed to upload document: $e');
     }
@@ -75,24 +63,24 @@ class DocumentRepository {
 
   Future<bool> checkDocumentsApproved(String driverId) async {
     try {
-      final response = await _supabase.rpc(
-        'driver_documents_approved',
-        params: {'driver_uuid': driverId},
-      );
-      return response as bool? ?? false;
+      final result = await _supabase.rpc('driver_documents_approved', params: {'p_driver_id': driverId});
+      return result == true;
     } catch (e) {
-      return false;
+      throw Exception('Failed to check document status: $e');
     }
   }
 
   Future<List<String>> getMissingDocuments(String driverId) async {
-    final requiredDocs = ['driver_license', 'insurance', 'registration'];
-    final uploaded = await getDriverDocuments(driverId);
-    final uploadedTypes = uploaded
-        .where((doc) => doc['status'] == 'approved')
-        .map((doc) => doc['type'] as String)
-        .toSet();
-
-    return requiredDocs.where((doc) => !uploadedTypes.contains(doc)).toList();
+    try {
+      final docs = await getDriverDocuments(driverId);
+      final approvedTypes = docs
+          .where((d) => d.status == 'approved')
+          .map((d) => d.type)
+          .toSet();
+      const required = ['driver_license', 'insurance', 'registration'];
+      return required.where((t) => !approvedTypes.contains(t)).toList();
+    } catch (e) {
+      throw Exception('Failed to get missing documents: $e');
+    }
   }
 }

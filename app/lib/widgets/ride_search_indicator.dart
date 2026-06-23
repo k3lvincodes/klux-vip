@@ -3,16 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class RideSearchIndicator extends StatefulWidget {
-  final bool isSearching;
-  final String searchingText;
-  final String foundText;
-  final String? driverName;
-  final String? driverRating;
-  final String? driverAvatarUrl;
-  final String? carModel;
-  final String? eta;
-  final VoidCallback? onCancelSearch;
-  final VoidCallback? onContactDriver;
 
   const RideSearchIndicator({
     super.key,
@@ -27,6 +17,16 @@ class RideSearchIndicator extends StatefulWidget {
     this.onCancelSearch,
     this.onContactDriver,
   });
+  final bool isSearching;
+  final String searchingText;
+  final String foundText;
+  final String? driverName;
+  final String? driverRating;
+  final String? driverAvatarUrl;
+  final String? carModel;
+  final String? eta;
+  final VoidCallback? onCancelSearch;
+  final VoidCallback? onContactDriver;
 
   @override
   State<RideSearchIndicator> createState() => _RideSearchIndicatorState();
@@ -44,7 +44,7 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: false);
+    )..repeat();
     _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -207,7 +207,7 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
               Container(
                 width: 28,
                 height: 28,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.green,
                   shape: BoxShape.circle,
                 ),
@@ -325,8 +325,8 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
 }
 
 class _SearchingText extends StatefulWidget {
-  final String text;
   const _SearchingText({required this.text});
+  final String text;
 
   @override
   State<_SearchingText> createState() => _SearchingTextState();
@@ -343,7 +343,7 @@ class _SearchingTextState extends State<_SearchingText>
     _dotsController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: false);
+    )..repeat();
     _dotsAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _dotsController, curve: Curves.easeInOut),
     );

@@ -1,16 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:latlong2/latlong.dart';
 
 class LocationSearchField extends StatefulWidget {
-  final TextEditingController controller;
-  final String hint;
-  final bool isDark;
-  final String? countryCode;
-  final ValueChanged<LocationSearchResult>? onSelected;
 
   const LocationSearchField({
     super.key,
@@ -20,6 +16,11 @@ class LocationSearchField extends StatefulWidget {
     this.countryCode,
     this.onSelected,
   });
+  final TextEditingController controller;
+  final String hint;
+  final bool isDark;
+  final String? countryCode;
+  final ValueChanged<LocationSearchResult>? onSelected;
 
   @override
   State<LocationSearchField> createState() => _LocationSearchFieldState();

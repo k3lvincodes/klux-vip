@@ -22,10 +22,6 @@ class AppCurves {
 }
 
 class FadeSlideIn extends StatefulWidget {
-  final Widget child;
-  final Duration duration;
-  final Duration delay;
-  final double slideOffset;
 
   const FadeSlideIn({
     super.key,
@@ -34,6 +30,10 @@ class FadeSlideIn extends StatefulWidget {
     this.delay = Duration.zero,
     this.slideOffset = 0.08,
   });
+  final Widget child;
+  final Duration duration;
+  final Duration delay;
+  final double slideOffset;
 
   @override
   State<FadeSlideIn> createState() => _FadeSlideInState();
@@ -79,9 +79,6 @@ class _FadeSlideInState extends State<FadeSlideIn>
 }
 
 class FadeIn extends StatefulWidget {
-  final Widget child;
-  final Duration duration;
-  final Duration delay;
 
   const FadeIn({
     super.key,
@@ -89,6 +86,9 @@ class FadeIn extends StatefulWidget {
     this.duration = AppDurations.normal,
     this.delay = Duration.zero,
   });
+  final Widget child;
+  final Duration duration;
+  final Duration delay;
 
   @override
   State<FadeIn> createState() => _FadeInState();
@@ -124,9 +124,6 @@ class _FadeInState extends State<FadeIn>
 }
 
 class PressScale extends StatefulWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-  final double scale;
 
   const PressScale({
     super.key,
@@ -134,6 +131,9 @@ class PressScale extends StatefulWidget {
     this.onTap,
     this.scale = 0.97,
   });
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scale;
 
   @override
   State<PressScale> createState() => _PressScaleState();
@@ -191,10 +191,6 @@ class _PressScaleState extends State<PressScale>
 }
 
 class StaggeredList extends StatelessWidget {
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
-  final Duration itemDuration;
-  final Duration staggerDelay;
 
   const StaggeredList({
     super.key,
@@ -203,6 +199,10 @@ class StaggeredList extends StatelessWidget {
     this.itemDuration = AppDurations.normal,
     this.staggerDelay = AppDurations.staggerGap,
   });
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+  final Duration itemDuration;
+  final Duration staggerDelay;
 
   @override
   Widget build(BuildContext context) {

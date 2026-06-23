@@ -1,3 +1,4 @@
+import 'package:kenick_vip/models/review.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReviewRepository {
@@ -11,10 +12,6 @@ class ReviewRepository {
     String? comment,
   }) async {
     try {
-      if (rating < 1 || rating > 5) {
-        throw Exception('Rating must be between 1 and 5');
-      }
-
       final response = await _supabase
           .from('reviews')
           .insert({
@@ -22,34 +19,30 @@ class ReviewRepository {
             'reviewer_id': reviewerId,
             'reviewee_id': revieweeId,
             'rating': rating,
-            'comment': comment,
+            if (comment != null && comment.isNotEmpty) 'comment': comment,
           })
           .select()
           .single();
-
       return response['id'] as String;
     } catch (e) {
       throw Exception('Failed to submit review: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> getReviewsForUser(String userId) async {
+  Future<List<Review>> getReviewsForUser(String userId) async {
     try {
       final response = await _supabase
           .from('reviews')
           .select()
           .eq('reviewee_id', userId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => Review.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch reviews: $e');
     }
   }
 
-  Future<Map<String, dynamic>?> getReviewForRide(
-    String rideId,
-    String reviewerId,
-  ) async {
+  Future<Review?> getReviewForRide(String rideId, String reviewerId) async {
     try {
       final response = await _supabase
           .from('reviews')
@@ -57,9 +50,10 @@ class ReviewRepository {
           .eq('ride_id', rideId)
           .eq('reviewer_id', reviewerId)
           .maybeSingle();
-      return response;
+      if (response == null) return null;
+      return Review.fromJson(response);
     } catch (e) {
-      return null;
+      throw Exception('Failed to fetch review: $e');
     }
   }
 

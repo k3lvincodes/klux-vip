@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kenick_vip/repositories/support_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -154,9 +154,9 @@ class _SupportScreenState extends State<SupportScreen> {
                 child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
                   controller: _descriptionController,
                   maxLines: 5,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Describe your issue...',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,

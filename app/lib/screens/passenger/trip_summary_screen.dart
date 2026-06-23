@@ -1,24 +1,26 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/fare_display.dart';
-import 'package:kenick_vip/widgets/ride_search_indicator.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/widgets/map/map_animator.dart';
-import 'package:kenick_vip/widgets/active_trip_card.dart';
-import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
-import 'package:kenick_vip/widgets/shimmer_loading.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/active_trip_card.dart';
+import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/fare_display.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_animator.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/ride_search_indicator.dart';
+import 'package:kenick_vip/widgets/shimmer_loading.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TripSummaryScreen extends StatefulWidget {
@@ -129,7 +131,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
     return atan2(dx, dy) * 180 / pi;
   }
 
-  void _handleStatusChange(String status) {
+  Future<void> _handleStatusChange(String status) async {
     _lastStatus = status;
 
     _simAnimationController?.stop();
@@ -141,9 +143,9 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
     final dropoffRaw = rideProv.currentRideDetails?['dropoff_location'];
 
     final pickup =
-        _parsePoint(pickupRaw) ?? LatLng(37.42796133580664, -122.085749655962);
+        _parsePoint(pickupRaw) ?? const LatLng(37.42796133580664, -122.085749655962);
     final dropoff =
-        _parsePoint(dropoffRaw) ?? LatLng(37.43296265331129, -122.08832357078792);
+        _parsePoint(dropoffRaw) ?? const LatLng(37.43296265331129, -122.08832357078792);
 
     if (status == 'requested') {
       setState(() {
@@ -256,21 +258,34 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
         });
       }
 
-      Future.delayed(const Duration(milliseconds: 2500), () {
+      final rideId = rideProv.currentRideDetails?['id'] as String?;
+      if (rideId != null) {
+        final payProv = Provider.of<PaymentProvider>(context, listen: false);
+        final result = await payProv.captureRidePayment(rideId: rideId);
+        if (mounted) {
+          setState(() {
+            _isPaymentProcessing = false;
+            _isPaymentSuccess = result['success'] == true;
+          });
+          if (result['success'] != true) {
+            CustomToast.showError(context, result['error'] ?? 'Payment capture failed');
+          }
+        }
+      } else {
         if (mounted) {
           setState(() {
             _isPaymentProcessing = false;
             _isPaymentSuccess = true;
           });
         }
+      }
 
-        Future.delayed(const Duration(milliseconds: 1800), () {
-          if (mounted) {
-            setState(() {
-              _showRatingModal = true;
-            });
-          }
-        });
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) {
+          setState(() {
+            _showRatingModal = true;
+          });
+        }
       });
     }
   }
@@ -298,9 +313,9 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
     final pickupRaw = rideProv.currentRideDetails?['pickup_location'];
     final dropoffRaw = rideProv.currentRideDetails?['dropoff_location'];
     final pickup =
-        _parsePoint(pickupRaw) ?? LatLng(37.42796133580664, -122.085749655962);
+        _parsePoint(pickupRaw) ?? const LatLng(37.42796133580664, -122.085749655962);
     final dropoff =
-        _parsePoint(dropoffRaw) ?? LatLng(37.43296265331129, -122.08832357078792);
+        _parsePoint(dropoffRaw) ?? const LatLng(37.43296265331129, -122.08832357078792);
     final fare = _fareFrom(rideProv.currentRideDetails);
 
     return Scaffold(
@@ -321,10 +336,10 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
@@ -366,14 +381,12 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                   if (rideProv.driverPosition != null)
                     AnimatedMarker.driverCar(
                       point: rideProv.driverPosition!,
-                      size: 40,
                       isStationary: status == 'arriving',
                     )
                   else if (_simulatedDriverPosition != null)
                     AnimatedMarker.driverCar(
                       point: _simulatedDriverPosition!,
                       rotationAngle: _simulatedDriverRotation,
-                      size: 40,
                       isStationary: status == 'arriving' &&
                           _currentPathIndex >= _polylinePoints.length - 2,
                     ),
@@ -395,7 +408,6 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                     : 'Trip in progress',
                 driverName: 'Michael',
                 driverRating: '4.9',
-                driverAvatarUrl: null,
                 carModel: 'Mercedes-Benz S-Class · Black VIP',
                 eta: _currentEta.ceil().toString(),
                 onCancelSearch: () => context.pop(),
@@ -491,12 +503,10 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
               ),
             if (_isPaymentSuccess && !_showRatingModal)
               Align(
-                alignment: Alignment.center,
                 child: _buildPaymentSuccessCard(isDark, fare),
               ),
             if (_showRatingModal)
               Align(
-                alignment: Alignment.center,
                 child: _buildInlineRatingModal(isDark, rideProv),
               ),
           ],
@@ -795,30 +805,30 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 24),
-          Column(
+          const Column(
             children: [
               Row(
                 children: [
                   ShimmerText(width: 80, height: 12),
-                  const Spacer(),
+                  Spacer(),
                   ShimmerText(width: 50, height: 12),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   ShimmerText(width: 100, height: 12),
-                  const Spacer(),
+                  Spacer(),
                   ShimmerText(width: 40, height: 12),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 16),
               Row(
                 children: [
-                  ShimmerText(width: 60, height: 14),
-                  const Spacer(),
+                  ShimmerText(width: 60),
+                  Spacer(),
                   ShimmerText(width: 70, height: 16),
                 ],
               ),
@@ -942,7 +952,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           const SizedBox(height: 6),
           Text(
             'Rate your experience with your chauffeur${_driverName.isNotEmpty ? ", $_driverName" : ""}',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 24),
           Row(

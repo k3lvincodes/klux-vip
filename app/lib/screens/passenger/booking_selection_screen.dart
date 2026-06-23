@@ -50,7 +50,6 @@ class BookingSelectionScreen extends StatelessWidget {
                       onPress: () {
                         context.push('/instant-booking');
                       },
-                      variant: ButtonVariant.secondary,
                     ),
                     const SizedBox(height: 16),
                     CustomButton(
@@ -58,7 +57,6 @@ class BookingSelectionScreen extends StatelessWidget {
                       onPress: () {
                         context.push('/schedule-booking');
                       },
-                      variant: ButtonVariant.secondary,
                     ),
                     const SizedBox(height: 16),
                     CustomButton(
@@ -66,7 +64,6 @@ class BookingSelectionScreen extends StatelessWidget {
                       onPress: () {
                         context.push('/special-booking');
                       },
-                      variant: ButtonVariant.secondary,
                     ),
                   ],
                 ),

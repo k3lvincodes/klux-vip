@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
-  static const String _themePrefKey = 'theme_mode';
 
   ThemeProvider() {
     _loadTheme();
   }
+  ThemeMode _themeMode = ThemeMode.system;
+  static const String _themePrefKey = 'theme_mode';
 
   ThemeMode get themeMode => _themeMode;
 

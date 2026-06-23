@@ -1,11 +1,11 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/services/auth_routing_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/repositories/document_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -106,33 +106,8 @@ class _SplashScreenState extends State<SplashScreen>
       final user = auth.currentUser;
 
       if (user != null) {
-        final role = user.userMetadata?['role'];
-        if (role == null) {
-          _nextRoute = '/role-selection';
-        } else if (role == 'Chauffeur' || role == 'Affiliate') {
-          final results = await Future.wait([
-            ProfileRepository().getDriverProfile(user.id),
-            DocumentRepository().getDocumentByType(user.id, 'driver_license'),
-          ]);
-          final profile = results[0];
-          final idDoc = results[1];
-
-          if (profile == null || (profile as Map)['first_name'] == null) {
-            _nextRoute = '/driver-profile-setup';
-          } else if (idDoc == null) {
-            _nextRoute = '/driver-id-verification';
-          } else {
-            _nextRoute = '/driver-home';
-          }
-        } else {
-          final profile =
-              await ProfileRepository().getPassengerProfile(user.id);
-          if (profile == null || profile['first_name'] == null) {
-            _nextRoute = '/passenger-profile-setup';
-          } else {
-            _nextRoute = '/passenger-home';
-          }
-        }
+        final routingService = AuthRoutingService();
+        _nextRoute = await routingService.determineRouteForUser(user);
       }
     } catch (e) {
       _nextRoute = '/onboarding';
@@ -210,9 +185,9 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 class _GlowingRingPainter extends CustomPainter {
-  final double angle;
 
   _GlowingRingPainter({required this.angle});
+  final double angle;
 
   @override
   void paint(Canvas canvas, Size size) {

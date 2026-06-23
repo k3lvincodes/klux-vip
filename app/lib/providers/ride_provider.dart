@@ -1,9 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:kenick_vip/models/ride.dart';
+import 'package:kenick_vip/repositories/payment_repository.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:latlong2/latlong.dart';
 
 class RideProvider extends ChangeNotifier {
   final RideRepository _rideRepository = RideRepository();
@@ -11,8 +14,8 @@ class RideProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentRideId;
-  Map<String, dynamic>? _currentRideDetails;
-  StreamSubscription? _rideSubscription;
+  Ride? _currentRide;
+  StreamSubscription<Ride>? _rideSubscription;
 
   LocationSearchResult? _pickupLocation;
   LocationSearchResult? _dropoffLocation;
@@ -27,7 +30,9 @@ class RideProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get currentRideId => _currentRideId;
-  Map<String, dynamic>? get currentRideDetails => _currentRideDetails;
+  Ride? get currentRide => _currentRide;
+
+  Map<String, dynamic>? get currentRideDetails => _currentRide?.toJson();
   LocationSearchResult? get pickupLocation => _pickupLocation;
   LocationSearchResult? get dropoffLocation => _dropoffLocation;
   LatLng? get driverPosition => _driverPosition;
@@ -66,26 +71,37 @@ class RideProvider extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
+      if (pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null || fareAmount == null) {
+        throw ArgumentError('pickupLat, pickupLng, dropoffLat, dropoffLng, and fareAmount must not be null');
+      }
+
       final requestId = await _rideRepository.requestRide(
         passengerId: passengerId,
-        pickupLat: pickupLat ?? 37.42796133580664,
-        pickupLng: pickupLng ?? -122.085749655962,
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
         pickupAddress: pickupAddress,
-        dropoffLat: dropoffLat ?? 37.43296265331129,
-        dropoffLng: dropoffLng ?? -122.08832357078792,
+        dropoffLat: dropoffLat,
+        dropoffLng: dropoffLng,
         dropoffAddress: dropoffAddress,
-        fareAmount: fareAmount ?? 200.0,
+        fareAmount: fareAmount,
         passengerNote: passengerNote,
       );
 
       _currentRideId = requestId;
-      _currentRideDetails = {
-        'id': requestId,
-        'fare_amount': fareAmount ?? 200.0,
-        'pickup_address': pickupAddress,
-        'dropoff_address': dropoffAddress,
-        'status': 'pending',
-      };
+      _currentRide = Ride(
+        id: requestId,
+        passengerId: passengerId,
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        pickupAddress: pickupAddress,
+        dropoffLat: dropoffLat,
+        dropoffLng: dropoffLng,
+        dropoffAddress: dropoffAddress,
+        fareAmount: fareAmount,
+        status: 'pending',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
       _listenToCurrentRide();
 
@@ -128,12 +144,10 @@ class RideProvider extends ChangeNotifier {
     _rideSubscription = _rideRepository
         .listenToRide(_currentRideId!)
         .listen(
-          (rideData) {
-            _currentRideDetails = rideData;
-            final lat = rideData['driver_lat'] as double?;
-            final lng = rideData['driver_lng'] as double?;
-            if (lat != null && lng != null) {
-              _driverPosition = LatLng(lat, lng);
+          (ride) {
+            _currentRide = ride;
+            if (ride.driverLat != null && ride.driverLng != null) {
+              _driverPosition = LatLng(ride.driverLat!, ride.driverLng!);
             }
             notifyListeners();
           },
@@ -144,7 +158,7 @@ class RideProvider extends ChangeNotifier {
   }
 
   Future<void> _startLocationTracking() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -194,6 +208,16 @@ class RideProvider extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
       await _rideRepository.updateRideStatus(_currentRideId!, status);
+
+      if (status == 'completed') {
+        try {
+          final paymentRepo = PaymentRepository();
+          await paymentRepo.captureRidePayment(rideId: _currentRideId!);
+        } catch (captureErr) {
+          debugPrint('Failed to capture payment for ride $_currentRideId: $captureErr');
+        }
+      }
+
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -207,7 +231,7 @@ class RideProvider extends ChangeNotifier {
     _rideSubscription?.cancel();
     _positionStream?.cancel();
     _currentRideId = null;
-    _currentRideDetails = null;
+    _currentRide = null;
     _driverPosition = null;
     _routeToPickup = null;
     _routeToDropoff = null;

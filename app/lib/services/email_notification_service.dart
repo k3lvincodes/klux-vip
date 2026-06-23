@@ -1,18 +1,17 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:kenick_vip/config/env_config.dart';
 
 class EmailNotificationService {
-  String? get _apiKey => dotenv.env['RESEND_API_KEY'];
-  String get _fromEmail =>
-      dotenv.env['RESEND_FROM_EMAIL'] ?? 'Kenick Transportation LLC <onboarding@kenicktransportation.com>';
+  String get _apiKey => EnvConfig.resendApiKey;
+  String get _fromEmail => EnvConfig.resendFromEmail;
 
   Future<bool> sendVerificationSuccessEmail({
     required String toEmail,
     required String userName,
   }) async {
     final apiKey = _apiKey;
-    if (apiKey == null || apiKey.isEmpty) return false;
+    if (apiKey.isEmpty) return false;
 
     try {
       final response = await http.post(
@@ -48,7 +47,7 @@ class EmailNotificationService {
     required String userName,
   }) async {
     final apiKey = _apiKey;
-    if (apiKey == null || apiKey.isEmpty) return false;
+    if (apiKey.isEmpty) return false;
 
     try {
       final response = await http.post(

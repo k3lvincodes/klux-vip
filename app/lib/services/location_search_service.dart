@@ -1,18 +1,19 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:kenick_vip/config/env_config.dart';
 import 'package:latlong2/latlong.dart';
 
 class LocationSearchResult {
-  final String placeName;
-  final double latitude;
-  final double longitude;
 
   LocationSearchResult({
     required this.placeName,
     required this.latitude,
     required this.longitude,
   });
+  final String placeName;
+  final double latitude;
+  final double longitude;
 }
 
 class LocationSearchService {
@@ -100,7 +101,7 @@ class LocationSearchService {
   }
 
   static Future<List<LatLng>?> getRoute(LatLng from, LatLng to) async {
-    final token = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+    final token = EnvConfig.mapboxAccessToken;
     if (token.isEmpty) return null;
 
     final url = Uri.parse(

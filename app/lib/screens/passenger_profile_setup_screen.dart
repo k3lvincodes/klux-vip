@@ -1,12 +1,13 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PassengerProfileSetupScreen extends StatefulWidget {
@@ -223,7 +224,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                                       ],
                                     ),
                                     trailing: isSelected
-                                        ? Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+                                        ? const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
                                         : null,
                                     onTap: () {
                                       setState(() => _country = country);
@@ -306,7 +307,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                       ),
                     ),
                     trailing: isSelected
-                        ? Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+                        ? const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
                         : null,
                     onTap: () {
                       onSelect(opt);

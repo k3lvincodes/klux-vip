@@ -30,7 +30,7 @@ export default function HowItWorks() {
             {/* Step 1 - top */}
             <div className="hiw-step hiw-step-1">
               <div className="hiw-step-icon">
-                <img src="/ride choose.webp" alt={t('how_it_works.step1_title')} loading="lazy" />
+                <img src="/ride choose.png" alt={t('how_it_works.step1_title')} loading="lazy" />
               </div>
               <p className="hiw-step-label">1. {t('how_it_works.step1_title')}</p>
             </div>
@@ -38,7 +38,7 @@ export default function HowItWorks() {
             {/* Step 2 - middle */}
             <div className="hiw-step hiw-step-2">
               <div className="hiw-step-icon">
-                <img src="/location search.webp" alt={t('how_it_works.step2_title')} loading="lazy" />
+                <img src="/location search.png" alt={t('how_it_works.step2_title')} loading="lazy" />
               </div>
               <p className="hiw-step-label">2. {t('how_it_works.step2_title')}</p>
             </div>
@@ -46,7 +46,7 @@ export default function HowItWorks() {
             {/* Step 3 - bottom */}
             <div className="hiw-step hiw-step-3">
               <div className="hiw-step-icon">
-                <img src="/confirm.webp" alt={t('how_it_works.step3_title')} loading="lazy" />
+                <img src="/confirm.png" alt={t('how_it_works.step3_title')} loading="lazy" />
               </div>
               <p className="hiw-step-label">3. {t('how_it_works.step3_title')}</p>
             </div>

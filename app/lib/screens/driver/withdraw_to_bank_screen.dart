@@ -64,7 +64,7 @@ class WithdrawToBankScreen extends StatelessWidget {
                         color: Colors.grey.shade700,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.account_balance, color: AppColors.white, size: 18),
+                      child: const Icon(Icons.account_balance, color: AppColors.white, size: 18),
                     ),
                     const SizedBox(width: 14),
                     Column(
@@ -204,7 +204,7 @@ class _VerifyPinSheetState extends State<_VerifyPinSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'Enter your pin to verify\ntransaction',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),

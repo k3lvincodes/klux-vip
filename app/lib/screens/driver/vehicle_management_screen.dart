@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/models/vehicle.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VehicleManagementScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class VehicleManagementScreen extends StatefulWidget {
 
 class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
   final VehicleRepository _repo = VehicleRepository();
-  List<Map<String, dynamic>> _vehicles = [];
+  List<Vehicle> _vehicles = [];
   bool _isLoading = true;
 
   @override
@@ -111,6 +112,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                           year: int.parse(yearCtrl.text.trim()),
                           color: colorCtrl.text.trim(),
                           licensePlate: plateCtrl.text.trim(),
+                          images: [],
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
                         _fetchVehicles();
@@ -199,12 +201,12 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                     itemCount: _vehicles.length,
                     itemBuilder: (context, index) {
                       final v = _vehicles[index];
-                      final isActive = v['is_active'] == true;
-                      final make = v['make'] ?? '';
-                      final model = v['model'] ?? '';
-                      final year = v['year'] ?? '';
-                      final color = v['color'] ?? '';
-                      final plate = v['license_plate'] ?? '';
+                      final isActive = v.isActive;
+                      final make = v.make;
+                      final model = v.model;
+                      final year = v.year;
+                      final color = v.color;
+                      final plate = v.licensePlate;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -271,12 +273,12 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                 if (!isActive)
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: () => _setActive(v['id']),
+                                      onPressed: () => _setActive(v.id),
                                       icon: const Icon(Icons.check_circle_outline, size: 16),
                                       label: const Text('Set Active', style: TextStyle(fontSize: 12)),
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(vertical: 10),
-                                        side: BorderSide(color: AppColors.primary),
+                                        side: const BorderSide(color: AppColors.primary),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                       ),
                                     ),
@@ -295,7 +297,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                           TextButton(
                                             onPressed: () {
                                               Navigator.pop(ctx);
-                                              _deleteVehicle(v['id']);
+                                              _deleteVehicle(v.id);
                                             },
                                             child: const Text('Delete', style: TextStyle(color: Colors.red)),
                                           ),

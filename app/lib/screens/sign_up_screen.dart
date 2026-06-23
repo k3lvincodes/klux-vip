@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
-  final String? role;
 
   const SignUpScreen({super.key, this.role});
+  final String? role;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -176,8 +176,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 child: Text.rich(
                                   TextSpan(
                                   style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                                    children: [
-                                      const TextSpan(text: 'I agree to the '),
+                                    children: const [
+                                      TextSpan(text: 'I agree to the '),
                                       TextSpan(
                                         text: 'Terms of Service',
                                         style: TextStyle(
@@ -185,7 +185,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const TextSpan(text: ' and '),
+                                      TextSpan(text: ' and '),
                                       TextSpan(
                                         text: 'Privacy Policy',
                                         style: TextStyle(
@@ -258,7 +258,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       GestureDetector(
                         onTap: _handleSignIn,
-                        child: Text(
+                        child: const Text(
                           'Sign in',
                           style: TextStyle(
                             fontSize: 13,

@@ -27,74 +27,6 @@
   padding: 3rem;
 }
 
-/* ---- Animated Aurora Blobs ---- */
-.al-aurora {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  filter: blur(80px);
-  opacity: 0.6;
-}
-
-.al-aurora-blob {
-  position: absolute;
-  border-radius: 50%;
-}
-
-.al-blob-1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(244, 197, 34, 0.35) 0%, transparent 70%);
-  top: -10%;
-  left: -10%;
-  animation: auroraFloat1 12s ease-in-out infinite;
-}
-
-.al-blob-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(220, 167, 11, 0.25) 0%, transparent 70%);
-  bottom: -5%;
-  right: -5%;
-  animation: auroraFloat2 15s ease-in-out infinite;
-}
-
-.al-blob-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(244, 197, 34, 0.2) 0%, transparent 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation: auroraFloat3 10s ease-in-out infinite;
-}
-
-@keyframes auroraFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, 20px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.95); }
-}
-
-@keyframes auroraFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, -15px) scale(1.08); }
-  66% { transform: translate(15px, -25px) scale(0.92); }
-}
-
-@keyframes auroraFloat3 {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
-}
-
-/* ---- Dot Grid Overlay ---- */
-.al-dot-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-  z-index: 1;
-}
-
 /* ---- Noise Texture ---- */
 .al-noise {
   position: absolute;
@@ -120,7 +52,7 @@
   height: 48px;
   border-radius: 14px;
   border: 1px solid #27272a;
-  box-shadow: 0 0 0 4px rgba(244, 197, 34, 0.06);
+  box-shadow: none;
 }
 
 @media (max-width: 1024px) {
@@ -280,7 +212,6 @@
   min-width: 6px;
   border-radius: 50%;
   background: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
   animation: errorPulse 2s ease-in-out infinite;
 }
 
@@ -337,7 +268,6 @@
 .al-field input:focus {
   border-color: #F4C522;
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 0 4px rgba(244, 197, 34, 0.1);
 }
 
 /* Hide the old animated line since we are using boxed inputs now */
@@ -396,26 +326,15 @@
   background: #F4C522;
   color: #09090b;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(244, 197, 34, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .al-submit:hover:not(:disabled) {
   background: #eab308;
   transform: translateY(-1px);
-  box-shadow: 
-    0 4px 16px rgba(244, 197, 34, 0.25),
-    0 0 0 1px rgba(244, 197, 34, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .al-submit:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 
-    0 1px 4px rgba(244, 197, 34, 0.15),
-    0 0 0 1px rgba(244, 197, 34, 0.3);
 }
 
 .al-submit:disabled {

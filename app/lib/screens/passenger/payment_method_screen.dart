@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:provider/provider.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/widgets/shimmer_loading.dart';
+import 'package:provider/provider.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -72,7 +72,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               
               // Save cards section
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Text(
                   'Save cards',
                   style: TextStyle(
@@ -118,7 +118,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       separatorBuilder: (context, index) => const SizedBox(width: 16),
                       itemBuilder: (context, index) {
                         final method = payProv.paymentMethods[index];
-                        final methodId = method['id']?.toString() ?? method['payment_method_id']?.toString() ?? 'card_$index';
+                        final methodId = method.id;
                         final isSelected = _selectedMethod == methodId;
                         
                         return GestureDetector(
@@ -130,7 +130,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                           child: _buildCreditCard(
                             color: index % 2 == 0 ? const Color(0xFF5D3FD3) : const Color(0xFFE53935),
                             logo: Icons.credit_card,
-                            cardNumber: '**** **** **** ${method['last4'] ?? '****'}',
+                            cardNumber: '**** **** **** ${method.last4 ?? '****'}',
                             name: 'User',
                             expiry: '',
                             isSelected: isSelected,
@@ -153,7 +153,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   child: Row(
                     children:  [
                       Icon(Icons.add_circle_outline, color: isDark ? AppColors.white : AppColors.black),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'Add new cards',
                         style: TextStyle(
@@ -170,7 +170,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               
               // Other ways to pay section
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Text(
                   'Other ways to pay',
                   style: TextStyle(
@@ -242,24 +242,53 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     const SizedBox(height: 16),
                     Consumer<PaymentProvider>(
                       builder: (context, payProv, _) {
-                        return CustomButton(
-                          title: payProv.isLoading ? 'Processing...' : 'Proceed to pay',
-                          onPress: payProv.isLoading ? () {} : () async {
-                            final auth = context.read<AuthProvider>();
-                            final rideId = rideProv.currentRideId;
-                            if (auth.currentUser == null || rideId == null) return;
+                        return Column(
+                          children: [
+                            if (payProv.errorMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Text(
+                                  payProv.errorMessage!,
+                                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            CustomButton(
+                              title: payProv.isLoading ? 'Processing...' : 'Proceed to pay',
+                              onPress: payProv.isLoading ? () {} : () async {
+                                final auth = context.read<AuthProvider>();
+                                final rideId = rideProv.currentRideId;
+                                if (auth.currentUser == null || rideId == null) return;
 
-                            final success = await payProv.processRidePayment(
-                              userId: auth.currentUser!.id,
-                              rideId: rideId,
-                              amount: (fareAmount as num).toDouble(),
-                            );
+                                final result = await payProv.processRidePayment(
+                                  userId: auth.currentUser!.id,
+                                  rideId: rideId,
+                                  amount: (fareAmount as num).toDouble(),
+                                );
 
-                            if (success && context.mounted) {
-                              context.push('/payment-successful');
-                            }
-                          },
-                          variant: ButtonVariant.primary,
+                                if (!context.mounted) return;
+
+                                if (result['requires_action'] == true && result['payment_intent_client_secret'] != null) {
+                                  try {
+                                    await Stripe.instance.confirmPayment(
+                                      paymentIntentClientSecret: result['payment_intent_client_secret'] as String,
+                                    );
+                                    if (context.mounted) {
+                                      context.push('/payment-successful');
+                                    }
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('3D Secure authentication failed: $e')),
+                                    );
+                                  }
+                                } else if (result['success'] == true && context.mounted) {
+                                  context.push('/payment-successful');
+                                }
+                              },
+                              variant: ButtonVariant.primary,
+                            ),
+                          ],
                         );
                       }
                     ),
@@ -295,7 +324,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.memory, color: Colors.white, size: 30),
+              const Icon(Icons.memory, color: Colors.white, size: 30),
               Icon(logo, color: Colors.white, size: 30),
             ],
           ),
@@ -308,7 +337,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               letterSpacing: 2,
             ),
           ),
-          Expanded(child: SizedBox()),
+          const Expanded(child: SizedBox()),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -407,49 +436,17 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   void _showAddCardModal(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardNumberController = TextEditingController();
-    final nameController = TextEditingController();
-    final expiryController = TextEditingController();
-    final cvvController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        Widget cardIconWidget = Icon(
-          Icons.credit_card,
-          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-          size: 20,
-        );
+        final card = CardFormEditController();
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             bool isSaving = false;
-            
-            void updateCardIcon(String number) {
-              Widget newWidget;
-              
-              if (number.startsWith(RegExp(r'4'))) {
-                newWidget = const FaIcon(FontAwesomeIcons.ccVisa, color: Color(0xFF1A1F71), size: 24);
-              } else if (number.startsWith(RegExp(r'5[1-5]'))) {
-                newWidget = const FaIcon(FontAwesomeIcons.ccMastercard, color: Color(0xFFEB001B), size: 24);
-              } else if (number.startsWith(RegExp(r'3[47]'))) {
-                newWidget = const FaIcon(FontAwesomeIcons.ccAmex, color: Color(0xFF2E77BC), size: 24);
-              } else if (number.startsWith(RegExp(r'6(?:011|5)'))) {
-                newWidget = const FaIcon(FontAwesomeIcons.ccDiscover, color: Color(0xFFFF6000), size: 24);
-              } else {
-                newWidget = Icon(
-                  Icons.credit_card,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  size: 20,
-                );
-              }
-              
-              setModalState(() {
-                cardIconWidget = newWidget;
-              });
-            }
 
             return Container(
               padding: EdgeInsets.only(
@@ -488,78 +485,66 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Card Number
-                    _buildModalTextField(
-                      controller: cardNumberController,
-                      label: 'Card Number',
-                      iconWidget: cardIconWidget,
-                      keyboardType: TextInputType.number,
-                      isDark: isDark,
-                      onChanged: updateCardIcon,
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Expiry & CVV
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildModalTextField(
-                            controller: expiryController,
-                            label: 'MM/YY',
-                            icon: Icons.date_range,
-                            keyboardType: TextInputType.datetime,
-                            isDark: isDark,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildModalTextField(
-                            controller: cvvController,
-                            label: 'CVV',
-                            icon: Icons.lock_outline,
-                            keyboardType: TextInputType.number,
-                            isDark: isDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Cardholder Name
-                    _buildModalTextField(
-                      controller: nameController,
-                      label: 'Cardholder Name',
-                      icon: Icons.person_outline,
-                      isDark: isDark,
+
+                    // PCI-compliant card form via flutter_stripe
+                    CardFormField(
+                      controller: card,
+                      style: CardFormStyle(
+                        backgroundColor: isDark ? AppColors.darkSurface : AppColors.white,
+                        textColor: isDark ? AppColors.white : AppColors.black,
+                        placeholderColor: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                        borderWidth: 1,
+                        borderRadius: 16,
+                        borderColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                        cursorColor: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Save Button
                     CustomButton(
                       title: 'Save Card',
                       isLoading: isSaving,
                       onPress: () async {
-                        if (cardNumberController.text.length < 4) return;
+                        if (!card.details.complete) return;
                         setModalState(() => isSaving = true);
-                        
-                        final auth = ctx.read<AuthProvider>();
-                        if (auth.currentUser != null) {
-                          final last4 = cardNumberController.text.substring(cardNumberController.text.length - 4);
-                          await ctx.read<PaymentProvider>().addPaymentMethod(
-                            userId: auth.currentUser!.id,
-                            paymentMethodId: 'pm_mock_\${DateTime.now().millisecondsSinceEpoch}',
-                            last4: last4,
+
+                        try {
+                          final paymentMethod = await Stripe.instance.createPaymentMethod(
+                            params: const PaymentMethodParams.card(
+                              paymentMethodData: PaymentMethodData(
+                                
+                              ),
+                            ),
                           );
+
+                          if (!ctx.mounted) return;
+                          final auth = ctx.read<AuthProvider>();
+                          if (auth.currentUser != null) {
+                            if (!ctx.mounted) return;
+                            final payProv = ctx.read<PaymentProvider>();
+                            final success = await payProv.addPaymentMethod(
+                              userId: auth.currentUser!.id,
+                              paymentMethodId: paymentMethod.id,
+                              customerId: auth.currentUser!.id,
+                            );
+
+                            if (success && ctx.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Card added successfully!')),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to save card: $e')),
+                            );
+                          }
                         }
-                        
+
                         setModalState(() => isSaving = false);
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Card added successfully!')),
-                          );
-                        }
                       },
                       variant: ButtonVariant.primary,
                     ),
@@ -571,49 +556,6 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           }
         );
       },
-    );
-  }
-
-  Widget _buildModalTextField({
-    required TextEditingController controller,
-    required String label,
-    IconData? icon,
-    Widget? iconWidget,
-    bool isDark = false,
-    TextInputType keyboardType = TextInputType.text,
-    void Function(String)? onChanged,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      onChanged: onChanged,
-      style: TextStyle(color: isDark ? AppColors.white : AppColors.black),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 14),
-        prefixIcon: (iconWidget != null || icon != null)
-            ? Container(
-                width: 48,
-                alignment: Alignment.center,
-                child: iconWidget ?? Icon(icon, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, size: 20),
-              )
-            : null,
-        filled: true,
-        fillColor: isDark ? AppColors.darkSurface : AppColors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-      ),
     );
   }
 }

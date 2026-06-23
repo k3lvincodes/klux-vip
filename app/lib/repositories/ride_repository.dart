@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:kenick_vip/models/ride.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RideRepository {
@@ -88,12 +89,12 @@ class RideRepository {
     }
   }
 
-  Stream<Map<String, dynamic>> listenToRide(String rideId) {
+  Stream<Ride> listenToRide(String rideId) {
     return _supabase
         .from('rides')
         .stream(primaryKey: ['id'])
         .eq('id', rideId)
-        .map((events) => events.first);
+        .map((events) => Ride.fromJson(events.first));
   }
 
   Stream<List<Map<String, dynamic>>> listenToRequestedRides() {
@@ -108,15 +109,16 @@ class RideRepository {
         });
   }
 
-  Future<List<Map<String, dynamic>>> getDriverCompletedRides(String driverId) async {
+  Future<List<Ride>> getDriverCompletedRides(String driverId, {int limit = 50, int offset = 0}) async {
     try {
       final response = await _supabase
           .from('rides')
           .select()
           .eq('driver_id', driverId)
           .eq('status', 'completed')
-          .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+      return (response as List).map((e) => Ride.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch completed rides: $e');
     }

@@ -1,17 +1,18 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/active_trip_card.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/widgets/active_trip_card.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 class ActiveRideScreen extends StatefulWidget {
   const ActiveRideScreen({super.key});
@@ -46,7 +47,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   Future<void> _startGps() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -121,10 +122,10 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
@@ -143,7 +144,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                 ),
               MarkerLayer(
                 markers: [
-                  AnimatedMarker.driverCar(point: _currentPosition, isStationary: false),
+                  AnimatedMarker.driverCar(point: _currentPosition),
                   if (dropoffPos != null)
                     AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
                 ],

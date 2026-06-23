@@ -4,6 +4,11 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 :root {
   /* Colors */
   --admin-bg: #09090b;
@@ -133,7 +138,7 @@
 
 /* User Profile Widget */
 .admin-user-widget {
-  padding: 1.25rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-top: var(--glass-border);
   background: rgba(0,0,0,0.2);
 }
@@ -141,38 +146,37 @@
 .admin-user-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
 .admin-user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-dark));
   color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px var(--admin-primary-dim);
+  font-size: 0.8rem;
 }
 
 .admin-user-details p { margin: 0; }
-.admin-user-email { font-size: 0.85rem; font-weight: 600; color: var(--admin-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
-.admin-user-role { font-size: 0.75rem; color: var(--admin-primary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+.admin-user-email { font-size: 0.75rem; font-weight: 600; color: var(--admin-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.admin-user-role { font-size: 0.65rem; color: var(--admin-primary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
 
 .admin-logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--admin-text-muted);
   background: transparent;
@@ -615,6 +619,7 @@
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
+  min-width: 130px;
 }
 
 .vip-currency {
@@ -698,6 +703,8 @@
 
 .vip-accordion-inner {
   overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .vip-states-header {
@@ -903,6 +910,16 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.vip-modal-error {
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.8rem;
 }
 
 .vip-no-results {

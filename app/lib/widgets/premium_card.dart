@@ -2,17 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class PremiumCard extends StatefulWidget {
-  final Widget child;
-  final EdgeInsetsGeometry? margin;
-  final EdgeInsetsGeometry? padding;
-  final double? height;
-  final double? width;
-  final double borderRadius;
-  final Color? color;
-  final Color? borderColor;
-  final VoidCallback? onTap;
-  final int index;
-  final bool elevated;
 
   const PremiumCard({
     super.key,
@@ -28,6 +17,17 @@ class PremiumCard extends StatefulWidget {
     this.index = 0,
     this.elevated = true,
   });
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+  final EdgeInsetsGeometry? padding;
+  final double? height;
+  final double? width;
+  final double borderRadius;
+  final Color? color;
+  final Color? borderColor;
+  final VoidCallback? onTap;
+  final int index;
+  final bool elevated;
 
   @override
   State<PremiumCard> createState() => _PremiumCardState();
@@ -60,7 +60,7 @@ class _PremiumCardState extends State<PremiumCard>
             color: cardColor,
             borderRadius: BorderRadius.circular(widget.borderRadius),
             border: widget.borderColor != null
-                ? Border.all(color: widget.borderColor!, width: 1)
+                ? Border.all(color: widget.borderColor!)
                 : null,
             boxShadow: widget.elevated
                 ? _isPressed

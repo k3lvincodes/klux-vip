@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/models/user_profile.dart';
+import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverProfileScreen extends StatefulWidget {
   const DriverProfileScreen({super.key});
@@ -15,7 +16,7 @@ class DriverProfileScreen extends StatefulWidget {
 
 class _DriverProfileScreenState extends State<DriverProfileScreen> {
   bool _isLoading = true;
-  Map<String, dynamic>? _profile;
+  UserProfile? _profile;
 
   @override
   void initState() {
@@ -48,11 +49,10 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       );
     }
 
-    final String firstName = _profile?['first_name'] ?? 'Chauffeur';
-    final String lastName = _profile?['last_name'] ?? '';
-    final String fullName = '$firstName $lastName'.trim();
-    final String imageUrl = _profile?['avatar_url'] ?? '';
-    final double rating = (_profile?['driver_details']?['rating'] ?? 0.0).toDouble();
+    final String firstName = _profile?.firstName ?? 'Chauffeur';
+    final String lastName = _profile?.lastName ?? '';
+    final String? imageUrl = _profile?.avatarUrl;
+    final double rating = (_profile?.driverDetails?['rating'] ?? 0.0).toDouble();
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -73,7 +73,6 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
               Container(
@@ -91,7 +90,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                     ),
                   ],
                 ),
-                child: imageUrl.isNotEmpty
+                child: (imageUrl != null && imageUrl.isNotEmpty)
                     ? ClipOval(
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
@@ -105,7 +104,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                fullName,
+                '$firstName $lastName'.trim(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

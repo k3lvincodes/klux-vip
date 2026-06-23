@@ -1,23 +1,23 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/location_search_field.dart';
-import 'package:kenick_vip/widgets/premium_drawer.dart';
 import 'package:kenick_vip/widgets/drawer_item.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/location_search_field.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/services/location_search_service.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/premium_drawer.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -137,11 +137,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
         if (profile != null && mounted) {
           setState(() {
             _userName =
-                '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'
-                    .trim()
-                    .toUpperCase();
+                profile.displayName.trim().toUpperCase();
             if (_userName.isEmpty) _userName = 'CLIENT';
-            _profileImageUrl = profile['avatar_url'];
+            _profileImageUrl = profile.avatarUrl;
           });
           debugPrint(
             'Drawer Profile Fetched: $_userName, Image: $_profileImageUrl',
@@ -175,10 +173,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               children: [
                 TileLayer(
                     urlTemplate: isDark
-                        ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                        : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                        ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                        : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                   additionalOptions: {
-                    'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                    'accessToken': EnvConfig.mapboxAccessToken,
                   },
                   userAgentPackageName: 'com.kenickvip.app',
                   maxZoom: 22,
@@ -196,15 +194,11 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     if (_pickupLocation != null)
                       Marker(
                         point: LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude),
-                        width: 30,
-                        height: 30,
                         child: const Icon(Icons.location_on, color: Colors.green, size: 30),
                       ),
                     if (_dropoffLocation != null)
                       Marker(
                         point: LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude),
-                        width: 30,
-                        height: 30,
                         child: const Icon(Icons.location_on, color: Colors.red, size: 30),
                       ),
                   ],
@@ -288,7 +282,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.directions_car, size: 16, color: AppColors.primary),
+                    const Icon(Icons.directions_car, size: 16, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',
@@ -624,7 +618,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 children: [
                   Text(_userName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
                   const SizedBox(height: 2),
-                  Text('View Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
+                  const Text('View Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
                 ],
               ),
             ),
@@ -645,7 +639,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
             final profile = await ProfileRepository().getDriverProfile(user.id);
             if (profile == null) {
               if (context.mounted) context.push('/driver-profile-setup');
-            } else if (profile['status'] != 'approved') {
+            } else if (profile.verificationStatus != 'approved') {
               if (context.mounted) context.push('/driver-id-verification');
             } else {
               if (context.mounted) context.go('/driver-home');

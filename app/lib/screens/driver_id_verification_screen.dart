@@ -1,13 +1,13 @@
+import 'package:didit_sdk/sdk_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/repositories/document_repository.dart';
 import 'package:kenick_vip/services/didit_verification_service.dart';
 import 'package:kenick_vip/services/email_notification_service.dart';
-import 'package:kenick_vip/repositories/document_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:didit_sdk/sdk_flutter.dart';
 
 class DriverIdVerificationScreen extends StatefulWidget {
   const DriverIdVerificationScreen({super.key});
@@ -197,7 +197,7 @@ class _DriverIdVerificationScreenState
                       Center(
                         child: Column(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.verified_user_outlined,
                               size: 80,
                               color: AppColors.primary,

@@ -1,12 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FareRate {
-  final String id;
-  final String countryCode;
-  final String? stateOrRegion;
-  final double perKmRate;
-  final double baseFare;
-  final double perMinuteRate;
 
   FareRate({
     required this.id,
@@ -27,6 +21,12 @@ class FareRate {
       perMinuteRate: (map['per_minute_rate'] as num).toDouble(),
     );
   }
+  final String id;
+  final String countryCode;
+  final String? stateOrRegion;
+  final double perKmRate;
+  final double baseFare;
+  final double perMinuteRate;
 }
 
 class FareRateService {
@@ -72,8 +72,8 @@ class FareRateService {
 }
 
 class _CachedRate {
+  _CachedRate(this.rate) : cachedAt = DateTime.now();
   final FareRate rate;
   final DateTime cachedAt;
-  _CachedRate(this.rate) : cachedAt = DateTime.now();
   bool get isExpired => DateTime.now().difference(cachedAt) > FareRateService._cacheTtl;
 }

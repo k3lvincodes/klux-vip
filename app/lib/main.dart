@@ -1,71 +1,71 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:toastification/toastification.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:kenick_vip/screens/driver_profile_setup_screen.dart';
-import 'package:kenick_vip/screens/driver_id_verification_screen.dart';
+import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/providers/payment_provider.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/providers/theme_provider.dart';
 import 'package:kenick_vip/screens/driver/account_screen.dart';
 import 'package:kenick_vip/screens/driver/active_ride_screen.dart';
 import 'package:kenick_vip/screens/driver/add_bank_account_screen.dart';
 import 'package:kenick_vip/screens/driver/confirm_arrival_screen.dart';
+import 'package:kenick_vip/screens/driver/driver_edit_profile_screen.dart';
 import 'package:kenick_vip/screens/driver/driver_home_screen.dart';
+import 'package:kenick_vip/screens/driver/driver_performance_screen.dart';
+import 'package:kenick_vip/screens/driver/driver_profile_screen.dart';
+import 'package:kenick_vip/screens/driver/driver_ride_history_screen.dart';
 import 'package:kenick_vip/screens/driver/end_ride_confirmation_screen.dart';
+import 'package:kenick_vip/screens/driver/id_verification_documents_screen.dart';
+import 'package:kenick_vip/screens/driver/rate_client_screen.dart';
 import 'package:kenick_vip/screens/driver/ride_payment_received_screen.dart';
 import 'package:kenick_vip/screens/driver/start_ride_screen.dart';
+import 'package:kenick_vip/screens/driver/vehicle_info_screen.dart';
+import 'package:kenick_vip/screens/driver/vehicle_management_screen.dart';
 import 'package:kenick_vip/screens/driver/withdraw_method_screen.dart';
 import 'package:kenick_vip/screens/driver/withdraw_to_bank_screen.dart';
-import 'package:kenick_vip/screens/onboarding_screen.dart';
-import 'package:kenick_vip/screens/passenger/booking_selection_screen.dart';
-import 'package:kenick_vip/screens/passenger/instant_booking_screen.dart';
-import 'package:kenick_vip/screens/passenger/passenger_home_screen.dart';
-import 'package:kenick_vip/screens/passenger/payment_method_screen.dart';
-import 'package:kenick_vip/screens/passenger/payment_successful_screen.dart';
-import 'package:kenick_vip/screens/passenger/schedule_booking_screen.dart';
-import 'package:kenick_vip/screens/passenger/special_booking_screen.dart';
-import 'package:kenick_vip/screens/passenger/ride_history_screen.dart';
-import 'package:kenick_vip/screens/passenger/saved_places_screen.dart';
-import 'package:kenick_vip/screens/passenger/notifications_screen.dart';
-import 'package:kenick_vip/screens/settings_screen.dart';
-import 'package:kenick_vip/screens/support_screen.dart';
-import 'package:kenick_vip/screens/vehicle_registration_screen.dart';
-import 'package:kenick_vip/screens/ride_review_screen.dart';
-import 'package:kenick_vip/screens/driver/driver_ride_history_screen.dart';
-import 'package:kenick_vip/screens/driver/vehicle_management_screen.dart';
-import 'package:kenick_vip/screens/driver/driver_performance_screen.dart';
-import 'package:kenick_vip/screens/driver/rate_client_screen.dart';
-import 'package:kenick_vip/screens/passenger/trip_summary_screen.dart';
-import 'package:kenick_vip/screens/passenger/passenger_profile_screen.dart';
-import 'package:kenick_vip/screens/driver/driver_profile_screen.dart';
-import 'package:kenick_vip/screens/driver/driver_edit_profile_screen.dart';
-import 'package:kenick_vip/screens/driver/vehicle_info_screen.dart';
-import 'package:kenick_vip/screens/driver/id_verification_documents_screen.dart';
-import 'package:kenick_vip/screens/passenger/edit_profile_screen.dart';
-import 'package:kenick_vip/screens/privacy_policy_screen.dart';
-import 'package:kenick_vip/screens/terms_of_service_screen.dart';
-import 'package:kenick_vip/screens/otp_screen.dart';
-import 'package:kenick_vip/screens/passenger_profile_setup_screen.dart';
+import 'package:kenick_vip/screens/driver_id_verification_screen.dart';
+import 'package:kenick_vip/screens/driver_profile_setup_screen.dart';
 import 'package:kenick_vip/screens/forgot_password_screen.dart';
 import 'package:kenick_vip/screens/new_password_screen.dart';
+import 'package:kenick_vip/screens/onboarding_screen.dart';
+import 'package:kenick_vip/screens/otp_screen.dart';
+import 'package:kenick_vip/screens/passenger/booking_selection_screen.dart';
+import 'package:kenick_vip/screens/passenger/edit_profile_screen.dart';
+import 'package:kenick_vip/screens/passenger/instant_booking_screen.dart';
+import 'package:kenick_vip/screens/passenger/notifications_screen.dart';
+import 'package:kenick_vip/screens/passenger/passenger_home_screen.dart';
+import 'package:kenick_vip/screens/passenger/passenger_profile_screen.dart';
+import 'package:kenick_vip/screens/passenger/payment_method_screen.dart';
+import 'package:kenick_vip/screens/passenger/payment_successful_screen.dart';
+import 'package:kenick_vip/screens/passenger/ride_history_screen.dart';
+import 'package:kenick_vip/screens/passenger/saved_places_screen.dart';
+import 'package:kenick_vip/screens/passenger/schedule_booking_screen.dart';
+import 'package:kenick_vip/screens/passenger/special_booking_screen.dart';
+import 'package:kenick_vip/screens/passenger/trip_summary_screen.dart';
+import 'package:kenick_vip/screens/passenger_profile_setup_screen.dart';
+import 'package:kenick_vip/screens/privacy_policy_screen.dart';
+import 'package:kenick_vip/screens/ride_review_screen.dart';
 import 'package:kenick_vip/screens/role_selection_screen.dart';
+import 'package:kenick_vip/screens/settings_screen.dart';
 import 'package:kenick_vip/screens/sign_in_screen.dart';
 import 'package:kenick_vip/screens/sign_up_screen.dart';
 import 'package:kenick_vip/screens/splash_screen.dart';
+import 'package:kenick_vip/screens/support_screen.dart';
+import 'package:kenick_vip/screens/terms_of_service_screen.dart';
+import 'package:kenick_vip/screens/vehicle_registration_screen.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:provider/provider.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/providers/payment_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:kenick_vip/providers/theme_provider.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/biometric_lock_screen.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:toastification/toastification.dart';
 
 enum _LockTier { none, soft, hard }
 
@@ -84,8 +84,6 @@ Future<void> main() async {
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
-  await dotenv.load(fileName: '.env');
-
   try {
     await Firebase.initializeApp();
     await FirebaseMessaging.instance.requestPermission();
@@ -93,9 +91,11 @@ Future<void> main() async {
     debugPrint('Firebase init skipped: $e');
   }
 
+  Stripe.publishableKey = EnvConfig.stripePublishableKey;
+
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: EnvConfig.supabaseUrl,
+    anonKey: EnvConfig.supabaseAnonKey,
   );
 
   runApp(
@@ -552,7 +552,6 @@ class _KenickVipAppState extends State<KenickVipApp>
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: AppColors.primary,
-                brightness: Brightness.light,
               ),
               useMaterial3: true,
               textTheme: baseTextTheme,
@@ -669,11 +668,11 @@ class _KenickVipAppState extends State<KenickVipApp>
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
+                  borderSide: BorderSide(color: Colors.grey.shade800),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade800, width: 1),
+                  borderSide: BorderSide(color: Colors.grey.shade800),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),

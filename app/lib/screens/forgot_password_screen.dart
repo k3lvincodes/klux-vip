@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -115,7 +115,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     onPress: auth.isLoading ? () {} : _handleSendOtp,
                     variant: ButtonVariant.primary,
                     height: 40,
-                    borderRadius: 30, // Default for most buttons
                   );
                 }
               ),

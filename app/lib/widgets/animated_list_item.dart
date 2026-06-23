@@ -2,16 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class AnimatedListItem extends StatefulWidget {
-  final Widget child;
-  final int index;
-  final EdgeInsetsGeometry? padding;
-  final double borderRadius;
-  final Color? color;
-  final VoidCallback? onTap;
-  final DismissDirection? dismissDirection;
-  final VoidCallback? onDismissed;
-  final Widget? secondaryBackground;
-  final Widget? primaryBackground;
 
   const AnimatedListItem({
     super.key,
@@ -26,6 +16,16 @@ class AnimatedListItem extends StatefulWidget {
     this.secondaryBackground,
     this.primaryBackground,
   });
+  final Widget child;
+  final int index;
+  final EdgeInsetsGeometry? padding;
+  final double borderRadius;
+  final Color? color;
+  final VoidCallback? onTap;
+  final DismissDirection? dismissDirection;
+  final VoidCallback? onDismissed;
+  final Widget? secondaryBackground;
+  final Widget? primaryBackground;
 
   @override
   State<AnimatedListItem> createState() => _AnimatedListItemState();

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -140,8 +140,6 @@ class OnboardingScreen extends StatelessWidget {
                     title: 'Get Started',
                     onPress: () => context.push('/sign-up'),
                     variant: ButtonVariant.primary,
-                    height: 52,
-                    borderRadius: 30,
                     textStyle: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

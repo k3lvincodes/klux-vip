@@ -5,9 +5,9 @@ import 'package:kenick_vip/repositories/notification_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FirebaseService {
-  static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
   FirebaseService._internal();
+  static final FirebaseService _instance = FirebaseService._internal();
 
   final NotificationRepository _notificationRepo = NotificationRepository();
   String? _fcmToken;
@@ -73,8 +73,6 @@ class FirebaseService {
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
         announcement: true,
-        badge: true,
-        sound: true,
       );
       if (kDebugMode) {
         debugPrint('Notification permission: ${settings.authorizationStatus}');

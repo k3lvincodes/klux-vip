@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kenick_vip/models/payment_method.dart';
+import 'package:kenick_vip/models/transaction.dart';
 import 'package:kenick_vip/repositories/payment_repository.dart';
 
 class PaymentProvider extends ChangeNotifier {
@@ -6,14 +8,14 @@ class PaymentProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
-  List<Map<String, dynamic>> _paymentMethods = [];
-  List<Map<String, dynamic>> _transactions = [];
+  List<PaymentMethod> _paymentMethods = [];
+  List<Transaction> _transactions = [];
   double _totalEarnings = 0;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<Map<String, dynamic>> get paymentMethods => _paymentMethods;
-  List<Map<String, dynamic>> get transactions => _transactions;
+  List<PaymentMethod> get paymentMethods => _paymentMethods;
+  List<Transaction> get transactions => _transactions;
   double get totalEarnings => _totalEarnings;
 
   void _setLoading(bool value) {
@@ -41,7 +43,7 @@ class PaymentProvider extends ChangeNotifier {
   Future<bool> addPaymentMethod({
     required String userId,
     required String paymentMethodId,
-    required String last4,
+    required String customerId,
   }) async {
     try {
       _setLoading(true);
@@ -49,7 +51,7 @@ class PaymentProvider extends ChangeNotifier {
       await _paymentRepository.addPaymentMethod(
         userId: userId,
         paymentMethodId: paymentMethodId,
-        last4: last4,
+        customerId: customerId,
       );
       await fetchPaymentMethods(userId);
       return true;
@@ -61,10 +63,41 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> processRidePayment({
+  Future<Map<String, dynamic>> captureRidePayment({
+    required String rideId,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      return await _paymentRepository.captureRidePayment(rideId: rideId);
+    } catch (e) {
+      _setError(e.toString());
+      return {'success': false};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<Map<String, dynamic>> cancelRidePayment({
+    required String rideId,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      return await _paymentRepository.cancelRidePayment(rideId: rideId);
+    } catch (e) {
+      _setError(e.toString());
+      return {'success': false};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<Map<String, dynamic>> processRidePayment({
     required String userId,
     required String rideId,
     required double amount,
+    String? paymentMethodId,
   }) async {
     try {
       _setLoading(true);
@@ -73,11 +106,12 @@ class PaymentProvider extends ChangeNotifier {
         userId: userId,
         rideId: rideId,
         amount: amount,
+        paymentMethodId: paymentMethodId,
       );
-      return result['success'] == true;
+      return result;
     } catch (e) {
       _setError(e.toString());
-      return false;
+      return {'success': false};
     } finally {
       _setLoading(false);
     }

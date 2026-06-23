@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:kenick_vip/config/env_config.dart';
 
 class CloudinaryService {
-  static String get _cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? '';
-  static String get _uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? '';
+  static String get _cloudName => EnvConfig.cloudinaryCloudName;
+  static String get _uploadPreset => EnvConfig.cloudinaryUploadPreset;
 
   /// Uploads an image file to Cloudinary and returns the secure URL.
   /// Returns `null` on failure.

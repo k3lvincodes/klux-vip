@@ -1,14 +1,15 @@
 import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverEditProfileScreen extends StatefulWidget {
   const DriverEditProfileScreen({super.key});
@@ -58,9 +59,9 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
       try {
         final profile = await ProfileRepository().getDriverProfile(user.id);
         if (profile != null && mounted) {
-          _firstNameController.text = profile['first_name'] ?? '';
-          _lastNameController.text = profile['last_name'] ?? '';
-          _profileImageUrl = profile['avatar_url'];
+          _firstNameController.text = profile.firstName ?? '';
+          _lastNameController.text = profile.lastName ?? '';
+          _profileImageUrl = profile.avatarUrl;
         }
       } catch (e) {
         if (mounted) {
@@ -270,7 +271,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
+          borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

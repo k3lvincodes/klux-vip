@@ -3,16 +3,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class DriverOfferCard extends StatefulWidget {
-  final String passengerName;
-  final String? passengerAvatarUrl;
-  final int passengerCount;
-  final String pickupAddress;
-  final String dropoffAddress;
-  final String fare;
-  final String rideId;
-  final bool isLoading;
-  final VoidCallback? onAccept;
-  final VoidCallback? onDecline;
 
   const DriverOfferCard({
     super.key,
@@ -27,6 +17,16 @@ class DriverOfferCard extends StatefulWidget {
     this.onAccept,
     this.onDecline,
   });
+  final String passengerName;
+  final String? passengerAvatarUrl;
+  final int passengerCount;
+  final String pickupAddress;
+  final String dropoffAddress;
+  final String fare;
+  final String rideId;
+  final bool isLoading;
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
 
   @override
   State<DriverOfferCard> createState() => _DriverOfferCardState();
@@ -51,7 +51,6 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
       slideOffset: 0.1,
       child: Dismissible(
         key: ValueKey(widget.rideId),
-        direction: DismissDirection.horizontal,
         confirmDismiss: (direction) async {
           _handleDecline();
           return false;
@@ -215,7 +214,7 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                         children: [
                           Text(
                             _isExpanded ? 'Less details' : 'More details',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
@@ -225,7 +224,7 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                           AnimatedRotation(
                             turns: _isExpanded ? 0.5 : 0.0,
                             duration: AppDurations.fast,
-                            child: Icon(
+                            child: const Icon(
                               Icons.expand_more,
                               size: 16,
                               color: AppColors.primary,
@@ -365,7 +364,6 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
 
   Widget _buildExpandedSection(bool isDark) {
     return FadeSlideIn(
-      delay: Duration.zero,
       slideOffset: 0.03,
       child: Container(
         margin: const EdgeInsets.only(top: 8),

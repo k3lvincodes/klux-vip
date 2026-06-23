@@ -7,12 +7,13 @@ if (!supabaseUrl) throw new Error('Missing SUPABASE_URL environment variable')
 if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') || '*'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Methods': 'POST',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },
@@ -30,10 +31,16 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!ride_id || !pickup_lat || !pickup_lng) {
+    const { data: ride, error: rideError } = await supabase
+      .from('rides')
+      .select('driver_id, pickup_address, dropoff_address, fare_amount, passenger:profiles(first_name)')
+      .eq('id', ride_id)
+      .single()
+
+    if (rideError) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: ride_id, pickup_lat, pickup_lng' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Ride not found', details: rideError }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
@@ -123,7 +130,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    await supabase.from('notifications').insert({
+    supabase.from('notifications').insert({
       user_id: selectedDriver.user_id,
       type: 'ride_request',
       title: 'New Ride Request',
@@ -135,7 +142,7 @@ Deno.serve(async (req) => {
         passenger_name: ride.passenger?.first_name,
         fare_amount: ride.fare_amount,
       },
-    })
+    }).then().catch(() => {})
 
     return new Response(
       JSON.stringify({

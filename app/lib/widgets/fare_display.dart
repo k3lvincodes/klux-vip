@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
 class FareDisplay extends StatelessWidget {
-  final String amount;
-  final String label;
-  final Color? color;
-  final double fontSize;
-  final bool showLabel;
 
   const FareDisplay({
     super.key,
@@ -15,6 +10,11 @@ class FareDisplay extends StatelessWidget {
     this.fontSize = 24,
     this.showLabel = true,
   });
+  final String amount;
+  final String label;
+  final Color? color;
+  final double fontSize;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {

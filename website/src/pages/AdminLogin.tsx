@@ -77,14 +77,6 @@ export default function AdminLogin() {
         <div className="al-top-logo">
           <img src="/Kenick-logo-favicon.png" alt="Kenick" />
         </div>
-        {/* Animated aurora blobs */}
-        <div className="al-aurora">
-          <div className="al-aurora-blob al-blob-1"></div>
-          <div className="al-aurora-blob al-blob-2"></div>
-          <div className="al-aurora-blob al-blob-3"></div>
-        </div>
-        {/* Dot grid overlay */}
-        <div className="al-dot-grid"></div>
         {/* Noise texture */}
         <div className="al-noise"></div>
 

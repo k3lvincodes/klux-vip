@@ -1,6 +1,6 @@
+import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:local_auth/local_auth.dart';
 
 class DeviceBiometricsService {
   static const String _deviceIdKey = 'device_uuid';

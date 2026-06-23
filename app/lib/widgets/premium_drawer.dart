@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class PremiumDrawer extends StatelessWidget {
-  final Widget header;
-  final List<Widget> items;
-  final Widget? footer;
-  final bool isDark;
 
   const PremiumDrawer({
     super.key,
@@ -14,6 +10,10 @@ class PremiumDrawer extends StatelessWidget {
     this.footer,
     required this.isDark,
   });
+  final Widget header;
+  final List<Widget> items;
+  final Widget? footer;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {

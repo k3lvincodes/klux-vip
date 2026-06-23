@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/location_search_field.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/services/location_search_service.dart';
-import 'package:kenick_vip/services/fare_rate_service.dart';
-import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/services/fare_rate_service.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/location_search_field.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 class InstantBookingScreen extends StatefulWidget {
   const InstantBookingScreen({super.key});
@@ -272,10 +272,10 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
@@ -334,7 +334,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.directions_car, size: 16, color: AppColors.primary),
+                    const Icon(Icons.directions_car, size: 16, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',

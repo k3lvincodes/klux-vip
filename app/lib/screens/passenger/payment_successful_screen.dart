@@ -218,9 +218,9 @@ class _PaymentSuccessfulScreenState extends State<PaymentSuccessfulScreen>
               const SizedBox(height: 12),
 
               // Subtitle - staggered
-              Text(
+              const Text(
                 'Chauffeur on it\'s way!',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey,
                 ),

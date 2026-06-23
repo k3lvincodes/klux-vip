@@ -9,6 +9,7 @@ if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY envi
 if (!fcmServerKey) throw new Error('Missing FCM_SERVER_KEY environment variable')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') || '*'
 
 interface FCMMessage {
   to?: string
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Methods': 'POST',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },

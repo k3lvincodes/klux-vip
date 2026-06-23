@@ -84,7 +84,7 @@ export default function Fleets() {
               },
               {
                 name: 'Ford Expedition',
-                img: '/ford.webp',
+                img: '/ford.png',
                 features: ['24-inch panoramic display', 'Cargo tailgate manager', 'Accommodates 7 to 8 passenger', '3.5L Ecoboost, Twin-turbo v6']
               },
               {
@@ -99,7 +99,7 @@ export default function Fleets() {
               },
               {
                 name: 'Ford Expedition Max',
-                img: '/ford.webp',
+                img: '/ford.png',
                 features: ['24-inch panoramic display', 'Cargo tailgate manager', 'Accommodates 7 to 8 passenger', '3.5L Ecoboost, Twin-turbo v6']
               }
             ].map((car, idx) => (

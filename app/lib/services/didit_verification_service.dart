@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+
 import 'package:didit_sdk/sdk_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:kenick_vip/config/env_config.dart';
 
 class DiditVerificationService {
-  String? get _apiKey => dotenv.env['DIDIT_API_KEY'] ?? dotenv.env['DIDIT_CLIENT_SECRET'];
-  String? get _workflowId => dotenv.env['DIDIT_VERIFICATION_WORKFLOW_ID'];
+  String get _apiKey => EnvConfig.diditApiKey;
+  String get _workflowId => EnvConfig.diditVerificationWorkflowId;
 
   Future<String?> _createSession({
     required String workflowId,
@@ -14,7 +15,7 @@ class DiditVerificationService {
   }) async {
     final apiKey = _apiKey;
 
-    if (apiKey == null || apiKey.isEmpty) {
+    if (apiKey.isEmpty) {
       debugPrint('DiditService: Missing DIDIT_API_KEY in .env');
       return null;
     }
@@ -52,8 +53,8 @@ class DiditVerificationService {
     String? vendorData,
   }) async {
     final workflowId = _workflowId;
-    if (workflowId == null || workflowId.isEmpty) {
-      return VerificationFailed(
+    if (workflowId.isEmpty) {
+      return const VerificationFailed(
         error: VerificationError(
           type: VerificationErrorType.unknown,
           message: 'DIDIT_VERIFICATION_WORKFLOW_ID is not configured',
@@ -67,7 +68,7 @@ class DiditVerificationService {
     );
 
     if (sessionToken == null) {
-      return VerificationFailed(
+      return const VerificationFailed(
         error: VerificationError(
           type: VerificationErrorType.unknown,
           message: 'Failed to create verification session. Check your Didit credentials.',
@@ -77,7 +78,7 @@ class DiditVerificationService {
 
     return DiditSdk.startVerification(
       sessionToken,
-      config: DiditConfig(loggingEnabled: true),
+      config: const DiditConfig(loggingEnabled: true),
     );
   }
 

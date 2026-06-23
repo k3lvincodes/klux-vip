@@ -1,20 +1,21 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/widgets/map/map_memory.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/map/animated_marker.dart';
+import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 class ConfirmArrivalScreen extends StatefulWidget {
   const ConfirmArrivalScreen({super.key});
@@ -49,7 +50,7 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
   }
 
   Future<void> _startGps() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -129,10 +130,10 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
             children: [
               TileLayer(
                 urlTemplate: isDark
-                    ? "https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}"
-                    : "https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
+                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
                 additionalOptions: {
-                  'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  'accessToken': EnvConfig.mapboxAccessToken,
                 },
                 userAgentPackageName: 'com.kenickvip.app',
                 maxZoom: 22,
@@ -151,7 +152,7 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
                 ),
               MarkerLayer(
                 markers: [
-                  AnimatedMarker.driverCar(point: _currentPosition, isStationary: false),
+                  AnimatedMarker.driverCar(point: _currentPosition),
                   AnimatedMarker.pickupPin(point: pickupPosition, label: 'Pickup'),
                 ],
               ),
@@ -171,7 +172,7 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
                     decoration: BoxDecoration(
                       color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
-                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06), width: 1),
+                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
                     ),
                     child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
                   ),
@@ -209,7 +210,7 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
                     builder: (context, rideProv, _) {
                       return Container(
                         padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: isDark ? const Color(0xFF161316) : const Color(0xFFFAF9F9), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, width: 1)),
+                        decoration: BoxDecoration(color: isDark ? const Color(0xFF161316) : const Color(0xFFFAF9F9), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100)),
                         child: Column(children: [
                           _buildInfoRow(Icons.my_location, Colors.green, rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup', isDark),
                           Padding(padding: const EdgeInsets.only(left: 7), child: Align(alignment: Alignment.centerLeft, child: Container(width: 2, height: 18, color: isDark ? Colors.grey.shade800 : Colors.grey.shade300))),

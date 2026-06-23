@@ -1,10 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/models/vehicle.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VehicleInfoScreen extends StatefulWidget {
   const VehicleInfoScreen({super.key});
@@ -15,7 +16,7 @@ class VehicleInfoScreen extends StatefulWidget {
 
 class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
   bool _isLoading = true;
-  Map<String, dynamic>? _vehicle;
+  Vehicle? _vehicle;
 
   @override
   void initState() {
@@ -66,8 +67,8 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
         actions: [
           TextButton.icon(
             onPressed: () => context.push('/vehicle-management'),
-            icon: Icon(Icons.edit, size: 18, color: AppColors.primary),
-            label: Text('Manage', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+            icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+            label: const Text('Manage', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -119,13 +120,12 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
   }
 
   Widget _buildVehicleDetails(bool isDark) {
-    final String make = _vehicle?['make'] ?? '';
-    final String model = _vehicle?['model'] ?? '';
-    final int year = _vehicle?['year'] ?? 0;
-    final String color = _vehicle?['color'] ?? '';
-    final String licensePlate = _vehicle?['license_plate'] ?? '';
-    final String type = _vehicle?['type'] ?? '';
-    final List<dynamic> images = _vehicle?['images'] ?? [];
+    final String make = _vehicle?.make ?? '';
+    final String model = _vehicle?.model ?? '';
+    final int year = _vehicle?.year ?? 0;
+    final String color = _vehicle?.color ?? '';
+    final String licensePlate = _vehicle?.licensePlate ?? '';
+    final List<String> images = _vehicle?.images ?? [];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -139,7 +139,7 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: CachedNetworkImageProvider(images.first as String),
+                  image: CachedNetworkImageProvider(images.first),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -150,8 +150,6 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
             _buildDetailRow(Icons.calendar_today, 'Year', year.toString(), isDark),
             _buildDetailRow(Icons.palette, 'Color', color, isDark),
             _buildDetailRow(Icons.confirmation_number, 'License Plate', licensePlate, isDark),
-            if (type.isNotEmpty)
-              _buildDetailRow(Icons.category, 'Type', type, isDark),
           ]),
           const SizedBox(height: 24),
           SizedBox(

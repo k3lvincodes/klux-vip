@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/custom_button.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RideReviewScreen extends StatefulWidget {
-  final String rideId;
-  final String revieweeId;
-  final String revieweeName;
 
   const RideReviewScreen({
     super.key,
@@ -17,6 +14,9 @@ class RideReviewScreen extends StatefulWidget {
     required this.revieweeId,
     required this.revieweeName,
   });
+  final String rideId;
+  final String revieweeId;
+  final String revieweeName;
 
   @override
   State<RideReviewScreen> createState() => _RideReviewScreenState();
@@ -89,7 +89,7 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
               const SizedBox(height: 8),
               Text(
                 'How was your trip with ${widget.revieweeName}?',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 40),
               Row(
@@ -129,9 +129,9 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
                 child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
                   controller: _commentController,
                   maxLines: 4,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Add a comment (optional)',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -151,7 +151,7 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
               const SizedBox(height: 20),
               TextButton(
                 onPressed: _goHome,
-                child: Text('Skip', style: TextStyle(color: Colors.grey)),
+                child: const Text('Skip', style: TextStyle(color: Colors.grey)),
               ),
             ],
           ),

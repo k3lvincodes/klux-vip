@@ -1,9 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/models/user_profile.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class PassengerProfileScreen extends StatefulWidget {
   const PassengerProfileScreen({super.key});
@@ -14,7 +15,7 @@ class PassengerProfileScreen extends StatefulWidget {
 
 class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
   bool _isLoading = true;
-  Map<String, dynamic>? _profile;
+  UserProfile? _profile;
 
   @override
   void initState() {
@@ -47,10 +48,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       );
     }
 
-    final String firstName = _profile?['first_name'] ?? 'Client';
-    final String lastName = _profile?['last_name'] ?? '';
-    final String fullName = '$firstName $lastName'.trim();
-    final String imageUrl = _profile?['avatar_url'] ?? '';
+    final String firstName = _profile?.firstName ?? 'Client';
+    final String lastName = _profile?.lastName ?? '';
+    final String? imageUrl = _profile?.avatarUrl;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -71,7 +71,6 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
               Container(
@@ -89,7 +88,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                     ),
                   ],
                 ),
-                child: imageUrl.isNotEmpty
+                child: (imageUrl != null && imageUrl.isNotEmpty)
                     ? ClipOval(
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
@@ -103,7 +102,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                fullName,
+                '$firstName $lastName'.trim(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

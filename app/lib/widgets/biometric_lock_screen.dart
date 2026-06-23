@@ -1,15 +1,12 @@
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:local_auth/local_auth.dart';
 
 enum LockMode { soft, hard }
 
 class BiometricLockScreen extends StatefulWidget {
-  final VoidCallback onUnlocked;
-  final VoidCallback? onSoftDismiss;
-  final bool canAuthenticate;
-  final LockMode lockMode;
 
   const BiometricLockScreen({
     super.key,
@@ -18,6 +15,10 @@ class BiometricLockScreen extends StatefulWidget {
     this.canAuthenticate = true,
     this.lockMode = LockMode.hard,
   });
+  final VoidCallback onUnlocked;
+  final VoidCallback? onSoftDismiss;
+  final bool canAuthenticate;
+  final LockMode lockMode;
 
   @override
   State<BiometricLockScreen> createState() => _BiometricLockScreenState();
@@ -304,7 +305,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
             ? null
             : _authenticate,
         icon: _isAuthenticating
-            ? SizedBox(
+            ? const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(

@@ -1,20 +1,21 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/repositories/ride_repository.dart';
-import 'package:provider/provider.dart';
+import 'package:kenick_vip/models/ride.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/custom_button.dart';
+import 'package:kenick_vip/widgets/drawer_item.dart';
 import 'package:kenick_vip/widgets/driver_offer_card.dart';
 import 'package:kenick_vip/widgets/premium_drawer.dart';
-import 'package:kenick_vip/widgets/drawer_item.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -35,7 +36,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   final Set<String> _declinedRideIds = {};
   final Set<String> _notifiedRideIds = {};
   String _lastRideIds = '';
-  Future<List<Map<String, dynamic>>>? _completedRidesFuture;
+  Future<List<Ride>>? _completedRidesFuture;
 
   @override
   void initState() {
@@ -73,9 +74,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         final profile = await ProfileRepository().getDriverProfile(user.id);
         if (profile != null && mounted) {
           setState(() {
-            _userName = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim().toUpperCase();
+            _userName = profile.displayName.trim().toUpperCase();
             if (_userName.isEmpty) _userName = 'CHAUFFEUR';
-            _profileImageUrl = profile['avatar_url'];
+            _profileImageUrl = profile.avatarUrl;
           });
         }
       } catch (e) {
@@ -85,24 +86,32 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Future<void> _fetchPassengerNames(List<Map<String, dynamic>> rides) async {
+    final uniqIds = <String>{};
     for (final ride in rides) {
-      final passengerId = ride['passenger_id'] as String?;
-      if (passengerId != null && !_fetchedPassengerIds.contains(passengerId)) {
-        _fetchedPassengerIds.add(passengerId);
-        try {
-          final profile = await Supabase.instance.client
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', passengerId)
-              .maybeSingle();
-          if (profile != null && mounted) {
-            final name = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
-            _passengerNames[passengerId] = name.isNotEmpty ? name : 'Client';
-            setState(() {});
-          }
-        } catch (_) {}
-      }
+      final pid = ride['passenger_id'] as String?;
+      if (pid != null) uniqIds.add(pid);
     }
+    final newIds = uniqIds.difference(_fetchedPassengerIds).toList();
+    if (newIds.isEmpty) return;
+    _fetchedPassengerIds.addAll(newIds);
+    try {
+      final results = await Future.wait(
+        newIds.map((id) => Supabase.instance.client
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .eq('id', id)
+            .maybeSingle()),
+      );
+      if (mounted) {
+        for (final p in results) {
+          if (p == null) continue;
+          final pid = p['id'] as String;
+          final name = '${p['first_name'] ?? ''} ${p['last_name'] ?? ''}'.trim();
+          _passengerNames[pid] = name.isNotEmpty ? name : 'Client';
+        }
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   @override
@@ -200,7 +209,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Widget _buildCompletedTab(bool isDark) {
     if (_completedRidesFuture == null) return const SizedBox();
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
+    return FutureBuilder<List<Ride>>(
       future: _completedRidesFuture!,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -231,9 +240,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           itemCount: rides.length,
           itemBuilder: (context, index) {
             final ride = rides[index];
-            final pickup = ride['pickup_address'] ?? 'Unknown location';
-            final dropoff = ride['dropoff_address'] ?? 'Unknown location';
-            final fare = ride['fare_amount'] ?? '0.00';
+            final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Unknown location';
+            final dropoff = ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Unknown location';
+            final fare = '\$${ride.fareAmount.toStringAsFixed(2)}';
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
@@ -278,7 +287,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 32,
                   height: 32,
                   child: CircularProgressIndicator(
@@ -378,7 +387,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              Icon(Icons.notifications_active, size: 48, color: AppColors.primary),
+              const Icon(Icons.notifications_active, size: 48, color: AppColors.primary),
               const SizedBox(height: 16),
               Text(
                 'New Booking Request!',
@@ -402,11 +411,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attach_money, size: 18, color: AppColors.primary),
+                    const Icon(Icons.attach_money, size: 18, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
                       '\$${ride['fare_amount'] ?? '0.00'}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
@@ -629,7 +638,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 children: [
                   Text(_userName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
                   const SizedBox(height: 2),
-                  Text('View Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
+                  const Text('View Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
                 ],
               ),
             ),

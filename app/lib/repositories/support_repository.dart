@@ -1,3 +1,4 @@
+import 'package:kenick_vip/models/support_ticket.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupportRepository {
@@ -15,7 +16,7 @@ class SupportRepository {
           .from('support_tickets')
           .insert({
             'user_id': userId,
-            'ride_id': rideId,
+            'ride_id': ?rideId,
             'category': category,
             'subject': subject,
             'description': description,
@@ -23,34 +24,34 @@ class SupportRepository {
           })
           .select()
           .single();
-
       return response['id'] as String;
     } catch (e) {
-      throw Exception('Failed to create support ticket: $e');
+      throw Exception('Failed to create ticket: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> getUserTickets(String userId) async {
+  Future<List<SupportTicket>> getUserTickets(String userId) async {
     try {
       final response = await _supabase
           .from('support_tickets')
           .select()
           .eq('user_id', userId)
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+      return (response as List).map((e) => SupportTicket.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch tickets: $e');
     }
   }
 
-  Future<Map<String, dynamic>?> getTicket(String ticketId) async {
+  Future<SupportTicket?> getTicket(String ticketId) async {
     try {
       final response = await _supabase
           .from('support_tickets')
           .select()
           .eq('id', ticketId)
           .maybeSingle();
-      return response;
+      if (response == null) return null;
+      return SupportTicket.fromJson(response);
     } catch (e) {
       throw Exception('Failed to fetch ticket: $e');
     }
@@ -58,12 +59,9 @@ class SupportRepository {
 
   Future<void> updateTicketStatus(String ticketId, String status) async {
     try {
-      await _supabase
-          .from('support_tickets')
-          .update({'status': status})
-          .eq('id', ticketId);
+      await _supabase.from('support_tickets').update({'status': status}).eq('id', ticketId);
     } catch (e) {
-      throw Exception('Failed to update ticket: $e');
+      throw Exception('Failed to update ticket status: $e');
     }
   }
 }

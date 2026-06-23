@@ -4,12 +4,12 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class ActiveTripChatSheet extends StatefulWidget {
-  final String recipientName;
 
   const ActiveTripChatSheet({
     super.key,
     required this.recipientName,
   });
+  final String recipientName;
 
   static void show(BuildContext context, String recipientName) {
     showModalBottomSheet(
@@ -80,7 +80,6 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
     final insertIndex = _messages.length - 1;
     _listKey.currentState?.insertItem(
       insertIndex,
-      duration: const Duration(milliseconds: 300),
     );
 
     Future.delayed(const Duration(milliseconds: 100), () {
