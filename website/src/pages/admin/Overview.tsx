@@ -214,7 +214,7 @@ export default function Overview() {
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         
         {/* Revenue Chart */}
         <div className="admin-card" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>

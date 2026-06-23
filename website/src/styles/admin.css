@@ -512,9 +512,19 @@
 
 /* =============================================
    RESPONSIVE
-   ============================================= */
+    ============================================= */
 .admin-menu-btn {
   display: none;
+}
+
+/* Table horizontal scroll on mobile */
+.admin-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  min-width: 600px;
 }
 
 @media (max-width: 1024px) {
@@ -528,11 +538,135 @@
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
   }
+  .admin-sidebar-header {
+    display: none;
+  }
   .admin-main {
     margin-left: 0;
   }
   .admin-content {
     padding: 1.25rem;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 1rem 1rem;
+  }
+  .vip-country-header {
+    flex-wrap: wrap;
+  }
+  .vip-country-amount {
+    min-width: auto;
+  }
+  .vip-state-row {
+    padding: 0.5rem 1rem 0.5rem 1.5rem;
+  }
+  .vip-states-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-content {
+    padding: 1rem;
+  }
+  .admin-topbar {
+    padding: 0 1rem;
+    height: 60px;
+  }
+  .admin-topbar-title {
+    font-size: 0.9rem;
+  }
+  .admin-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .admin-page-header h1 {
+    font-size: 1.15rem;
+  }
+  .admin-page-header p {
+    font-size: 0.8rem;
+  }
+  .admin-stat-value {
+    font-size: 1.35rem;
+  }
+  .admin-card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.8rem;
+  }
+  .admin-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  .admin-modal-overlay {
+    align-items: flex-end;
+  }
+  .admin-table {
+    min-width: 500px;
+  }
+  .vip-country-header {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+  .vip-country-name {
+    font-size: 0.85rem;
+  }
+  .vip-country-flag {
+    font-size: 1.35rem;
+  }
+  .vip-amount-input {
+    width: 70px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .vip-chevron {
+    display: none;
+  }
+  .vip-state-row {
+    padding: 0.4rem 0.75rem 0.4rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .vip-state-name {
+    font-size: 0.8rem;
+  }
+  .vip-inherit-hint {
+    display: none;
+  }
+  .vip-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  .vip-modal-header h2 {
+    font-size: 1rem;
+  }
+  .admin-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+  .admin-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+  .admin-stat-icon svg {
+    width: 20px;
+    height: 20px;
   }
 }
 
