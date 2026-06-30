@@ -8,60 +8,59 @@ export default function HowItWorks() {
     <section className="how-it-works section-padding" id="how-it-works">
       <div className="container">
         <div className="hiw-layout">
-          {/* Left: Tree diagram */}
-          <div className="hiw-tree">
-            {/* SVG connector lines */}
-            <svg className="hiw-lines" viewBox="0 0 600 680" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Vertical trunk */}
-              <line x1="120" y1="70" x2="120" y2="560" stroke="#222" strokeWidth="2.5" />
-              {/* Branch to step 1 */}
-              <line x1="120" y1="70" x2="370" y2="70" stroke="#222" strokeWidth="2.5" />
-              {/* Branch to step 2 (longest) */}
-              <line x1="120" y1="340" x2="460" y2="340" stroke="#222" strokeWidth="2.5" />
-              {/* Branch to step 3 */}
-              <line x1="120" y1="560" x2="370" y2="560" stroke="#222" strokeWidth="2.5" />
-            </svg>
-
-            {/* Big circle */}
-            <div className="hiw-big-circle">
-              <h2 dangerouslySetInnerHTML={{ __html: String(t('how_it_works.title')).replace(' ', '<br />') }} />
-            </div>
-
-            {/* Step 1 - top */}
-            <div className="hiw-step hiw-step-1">
-              <div className="hiw-step-icon">
-                <img src="/ride choose.png" alt={t('how_it_works.step1_title')} loading="lazy" />
-              </div>
-              <p className="hiw-step-label">1. {t('how_it_works.step1_title')}</p>
-            </div>
-
-            {/* Step 2 - middle */}
-            <div className="hiw-step hiw-step-2">
-              <div className="hiw-step-icon">
-                <img src="/location search.png" alt={t('how_it_works.step2_title')} loading="lazy" />
-              </div>
-              <p className="hiw-step-label">2. {t('how_it_works.step2_title')}</p>
-            </div>
-
-            {/* Step 3 - bottom */}
-            <div className="hiw-step hiw-step-3">
-              <div className="hiw-step-icon">
-                <img src="/confirm.png" alt={t('how_it_works.step3_title')} loading="lazy" />
-              </div>
-              <p className="hiw-step-label">3. {t('how_it_works.step3_title')}</p>
-            </div>
+          {/* Left column: text content */}
+          <div className="hiw-left">
+            <h2 className="hiw-headline">{t('how_it_works.title')}</h2>
+            <p className="hiw-subtitle">{t('how_it_works.subtitle')}</p>
+            <Link to="/book" className="hiw-cta">
+              {t('how_it_works.book_a_ride_now')}
+            </Link>
           </div>
 
-          {/* Right: Phone mockup */}
-          <div className="hiw-phone">
-            <img src="/Payment successful Mockup.webp" alt={t('how_it_works.step3_title')} className="hiw-phone-img" loading="lazy" />
+          {/* Right column: vertical step timeline */}
+          <div className="hiw-timeline">
+            {/* Step 1 */}
+            <div className="hiw-step-group">
+              <div className="hiw-badge">1</div>
+              <div className="hiw-card">
+                <div className="hiw-card-header">
+                  <h3>{t('how_it_works.step1_title')}</h3>
+                  <div className="hiw-card-icon">
+                    <img src="/ride choose.png" alt={t('how_it_works.step1_title')} loading="lazy" />
+                  </div>
+                </div>
+                <p>{t('how_it_works.step1_desc')}</p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="hiw-step-group">
+              <div className="hiw-badge">2</div>
+              <div className="hiw-card">
+                <div className="hiw-card-header">
+                  <h3>{t('how_it_works.step2_title')}</h3>
+                  <div className="hiw-card-icon">
+                    <img src="/location search.png" alt={t('how_it_works.step2_title')} loading="lazy" />
+                  </div>
+                </div>
+                <p>{t('how_it_works.step2_desc')}</p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="hiw-step-group">
+              <div className="hiw-badge">3</div>
+              <div className="hiw-card">
+                <div className="hiw-card-header">
+                  <h3>{t('how_it_works.step3_title')}</h3>
+                  <div className="hiw-card-icon">
+                    <img src="/confirm.png" alt={t('how_it_works.step3_title')} loading="lazy" />
+                  </div>
+                </div>
+                <p>{t('how_it_works.step3_desc')}</p>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-          <Link to="/book" className="nav-cta" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', width: '209px', height: '59px', fontSize: '1.05rem' }}>
-            {t('how_it_works.book_a_ride_now')}
-          </Link>
         </div>
       </div>
     </section>

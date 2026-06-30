@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Download } from 'lucide-react';
 import HowItWorks from './HowItWorks';
 import Fleets from './Fleets';
 import Services from './Services';
@@ -47,23 +48,20 @@ export default function LandingPage() {
             }}
           />
         ))}
+        <div className="hero-nav-overlay" />
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-headline">
-              <span className="hero-headline-highlight">{t('hero.premium_black_car')}</span>
-              <span style={{ display: 'block', marginTop: '20px' }} dangerouslySetInnerHTML={{ __html: String(t('hero.experience_on_demand')) }} />
+              <span className="hero-headline-yellow">{t('hero.premium_black_car')}</span>
+              <span className="hero-headline-white">{t('hero.experience_on_demand')}</span>
             </h1>
+            <p className="hero-subheading" dangerouslySetInnerHTML={{ __html: String(t('hero.subheading')) }} />
             <Link to="/book" style={{ textDecoration: 'none' }}>
-              <button className="hero-book-btn">{t('hero.book_a_ride')}</button>
+              <button className="hero-cta-btn">
+                {t('hero.get_the_app')}
+                <Download size={20} />
+              </button>
             </Link>
-            <div className="hero-badges">
-              <button className="store-badge">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt={t('common.app_store')} />
-              </button>
-              <button className="store-badge">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt={t('common.google_play')} />
-              </button>
-            </div>
           </div>
         </div>
       </section>

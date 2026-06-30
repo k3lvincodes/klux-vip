@@ -308,9 +308,7 @@ ul { list-style: none; }
 .hero-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: 1024px;
   overflow: hidden;
 }
 
@@ -318,12 +316,12 @@ ul { list-style: none; }
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center;
+  background-position: center 30%;
   transition: opacity 1s ease-in-out;
 }
 
 .navbar {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -331,48 +329,88 @@ ul { list-style: none; }
   display: flex;
   justify-content: center;
   padding: 1.5rem 2rem;
+  transition: background 0.3s ease;
+}
+
+.navbar--transparent {
+  background: transparent;
+}
+
+.hero-nav-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70%;
+  background: linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.9) 40%, rgba(0,0,0,0) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.navbar--solid {
+  background: #000;
 }
 
 .navbar-inner {
   width: 100%;
   max-width: 1400px;
-  background: var(--white);
-  border-radius: 9999px;
-  padding: 0.625rem 0.625rem 0.625rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-}
-.navbar-inner:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
 .nav-logo {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  color: var(--black);
+  gap: 0.375rem;
+  color: var(--white);
   font-weight: 700;
   font-size: 1.25rem;
-  transition: transform 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 .nav-logo:hover {
-  transform: scale(1.02);
+  opacity: 0.8;
 }
 
-.nav-logo-icon {
-  width: 40px;
-  height: 40px;
-  background: transparent;
-  border-radius: 10px;
+.nav-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.nav-center {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 2.5rem;
 }
 
-.nav-logo-icon svg {
-  color: var(--black);
+.nav-link {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  font-size: 0.95rem;
+  position: relative;
+  text-decoration: none;
+  padding-bottom: 4px;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--white);
+}
+
+.nav-link--active {
+  color: var(--yellow);
+}
+
+.nav-link-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yellow);
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 .nav-right {
@@ -385,7 +423,7 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  color: var(--black);
+  color: var(--white);
   font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
@@ -483,10 +521,14 @@ ul { list-style: none; }
 .nav-cta {
   background: var(--yellow);
   color: var(--black);
-  padding: 0.75rem 1.75rem;
+  width: 115px;
+  height: 51px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 9999px;
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 500;
+  font-size: 16px;
   transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
 }
 .nav-cta:hover {
@@ -496,8 +538,8 @@ ul { list-style: none; }
 }
 
 .nav-menu-btn {
-  color: var(--black);
-  display: flex;
+  color: var(--white);
+  display: none;
   align-items: center;
   padding: 0.5rem;
   transition: transform 0.3s ease;
@@ -506,65 +548,78 @@ ul { list-style: none; }
   transform: scale(1.1);
 }
 
+@media (max-width: 768px) {
+  .nav-menu-btn {
+    display: flex;
+  }
+}
+
 /* ========================================
    SECTION 1: HERO CONTENT
    ======================================== */
 .hero-content {
   position: relative;
-  z-index: 1;
-  flex: 1;
+  z-index: 2;
+  padding: 180px 4rem 0;
   display: flex;
-  align-items: center;
-  padding: 0 4rem;
+  justify-content: center;
 }
 
 .hero-text {
-  max-width: 900px;
+  max-width: 1060px;
+  text-align: center;
 }
 
 .hero-headline {
-  font-size: 60px;
-  font-weight: 800;
+  font-size: 64px;
+  font-weight: 600;
   line-height: 1.15;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   color: var(--white);
   animation: fadeInUp 0.8s ease forwards;
 }
 
-.hero-headline-highlight {
-  background-color: var(--yellow);
-  color: var(--black);
-  padding: 0.1em 0.3em;
-  display: inline;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-  transition: background-color 0.3s ease;
-}
-.hero-headline-highlight:hover {
-  background-color: #e0b01e;
+.hero-headline-yellow {
+  color: var(--yellow);
 }
 
-.hero-book-btn {
-  width: 209px;
-  height: 59px;
+.hero-headline-white {
+  display: block;
+  margin-top: 8px;
+}
+
+.hero-subheading {
+  font-size: 24px;
+  font-weight: 400;
+  color: #ccc;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeInUp 0.8s ease 0.15s both;
+}
+
+.hero-cta-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  gap: 0.625rem;
+  width: 209px;
+  height: 59px;
+  font-size: 20px;
   border-radius: 9999px;
   font-weight: 600;
   background: var(--yellow);
   color: var(--black);
   transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
-  position: relative;
-  overflow: hidden;
+  animation: fadeInUp 0.8s ease 0.3s both;
 }
-.hero-book-btn:hover {
+.hero-cta-btn:hover {
   background: var(--yellow-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(244, 197, 34, 0.35);
+  transform: translateY(-1px);
 }
-.hero-book-btn:active {
+.hero-cta-btn:active {
   transform: translateY(0);
 }
 
@@ -608,155 +663,177 @@ ul { list-style: none; }
 }
 
 .hiw-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
   align-items: center;
-  gap: 2rem;
 }
 
-/* ---- Tree diagram (left side) ---- */
-.hiw-tree {
-  flex: 1.1;
-  position: relative;
-  width: 600px;
-  height: 680px;
-  min-height: 680px;
+/* ---- Left column ---- */
+.hiw-left {
+  max-width: 480px;
 }
 
-/* SVG lines overlay */
-.hiw-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.3;
+.hiw-headline {
+  font-size: 62px;
+  font-weight: 500;
+  line-height: 1.15;
+  margin: 0 0 1rem;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* Big "How it works" circle */
-.hiw-big-circle {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: #F0EFEF;
-  border: 2px solid #D9D9D9;
-  display: flex;
+.hiw-subtitle {
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--grey-text);
+  line-height: 1.6;
+  margin: 0 0 2.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.hiw-cta {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  width: 209px;
+  height: 59px;
+  background: var(--yellow);
+  color: var(--black);
+  border-radius: 30px;
+  font-weight: 500;
+  font-size: 20px;
+  font-family: 'Poppins', sans-serif;
+  text-decoration: none;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
 }
-.hiw-big-circle:hover {
-  transform: translateY(-50%) scale(1.03);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+.hiw-cta:hover {
+  background: var(--yellow-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(244, 197, 34, 0.3);
 }
 
-.hiw-big-circle h2 {
-  font-size: 2.5rem;
-  font-weight: 600;
-  text-align: center;
-  line-height: 1.2;
-}
-
-/* Individual step items */
-.hiw-step {
-  position: absolute;
+/* ---- Right column: Timeline ---- */
+.hiw-timeline {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  z-index: 2;
-  width: 140px;
+  gap: 2rem;
+  padding: 1rem 0;
 }
 
-/* Step icon circle */
-.hiw-step-icon {
-  width: 100px;
-  height: 100px;
+/* Step group (badge + card) */
+.hiw-step-group {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  z-index: 1;
+}
+
+/* Connecting line segment from current badge bottom to next badge top */
+.hiw-step-group::after {
+  content: '';
+  position: absolute;
+  left: 1.5rem;
+  top: 3rem;
+  bottom: -2rem;
+  width: 3px;
+  background: var(--yellow);
+  border-radius: 2px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hiw-step-group:last-child::after {
+  display: none;
+}
+
+/* Numbered badge on the line */
+.hiw-badge {
+  width: 3rem;
+  height: 3rem;
+  min-width: 3rem;
   border-radius: 50%;
-  background: #F0EFEF;
-  border: 1px solid #D9D9D9;
+  background: var(--yellow);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
-  margin-bottom: 0.75rem;
-  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
-}
-.hiw-step:hover .hiw-step-icon {
-  transform: scale(1.08);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-  background: #e8e8e8;
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--black);
 }
 
-.hiw-step-icon img {
+/* Step card */
+.hiw-card {
+  flex: 1;
+  background: #E8E6F0;
+  border-radius: 18px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hiw-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.hiw-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.hiw-card-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0;
+}
+
+.hiw-card-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+}
+
+.hiw-card-icon img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.hiw-step-label {
-  font-size: 1.05rem;
-  font-weight: 500;
-  line-height: 1.4;
-  max-width: 180px;
-  transition: color 0.3s ease;
-}
-.hiw-step:hover .hiw-step-label {
-  color: #000;
-}
-
-/* Positioning each step to match the design */
-/* Step 1: top area, centered over the branch */
-.hiw-step-1 {
-  left: 300px;
-  top: 20px;
-}
-
-/* Step 2: middle area, to the right (longest) */
-.hiw-step-2 {
-  left: 390px;
-  top: 290px;
-}
-
-/* Step 3: bottom area */
-.hiw-step-3 {
-  left: 300px;
-  top: 510px;
-}
-
-/* ---- Phone mockup (right side) ---- */
-.hiw-phone {
-  flex: 0.9;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hiw-phone-img {
-  width: 100%;
-  max-width: 380px;
-  height: auto;
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.12));
-  animation: float 4s ease-in-out infinite;
+.hiw-card p {
+  font-size: 0.925rem;
+  color: var(--grey-dark);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* ========================================
    SECTION 3: FLEETS
    ======================================== */
 .fleets {
-  background-color: var(--yellow);
+  background-color: #FFED92;
   color: var(--black);
   overflow: hidden;
+  padding-bottom: 3rem;
+}
+.fleets.page-layout {
+  padding-top: 2.5rem;
 }
 
 .fleets .section-title {
   margin-bottom: 0.5rem;
+  font-size: 62px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
 }
 
 .fleets-subtitle {
@@ -944,6 +1021,9 @@ ul { list-style: none; }
   mix-blend-mode: difference;
   position: relative;
   z-index: 1;
+  font-size: 62px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
   width: 100%;
   max-width: 1280px;
   margin-left: auto;
@@ -1012,65 +1092,148 @@ ul { list-style: none; }
 }
 
 /* ========================================
-   SECTION 4.5: ABOUT US
-   ======================================== */
-.about-us {
-  background-color: var(--white);
-  color: var(--black);
-}
-
-.about-text p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #555;
-  margin-bottom: 2.5rem;
-}
-
-/* ========================================
    SECTION 5: WHY CHOOSE US
    ======================================== */
 .why-choose {
-  position: relative;
-  background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
-    url('/services.webp');
-  background-size: cover;
-  background-position: center;
-  min-height: 700px;
-  display: flex;
-  align-items: center;
+  background: #F7F2E6;
+  color: var(--black);
+  padding: 7rem 0;
 }
 .why-choose .container {
   width: 100%;
 }
 
-.wcu-card {
-  background: var(--off-white);
-  color: var(--black);
-  border-radius: 20px;
-  padding: 3.5rem 4rem;
-  max-width: 780px;
-  margin: 0 auto;
-}
-
-.wcu-grid {
+.wcu-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+/* Left column */
+.wcu-left {
+  display: flex;
+  flex-direction: column;
   gap: 1.75rem;
 }
 
-.wcu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
+.wcu-headline {
+  font-size: 4rem;
   font-weight: 500;
-  font-size: 1.05rem;
+  line-height: 1.05;
+  margin: 0;
+  color: #000;
+  letter-spacing: -0.02em;
+  font-family: 'Poppins', sans-serif;
 }
-.wcu-item svg { flex-shrink: 0; }
+.wcu-headline span {
+  display: block;
+}
 
-.wcu-item:last-child {
-  grid-column: 1 / -1;
-  justify-content: center;
-  margin-top: 0.75rem;
+.wcu-tagline {
+  font-size: 1.1rem;
+  color: #4A4A4A;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 440px;
+}
+
+.wcu-photo {
+  margin-top: 0.5rem;
+}
+.wcu-photo img {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 24px;
+  display: block;
+}
+
+/* Right column */
+.wcu-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2.75rem;
+}
+
+.wcu-feature {
+  display: flex;
+  gap: 1.75rem;
+  align-items: flex-start;
+}
+
+.wcu-feature-num {
+  font-size: 7.5rem;
+  font-weight: 500;
+  line-height: 0.85;
+  min-width: 5rem;
+  color: #000;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.04em;
+  user-select: none;
+}
+
+.wcu-feature:nth-child(2) .wcu-feature-num {
+  color: #999;
+}
+
+.wcu-feature--active .wcu-feature-num {
+  color: #D8B11E;
+}
+
+.wcu-feature-text {
+  padding-top: 0.35rem;
+}
+
+.wcu-feature:first-child .wcu-feature-text {
+  padding-left: 1.5rem;
+}
+
+.wcu-feature-text h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 0.4rem;
+}
+
+.wcu-feature-text p {
+  font-size: 0.95rem;
+  color: #4A4A4A;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 360px;
+}
+
+/* ========================================
+   SECTION 5.5: ABOUT US
+   ======================================== */
+.about-us-section {
+  background: #F7F2E6;
+  padding: 4rem 0;
+}
+
+.about-us-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.about-us-heading {
+  font-size: 62px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  color: #000;
+  text-align: center;
+  margin: 0 0 3.5rem;
+  line-height: 1.1;
+}
+
+.about-us-text {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #2F2F2F;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0 auto;
+  max-width: 1200px;
 }
 
 /* ========================================
@@ -1078,116 +1241,141 @@ ul { list-style: none; }
    ======================================== */
 .testimonials {
   position: relative;
-  padding-top: 40px;
-  padding-bottom: 6rem;
-  background-image: url('/cheerful-black-woman.webp');
+  background-image: url('/client 1.webp');
   background-size: cover;
   background-position: center;
   color: var(--black);
 }
+.testimonials.page-layout {
+  padding: 2rem 0 4rem;
+}
 
+.testimonials-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #F7F2E6 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.testimonials .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
 .testimonials-header {
-  height: 130px;
-  background-color: var(--off-white);
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.testimonials-title {
+  font-size: 62px;
+  font-weight: 500;
+  color: #000;
+  margin: 0 0 1rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.testimonials-subtitle {
+  font-size: 1.1rem;
+  color: #4A4A4A;
+  line-height: 1.7;
+  margin: 0 auto;
+  max-width: 680px;
+}
+
+/* Cards row */
+.testimonials-cards {
   display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card */
+.test-card {
+  width: 380px;
+  height: 440px;
+  background: #fff;
+  border-radius: 30px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
-
-.testimonials-header .section-title {
-  margin: 0;
-}
-
-.testimonials-content {
-  position: relative;
-  z-index: 1;
-  padding-top: 10%;
-}
-
-
-
-.test-cards {
-  display: flex;
-  gap: 1.5rem;
-  overflow-x: auto;
-  padding: 1rem 0;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-.test-cards::-webkit-scrollbar { display: none; }
-
-.test-card {
-  min-width: 380px;
-  background: var(--off-white);
-  border-radius: 28px;
-  padding: 3rem 2.5rem;
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* ========================================
-   UTILITIES
-   ======================================== */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.test-card:first-child {
-  margin-left: max(4rem, calc((100vw - 1280px) / 2 + 4rem));
-}
-
-.test-card:last-child {
-  margin-right: max(4rem, calc((100vw - 1280px) / 2 + 4rem));
+.test-card--active {
+  height: 504px;
 }
 
 .test-card-avatar {
-  width: 110px;
-  height: 110px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  background: transparent;
-  margin: 0 auto 1.5rem;
-  overflow: hidden;
+  background: #eee;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 1.5rem;
 }
-.test-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.test-card h4 { font-weight: 700; margin-bottom: 0.75rem; font-size: 0.95rem; letter-spacing: 0.02em; }
-.test-card p { color: #555; line-height: 1.5; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.test-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.04em;
+}
 
-.test-stars {
+.test-card-text {
+  font-size: 0.92rem;
+  color: #4A4A4A;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+  max-width: 300px;
+}
+
+.test-card-stars {
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-top: 1.5rem;
 }
 
-.test-nav {
+/* Navigation */
+.testimonials-nav {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 3rem;
 }
 
 .test-nav-btn {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--white);
+  background: #fff;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s;
-  color: var(--black);
+  cursor: pointer;
+  transition: box-shadow 0.3s, transform 0.3s;
+  color: #000;
 }
-.test-nav-btn:hover { background: #f0f0f0; }
+.test-nav-btn:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+.test-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
 
 /* ========================================
    SECTION 7: DOWNLOAD APP
@@ -1686,48 +1874,21 @@ ul { list-style: none; }
   .section-title { font-size: 2.5rem; margin-bottom: 2rem; }
 
   /* Hero */
-  .hero-content { padding: 0 2rem; }
+  .hero-content { padding: 380px 2rem 0; }
   .hero-headline { font-size: 48px; }
+  .hero-subheading { font-size: 20px; }
 
-  /* How It Works - tree diagram to linear vertical layout */
-  .hiw-layout { flex-direction: column; gap: 3rem; }
-  .hiw-tree {
-    width: 100%;
-    height: auto;
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2.5rem;
-    position: static;
+  /* How It Works - stack columns vertically */
+  .hiw-layout {
+    grid-template-columns: 1fr;
+    gap: 3rem;
   }
-  .hiw-lines { display: none; }
-  .hiw-big-circle {
-    position: static;
-    transform: none;
-    width: 180px;
-    height: 180px;
+  .hiw-left {
+    max-width: 100%;
+    text-align: center;
   }
-  .hiw-big-circle h2 { font-size: 1.75rem; }
-  .hiw-step {
-    position: static;
-    width: auto;
-    flex-direction: row;
-    gap: 1.25rem;
-    text-align: left;
-  }
-  .hiw-step-icon {
-    width: 80px;
-    height: 80px;
-    min-width: 80px;
-    padding: 1rem;
-    margin-bottom: 0;
-  }
-  .hiw-step-label {
-    font-size: 1rem;
-    max-width: none;
-  }
-  .hiw-phone-img { max-width: 320px; }
+  .hiw-headline { font-size: 48px; }
+  .hiw-timeline { max-width: 600px; margin: 0 auto; }
 
   /* Services */
   .services-grid { grid-template-columns: 1fr; }
@@ -1735,9 +1896,19 @@ ul { list-style: none; }
   .service-card-img { height: 200px; }
 
   /* Why Choose Us */
-  .wcu-card { padding: 2.5rem 2rem; }
-  .wcu-grid { grid-template-columns: 1fr; }
-  .wcu-item:last-child { justify-content: flex-start; }
+  .why-choose { padding: 5rem 0; }
+  .wcu-layout {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
+  .wcu-headline { font-size: 3rem; }
+  .wcu-photo img { max-width: 100%; }
+  .wcu-tagline { max-width: 100%; }
+
+  /* About Us */
+  .about-us-section { padding: 3rem 0; }
+  .about-us-heading { font-size: 48px; }
+  .about-us-text { font-size: 1rem; }
 
   /* Download */
   .download-layout { flex-direction: column; text-align: center; }
@@ -1771,29 +1942,31 @@ ul { list-style: none; }
   .section-title { font-size: 2rem; margin-bottom: 1.75rem; }
 
   /* Navbar */
-  .navbar { padding: 0.75rem 1rem 0; }
-  .navbar-inner { padding: 0.5rem 0.5rem 0.5rem 1rem; }
+  .navbar { padding: 0.75rem 1rem; }
+  .nav-center { display: none; }
   .nav-lang { display: none; }
-  .nav-cta { padding: 0.5rem 1.25rem; font-size: 0.85rem; }
-
-  .nav-cta { padding: 0.4rem 1rem; font-size: 0.8rem; }
+  .nav-cta { width: 90px; height: 40px; font-size: 13px; }
   .nav-logo { font-size: 1rem; gap: 0.4rem; }
-  .nav-logo-icon { width: 28px; height: 28px; }
 
   /* Hero */
-  .hero-content { padding: 0 1rem; }
+  .hero-content { padding: 300px 1rem 0; }
   .hero-headline { font-size: 2rem; line-height: 1.2; margin-bottom: 1.25rem; }
-  .hero-book-btn { width: 160px; height: 48px; font-size: 0.9rem; }
+  .hero-subheading { font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .hero-cta-btn { width: 180px; height: 50px; font-size: 17px; }
   .store-badge { width: 140px; height: 42px; }
 
   /* How It Works */
   .how-it-works .container { padding: 0 1rem; }
-  .hiw-big-circle { width: 120px; height: 120px; }
-  .hiw-big-circle h2 { font-size: 1.1rem; }
-  .hiw-step { gap: 1rem; }
-  .hiw-step-icon { width: 60px; height: 60px; min-width: 60px; padding: 0.75rem; }
-  .hiw-step-label { font-size: 0.9rem; }
-  .hiw-phone-img { max-width: 220px; }
+  .hiw-headline { font-size: 36px; }
+  .hiw-subtitle { font-size: 18px; }
+  .hiw-timeline { gap: 1.5rem; padding: 0.5rem 0; }
+  .hiw-step-group { gap: 1.5rem; }
+  .hiw-step-group::after { left: 1.25rem; top: 2.5rem; bottom: -1.5rem; }
+  .hiw-badge { width: 2.5rem; height: 2.5rem; min-width: 2.5rem; font-size: 1rem; }
+  .hiw-card { padding: 1.25rem; border-radius: 16px; }
+  .hiw-card-header h3 { font-size: 1.1rem; }
+  .hiw-card-icon { width: 2rem; height: 2rem; min-width: 2rem; padding: 0.35rem; }
+  .hiw-card p { font-size: 0.875rem; }
 
   /* Fleets */
   .fleets .section-title { font-size: 1.65rem; }
@@ -1819,27 +1992,34 @@ ul { list-style: none; }
   .service-card-body p { font-size: 0.85rem; }
   .services-learn-btn { padding: 0.75rem 2rem; font-size: 0.9rem; }
 
-  /* About Us */
-  .about-text p { font-size: 0.95rem; }
-
   /* Why Choose Us */
-  .why-choose { min-height: auto; padding: 3rem 0; }
-  .wcu-card { padding: 1.5rem 1.25rem; border-radius: 14px; }
-  .wcu-item { font-size: 0.9rem; }
-  .wcu-grid { gap: 1.25rem; }
+  .why-choose { padding: 3.5rem 0; }
+  .wcu-layout { gap: 3rem; }
+  .wcu-headline { font-size: 2.5rem; }
+  .wcu-tagline { font-size: 1rem; max-width: 100%; }
+  .wcu-feature { gap: 1.25rem; }
+  .wcu-feature-num { font-size: 4rem; min-width: 3.5rem; }
+  .wcu-feature-text h3 { font-size: 1.05rem; }
+  .wcu-feature-text p { font-size: 0.88rem; }
+  .wcu-right { gap: 2rem; }
+  .wcu-photo img { border-radius: 18px; }
 
   /* Testimonials */
-  .testimonials-header { height: 80px; }
-  .testimonials-header .section-title { font-size: 1.65rem; }
-  .test-card { min-width: 250px; padding: 1.5rem 1.25rem; border-radius: 20px; }
-  .test-card:first-child { margin-left: 1rem; }
-  .test-card:last-child { margin-right: 1rem; }
-  .test-card-avatar { width: 64px; height: 64px; margin-bottom: 0.75rem; }
-  .test-card h4 { font-size: 0.85rem; }
-  .test-card p { font-size: 0.8rem; margin-bottom: 1rem; }
-  .test-stars { gap: 0.25rem; margin-top: 1rem; }
-  .test-nav { gap: 0.75rem; margin-top: 1.25rem; }
-  .test-nav-btn { width: 42px; height: 42px; }
+  .testimonials { padding: 5rem 0; }
+  .testimonials-title { font-size: 2.5rem; }
+  .testimonials-subtitle { font-size: 1rem; max-width: 100%; }
+  .testimonials-cards { gap: 1.5rem; }
+  .test-card { width: 340px; padding: 2.5rem 2rem; }
+  .test-card-avatar { width: 76px; height: 76px; }
+  .test-card-name { font-size: 0.9rem; }
+  .test-card-text { font-size: 0.85rem; }
+  .testimonials-nav { margin-top: 2.5rem; }
+  .test-nav-btn { width: 46px; height: 46px; }
+
+  /* About Us */
+  .about-us-section { padding: 2.5rem 0; }
+  .about-us-heading { font-size: 36px; margin-bottom: 2rem; }
+  .about-us-text { font-size: 0.9rem; }
 
   /* Download */
   .download-section { padding: 2.5rem 0; }
@@ -1905,32 +2085,51 @@ ul { list-style: none; }
 /* ---------- EXTRA SMALL (max-width: 360px) ---------- */
 @media (max-width: 360px) {
   .hero-headline { font-size: 1.65rem; }
-  .hero-headline-highlight { padding: 0.05em 0.2em; }
+  .hero-headline-yellow { font-size: inherit; }
+  .hero-subheading { font-size: 14px; }
   .section-title { font-size: 1.45rem; }
 
   .fleet-card { min-width: 230px; padding: 1rem 1.25rem; }
   .fleet-card-img { height: 130px; }
 
-  .test-card { min-width: 220px; padding: 1.25rem 1rem; }
+  .testimonials { padding: 3.5rem 0; }
+  .testimonials-title { font-size: 2rem; }
+  .test-card { padding: 2rem 1.5rem; }
+  .test-card-avatar { width: 64px; height: 64px; }
+  .testimonials-nav { margin-top: 2rem; }
+  .test-nav-btn { width: 42px; height: 42px; }
 
-  .wcu-card { padding: 1.25rem 1rem; }
-  .wcu-item { font-size: 0.85rem; }
+  .why-choose { padding: 2.5rem 0; }
+  .wcu-headline { font-size: 2rem; }
+  .wcu-feature-num { font-size: 3rem; min-width: 2.75rem; }
+  .wcu-right { gap: 1.5rem; }
+  .wcu-feature { gap: 1rem; }
+  .wcu-feature-text h3 { font-size: 0.95rem; }
+  .wcu-feature-text p { font-size: 0.82rem; }
+  .wcu-photo img { border-radius: 14px; }
 }
 
 /* ---------- SMALL PHONE (max-width: 480px) ---------- */
 @media (max-width: 480px) {
   .hero-headline { font-size: 1.75rem; }
-  .hero-book-btn { width: 140px; height: 44px; font-size: 0.85rem; }
+  .hero-cta-btn { width: 160px; height: 46px; font-size: 15px; }
+  .hero-subheading { font-size: 16px; }
   .hero-badges { flex-direction: column; align-items: flex-start; gap: 8px; }
   .store-badge { width: 130px; height: 38px; }
-  .nav-cta { padding: 0.35rem 0.85rem; font-size: 0.75rem; }
+  .nav-cta { width: 70px; height: 32px; font-size: 11px; }
   .service-card-img { height: 140px; }
   .service-card-body { padding: 1rem; }
   .fleet-card { min-width: 230px; padding: 1rem 1.25rem; }
   .fleet-card-img { height: 130px; }
-  .test-card { min-width: 200px; padding: 1rem 0.75rem; }
-  .test-card:first-child { margin-left: 0.75rem; }
-  .test-card:last-child { margin-right: 0.75rem; }
+  .testimonials { padding: 2.5rem 0; }
+  .testimonials-title { font-size: 1.65rem; }
+  .testimonials-header { margin-bottom: 2rem; }
+  .test-card { padding: 1.5rem 1.25rem; }
+  .test-card-avatar { width: 56px; height: 56px; margin-bottom: 1rem; }
+  .test-card-name { font-size: 0.82rem; }
+  .test-card-text { font-size: 0.8rem; }
+  .testimonials-nav { margin-top: 1.5rem; }
+  .test-nav-btn { width: 38px; height: 38px; }
   .download-img-col img { max-width: 220px; }
   .menu-links a { font-size: 1.75rem; letter-spacing: 1px; }
 }

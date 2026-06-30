@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlignRight, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
   const { t } = useTranslation();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSolid, setIsSolid] = useState(false);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -19,14 +21,33 @@ export default function Navbar() {
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    const hero = document.getElementById('home');
+    if (!hero) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSolid(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   const navLinks = [
     { key: 'home', hash: '' },
     { key: 'fleets', hash: 'fleets' },
     { key: 'services', hash: 'services' },
     { key: 'about_us', hash: 'about-us' },
-    { key: 'testimonials', hash: 'testimonials' },
-    { key: 'contact', hash: 'contact' }
   ];
+
+  function getActiveKey(): string {
+    const hash = location.hash.replace('#', '');
+    if (!hash) return 'home';
+    const match = navLinks.find((l) => l.hash === hash);
+    return match ? match.key : 'home';
+  }
 
   return (
     <>
@@ -45,27 +66,39 @@ export default function Navbar() {
             ))}
           </ul>
           <div className="menu-footer">
-            <Link to="/" className="nav-cta menu-cta" onClick={() => setIsMenuOpen(false)}>
+            <Link to="/book" className="nav-cta menu-cta" onClick={() => setIsMenuOpen(false)}>
               {t('common.book_btn')}
             </Link>
           </div>
         </div>
       </div>
 
-      <nav className="navbar">
+      <nav className={`navbar ${isSolid ? 'navbar--solid' : 'navbar--transparent'}`}>
         <div className="navbar-inner">
           <Link to="/" className="nav-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="nav-logo-icon">
-              <img src="/Kenick-logo-favicon.png" alt="Kenick Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} loading="lazy" />
-            </div>
+            <img src="/Kenick-logo-favicon.png" alt="Kenick" className="nav-logo-img" />
             {t('common.app_name')}
           </Link>
+
+          <div className="nav-center">
+            {navLinks.map((item) => (
+              <a
+                key={item.key}
+                href={item.hash ? `/#${item.hash}` : '/'}
+                className={`nav-link ${getActiveKey() === item.key ? 'nav-link--active' : ''}`}
+              >
+                {getActiveKey() === item.key && <span className="nav-link-dot" />}
+                {t(`nav.${item.key}`)}
+              </a>
+            ))}
+          </div>
+
           <div className="nav-right">
             <LanguageSwitcher />
             <Link to="/book" className="nav-cta" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               {t('common.book_btn')}
             </Link>
-            <button className="nav-menu-btn" onClick={() => setIsMenuOpen(true)}>
+            <button className="nav-menu-btn" onClick={() => setIsMenuOpen(true)} aria-label={t('common.menu')}>
               <AlignRight size={26} />
             </button>
           </div>
