@@ -69,6 +69,8 @@ const igNG = {
     book_chauffeur: 'Nye Ọkwọ ụgbọ',
     book_executive_ride: 'Nye Ụgbọ Executive',
     vip_pickup: 'Ịbata VIP',
+    subheading: "Nye ụgbọ okomoso na ọrụ ụgbọ ojii nke mbụ n'ala Keenii. Ụgbọ okomoso nwere ọgụgụ, ndị ọkwọ ụgbọ professional, na nbata n'ọdụ ụgbọelu dị mfe.",
+    get_the_app: 'Budata Ngwa',
   },
   booking: {
     title: 'Nye Ụgbọ Gị',
@@ -88,6 +90,25 @@ const igNG = {
     title: "Ụgbọ n'Ọdụ Ụgbọelu",
     airport_pickup: "Ịbata n'Ọdụ Ụgbọelu",
     airport_transfer: 'Njem Ọdụ Ụgbọelu',
+  },
+  fleet: {
+    title: 'Ụgbọ Anyị',
+    book_now: 'Nye ugbu a',
+  },
+  contact: {
+    name: 'Aha',
+    email: 'Email',
+    phone: 'Ekwentị',
+    subject: 'Isi okwu',
+    message: 'Ozi',
+    send_message: 'Ziga Ozi',
+    message_sent: 'Ezigala ozi!',
+    message_error: 'Nsogbu metụtara. Nwaa ọzọ.',
+  },
+  services: {
+    airport_transfers: 'Njem Ọdụ Ụgbọelu',
+    corporate_travel: 'Njem Ọrụ',
+    vip_service: 'Ọrụ VIP',
   },
   footer: {
     about: 'Gbasara',

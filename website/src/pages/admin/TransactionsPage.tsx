@@ -17,6 +17,7 @@ interface TransactionRow {
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export default function TransactionsPage() {
         }))
       );
     } catch (err) {
-      console.error('Error fetching transactions:', err);
+      setError('Failed to load transactions');
     } finally {
       setLoading(false);
     }
@@ -169,6 +170,11 @@ export default function TransactionsPage() {
 
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>Loading transactions...</div>
+        ) : error ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchTransactions(); }}>Try Again</button>
+          </div>
         ) : (
           <table className="admin-table">
             <thead>

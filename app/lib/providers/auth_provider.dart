@@ -77,17 +77,25 @@ class AuthProvider extends ChangeNotifier {
       } else {
         const storage = FlutterSecureStorage();
         final sessionJson = await storage.read(key: 'bio_session');
-        if (sessionJson != null) {
-          try {
-            await _supabase.auth.setSession(sessionJson);
-            _cachedUser = _supabase.auth.currentUser;
-            if (_cachedUser != null) {
-              _userRole = _cachedUser?.userMetadata?['role'] as String?;
-              _setSessionState(SessionState.authenticated);
-              _isInitialized = true;
-              return;
-            }
-          } catch (_) {}
+        final storedAtStr = await storage.read(key: 'bio_session_time');
+        if (sessionJson != null && storedAtStr != null) {
+          final storedAt = DateTime.parse(storedAtStr);
+          final sessionAge = DateTime.now().difference(storedAt);
+          if (sessionAge > const Duration(days: 7)) {
+            await storage.delete(key: 'bio_session');
+            await storage.delete(key: 'bio_session_time');
+          } else {
+            try {
+              await _supabase.auth.setSession(sessionJson);
+              _cachedUser = _supabase.auth.currentUser;
+              if (_cachedUser != null) {
+                _userRole = _cachedUser?.userMetadata?['role'] as String?;
+                _setSessionState(SessionState.authenticated);
+                _isInitialized = true;
+                return;
+              }
+            } catch (_) {}
+          }
         }
         _setSessionState(SessionState.unauthenticated);
       }
@@ -193,7 +201,10 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.session?.refreshToken != null) {
         const storage = FlutterSecureStorage();
-        await storage.write(key: 'bio_session', value: jsonEncode(response.session!.toJson()));
+        final sessionData = jsonEncode(response.session!.toJson());
+        final storedAt = DateTime.now().toIso8601String();
+        await storage.write(key: 'bio_session', value: sessionData);
+        await storage.write(key: 'bio_session_time', value: storedAt);
       }
 
       return true;

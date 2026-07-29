@@ -102,6 +102,7 @@ export default function PricingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalError, setModalError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -110,8 +111,11 @@ export default function PricingPage() {
 
   async function loadCountries() {
     setLoading(true);
-    const { data } = await supabase.from('fare_rates').select('*').order('country_code');
-    const dbRates = (data as FareRate[] | null) || [];
+    setError(null);
+    try {
+      const { data, error } = await supabase.from('fare_rates').select('*').order('country_code');
+      if (error) throw error;
+      const dbRates = (data as FareRate[] | null) || [];
 
     const grouped = new Map<string, FareRate[]>();
     for (const r of dbRates) {
@@ -152,7 +156,11 @@ export default function PricingPage() {
     }
 
     setSelectedCountries(result);
-    setLoading(false);
+    } catch (err) {
+      setError('Failed to load pricing data');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function addCountry(code: string) {
@@ -193,7 +201,6 @@ export default function PricingPage() {
   async function removeCountry(code: string) {
     const { error } = await supabase.from('fare_rates').delete().eq('country_code', code.toLowerCase());
     if (error) {
-      console.error('Failed to remove country:', error);
       return;
     }
     setSelectedCountries(prev => prev.filter(c => c.code !== code));
@@ -215,7 +222,6 @@ export default function PricingPage() {
     }
 
     if (error) {
-      console.error('Failed to update country VIP amount:', error);
       return;
     }
 
@@ -248,7 +254,6 @@ export default function PricingPage() {
     }
 
     if (error) {
-      console.error('Failed to update state VIP amount:', error);
       return;
     }
 
@@ -274,12 +279,8 @@ export default function PricingPage() {
       .eq('state_or_region', stateName);
 
     if (error) {
-      console.error('Failed to reset state:', error);
       return;
     }
-
-    const country = selectedCountries.find(c => c.code === code);
-    if (!country) return;
 
     setSelectedCountries(prev =>
       prev.map(c =>
@@ -323,7 +324,12 @@ export default function PricingPage() {
           </div>
         </div>
         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--admin-text-muted)' }}>
-          Loading...
+          {error ? (
+            <div>
+              <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+              <button className="admin-btn" onClick={loadCountries}>Try Again</button>
+            </div>
+          ) : 'Loading...'}
         </div>
       </div>
     );

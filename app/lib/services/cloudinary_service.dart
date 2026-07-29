@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenick_vip/config/env_config.dart';
 
@@ -13,7 +12,7 @@ class CloudinaryService {
   /// Returns `null` on failure.
   static Future<String?> uploadImage(File imageFile) async {
     if (_cloudName.isEmpty || _uploadPreset.isEmpty) {
-      debugPrint('CloudinaryService: Missing CLOUDINARY_CLOUD_NAME or CLOUDINARY_UPLOAD_PRESET in .env');
+
       return null;
     }
 
@@ -31,11 +30,11 @@ class CloudinaryService {
         final jsonData = json.decode(responseData);
         return jsonData['secure_url'] as String?;
       } else {
-        debugPrint('CloudinaryService: Upload failed with status ${response.statusCode}');
+
         return null;
       }
     } catch (e) {
-      debugPrint('CloudinaryService: Upload error: $e');
+
       return null;
     }
   }

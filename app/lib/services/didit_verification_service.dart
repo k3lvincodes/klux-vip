@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:didit_sdk/sdk_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:kenick_vip/config/env_config.dart';
 
@@ -16,7 +15,7 @@ class DiditVerificationService {
     final apiKey = _apiKey;
 
     if (apiKey.isEmpty) {
-      debugPrint('DiditService: Missing DIDIT_API_KEY in .env');
+
       return null;
     }
 
@@ -37,14 +36,14 @@ class DiditVerificationService {
       if (sessionResponse.statusCode == 200 || sessionResponse.statusCode == 201) {
         final sessionData = jsonDecode(sessionResponse.body);
         final sessionToken = sessionData['session_token'] as String?;
-        debugPrint('DiditService: Session created successfully');
+
         return sessionToken;
       } else {
-        debugPrint('DiditService: Session creation failed with status ${sessionResponse.statusCode}: ${sessionResponse.body}');
+
         return null;
       }
     } catch (e) {
-      debugPrint('DiditService: Error creating session: $e');
+
       return null;
     }
   }

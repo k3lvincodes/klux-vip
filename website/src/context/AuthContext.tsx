@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const checkIdRef = useRef(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const checkSuperAdmin = async (userId: string) => {
+    const id = ++checkIdRef.current;
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -46,9 +48,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
       
       if (error) throw error;
+      if (id !== checkIdRef.current) return;
       setIsSuperAdmin(data?.is_super_admin ?? false);
     } catch (err) {
-      console.error('Error checking super admin status:', err);
       setIsSuperAdmin(false);
     } finally {
       setLoading(false);

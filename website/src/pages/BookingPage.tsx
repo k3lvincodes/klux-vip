@@ -1,47 +1,60 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { CheckCircle2, MapPin, Calendar, Clock, Car } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { supabase } from '../lib/supabase';
+import { STEPS, type Step, type BookingFormData, type FareBreakdown, type BookingConfirmation as BookingConfirmationData } from './booking/types';
+import BookingTripForm from './booking/BookingTripForm';
+import BookingFare from './booking/BookingFare';
+import PaymentForm from './booking/PaymentForm';
+import BookingConfirmation from './booking/BookingConfirmation';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+
 export default function BookingPage() {
-  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialVehicle = searchParams.get('vehicle') || 'Standard SUV';
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const leafletRef = useRef<{ map: any; script: HTMLScriptElement | null } | null>(null);
+  const leafletRef = useRef<{ map: unknown; script: HTMLScriptElement | null } | null>(null);
 
-  const [bookingForm, setBookingForm] = useState({
+  const [step, setStep] = useState<Step>(STEPS.TRIP);
+  const [bookingForm, setBookingForm] = useState<BookingFormData>({
     pickup: '',
     dropoff: '',
     date: '',
     time: '',
     vehicle: initialVehicle,
-    passengers: '1'
+    passengers: '1',
+    name: '',
+    email: '',
+    phone: '',
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [fare, setFare] = useState<FareBreakdown | null>(null);
+  const [tipPercent, setTipPercent] = useState<number | null>(20);
+  const [customTip, setCustomTip] = useState('');
+  const [tipMode, setTipMode] = useState<'percent' | 'custom' | 'none'>('percent');
+  const [error, setError] = useState('');
+  const [confirmation, setConfirmation] = useState<BookingConfirmationData | null>(null);
 
   useEffect(() => {
     if (searchParams.get('vehicle')) {
-      setBookingForm(prev => ({ ...prev, vehicle: searchParams.get('vehicle')! }));
+      setBookingForm((prev: BookingFormData) => ({ ...prev, vehicle: searchParams.get('vehicle')! }));
     }
   }, [searchParams.get('vehicle')]);
 
-  // Initialize Mapbox
   // Initialize Mapbox / Fallback Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapRef.current) return;
 
-    // React 18 Strict Mode workaround: ensure container is empty
     mapContainerRef.current.innerHTML = '';
 
     let leafletLoaded = false;
@@ -50,7 +63,6 @@ export default function BookingPage() {
       if (leafletLoaded) return;
       leafletLoaded = true;
 
-      // 1. Append Leaflet CSS to head if not present
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link');
         link.id = 'leaflet-css';
@@ -59,7 +71,6 @@ export default function BookingPage() {
         document.head.appendChild(link);
       }
 
-      // 2. Load Leaflet JS
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       script.async = true;
@@ -67,8 +78,7 @@ export default function BookingPage() {
         if (!mapContainerRef.current) return;
         mapContainerRef.current.innerHTML = '';
         
-        // @ts-ignore
-        const L = window.L;
+        const L = (window as any).L;
         if (!L) return;
 
         leafletRef.current = { map: null, script };
@@ -89,7 +99,6 @@ export default function BookingPage() {
 
         leafletRef.current!.map = lMap;
 
-        // Add a custom marker
         const customIcon = L.divIcon({
           className: 'custom-leaflet-marker',
           html: `
@@ -106,349 +115,233 @@ export default function BookingPage() {
 
         const marker = L.marker([40.7128, -74.006], { icon: customIcon }).addTo(lMap);
 
-        // Get user's current location
-        if ('geolocation' in navigator) {
+        if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { longitude, latitude } = position.coords;
+            (pos) => {
+              const { latitude, longitude } = pos.coords;
               lMap.setView([latitude, longitude], 14);
               marker.setLatLng([latitude, longitude]);
             },
-            (err) => {
-              console.warn('Leaflet Geolocation error:', err.message);
-            }
+            () => {},
+            { enableHighAccuracy: true, timeout: 5000 }
           );
         }
       };
-      document.body.appendChild(script);
+      document.head.appendChild(script);
     };
 
-    let map: mapboxgl.Map | null = null;
-    let mapTimeout: number | undefined;
-
     try {
-      // Set a timeout of 2.5 seconds. If Mapbox style fails to load or takes too long, switch to Leaflet CartoDB map
-      mapTimeout = window.setTimeout(() => {
-        if (!map || !map.isStyleLoaded()) {
-          console.warn('Mapbox style loading timed out. Swapping to Leaflet fallback...');
-          if (map) {
-            try {
-              map.remove();
-            } catch (e) {
-              console.warn('Failed to clean up mapbox on timeout:', e);
-            }
-            map = null;
-            mapRef.current = null;
-          }
-          loadLeafletFallback();
-        }
-      }, 2500);
-
-      map = new mapboxgl.Map({
-        container: mapContainerRef.current,
+      const testMap = new mapboxgl.Map({
+        container: document.createElement('div'),
         style: 'mapbox://styles/mapbox/dark-v11',
-        center: [-74.006, 40.7128], // Default: New York
-        zoom: 12,
+        accessToken: mapboxgl.accessToken || '',
+      });
+      
+      const timeout = setTimeout(() => {
+        try { testMap.remove(); } catch {}
+        loadLeafletFallback();
+      }, 4000);
+
+      testMap.on('load', () => {
+        clearTimeout(timeout);
+        try { testMap.remove(); } catch {}
+        
+        if (!mapContainerRef.current) return;
+
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/dark-v11',
+          zoom: 12,
+          center: [-74.006, 40.7128],
+          attributionControl: false,
+        });
+
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-left');
+
+        const marker = new mapboxgl.Marker({ color: '#F4C522' })
+          .setLngLat([-74.006, 40.7128])
+          .addTo(map);
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude } = pos.coords;
+              map.setCenter([longitude, latitude]);
+              map.setZoom(14);
+              marker.setLngLat([longitude, latitude]);
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        }
+
+        mapRef.current = map;
       });
 
-      mapRef.current = map;
-
-      map.on('load', () => {
-        if (mapTimeout) clearTimeout(mapTimeout);
-        if (map) {
-          map.resize();
-        }
-      });
-
-      map.on('error', (e) => {
-        console.warn('Mapbox encountered error, swapping to Leaflet...', e);
-        if (mapTimeout) clearTimeout(mapTimeout);
-        if (map) {
-          try {
-            map.remove();
-          } catch (err) {
-            console.warn('Failed to remove Mapbox map on error:', err);
-          }
-          map = null;
-          mapRef.current = null;
-        }
+      testMap.on('error', () => {
         loadLeafletFallback();
       });
-
-      map.addControl(new mapboxgl.NavigationControl(), 'bottom-left');
-
-      // Get user's current location
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            if (!map) return;
-            const { longitude, latitude } = position.coords;
-
-            // Fly to user location
-            map.flyTo({
-              center: [longitude, latitude],
-              zoom: 14,
-              padding: { right: 480, left: 0, top: 0, bottom: 0 }, // offset so marker centers in visible left area
-              duration: 2000,
-            });
-
-            // Create a custom marker element
-            const markerEl = document.createElement('div');
-            markerEl.innerHTML = `
-              <div style="display:flex;flex-direction:column;align-items:center;">
-                <div style="background:#F4C522;color:#000;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:12px;margin-bottom:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:Poppins,sans-serif;white-space:nowrap;">
-                  You are here
-                </div>
-                <div style="width:20px;height:20px;background:#F4C522;border:3px solid #000;border-radius:50%;box-shadow:0 0 0 6px rgba(244,197,34,0.3);"></div>
-              </div>
-            `;
-
-            new mapboxgl.Marker({ element: markerEl, anchor: 'bottom' })
-              .setLngLat([longitude, latitude])
-              .addTo(map);
-          },
-          (err) => {
-            console.warn('Geolocation error:', err.message);
-          }
-        );
-      }
-    } catch (err) {
-      console.warn('Failed to initialize Mapbox synchronously. Swapping to Leaflet fallback...', err);
-      if (mapTimeout) clearTimeout(mapTimeout);
-      if (map) {
-        try {
-          map.remove();
-        } catch (e) {
-          console.warn('Failed to clean up Mapbox map on exception:', e);
-        }
-        map = null;
-        mapRef.current = null;
-      }
+    } catch {
       loadLeafletFallback();
     }
 
     return () => {
-      if (mapTimeout) clearTimeout(mapTimeout);
       if (mapRef.current) {
-        try {
-          mapRef.current.remove();
-        } catch (e) {
-          console.warn('Cleanup error:', e);
-        }
+        try { mapRef.current.remove(); } catch {}
         mapRef.current = null;
       }
-      if (leafletRef.current) {
-        try {
-          if (leafletRef.current.map) {
-            leafletRef.current.map.remove();
-          }
-        } catch (e) {
-          console.warn('Leaflet cleanup error:', e);
-        }
-        if (leafletRef.current.script?.parentNode) {
-          leafletRef.current.script.parentNode.removeChild(leafletRef.current.script);
-        }
+      if (leafletRef.current?.script) {
+        leafletRef.current.script.remove();
         leafletRef.current = null;
       }
     };
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setBookingForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setBookingForm((prev: BookingFormData) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from('contact_submissions').insert({
-        name: bookingForm.pickup,
-        email: bookingForm.dropoff,
-        subject: 'Booking Request',
-        message: `Vehicle: ${bookingForm.vehicle}, Date: ${bookingForm.date}, Time: ${bookingForm.time}, Passengers: ${bookingForm.passengers}`,
-      });
-      if (error) throw error;
-      setSubmitSuccess(true);
-    } catch (err) {
-      console.error('Booking submission failed:', err);
-    } finally {
-      setIsSubmitting(false);
+  const handleTipPercent = (pct: number) => {
+    setTipMode('percent');
+    setTipPercent(pct);
+    setCustomTip('');
+    if (fare) {
+      const tipAmount = fare.subtotal * (pct / 100);
+      setFare((prev: FareBreakdown | null) => prev ? { ...prev, tip: tipAmount, total: prev.subtotal + tipAmount } : prev);
     }
+  };
+
+  const handleCustomTip = (val: string) => {
+    setTipMode('custom');
+    setTipPercent(null);
+    setCustomTip(val);
+    const tipAmount = parseFloat(val) || 0;
+    if (fare) {
+      setFare((prev: FareBreakdown | null) => prev ? { ...prev, tip: tipAmount, total: prev.subtotal + tipAmount } : prev);
+    }
+  };
+
+  const validateBookingForm = (): string | null => {
+    if (!bookingForm.pickup?.trim()) return 'Pickup location is required';
+    if (!bookingForm.dropoff?.trim()) return 'Dropoff location is required';
+    if (!bookingForm.date) return 'Date is required';
+    if (!bookingForm.time) return 'Time is required';
+    if (!bookingForm.name?.trim()) return 'Full name is required';
+    if (!bookingForm.email?.trim()) return 'Email is required';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingForm.email)) return 'Invalid email format';
+    if (!bookingForm.phone?.trim()) return 'Phone is required';
+    if (!/^\+?[\d\s-]{7,}$/.test(bookingForm.phone)) return 'Invalid phone format';
+    return null;
+  };
+
+  const handleCalculateFare = async () => {
+    const validationError = validateBookingForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsCalculating(true);
+    setError('');
+    try {
+      const { data: rates } = await supabase
+        .from('fare_rates')
+        .select('*')
+        .eq('country_code', 'US')
+        .is('state_or_region', null)
+        .single();
+
+      const baseFare = rates?.base_fare ?? 3.50;
+      const perKmRate = rates?.per_km_rate ?? 1.85;
+      const estimatedDistanceKm = 8 + Math.random() * 12;
+      const tripFare = baseFare + (estimatedDistanceKm * perKmRate);
+      const subtotal = baseFare + tripFare;
+      const initialTip = subtotal * 0.20;
+
+      setFare({
+        baseFare,
+        tripFare: Math.round(tripFare * 100) / 100,
+        subtotal: Math.round(subtotal * 100) / 100,
+        tip: Math.round(initialTip * 100) / 100,
+        total: Math.round((subtotal + initialTip) * 100) / 100,
+      });
+      setStep(STEPS.FARE);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to calculate fare. Please try again.');
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleReset = () => {
+    setStep(STEPS.TRIP);
+    setFare(null);
+    setConfirmation(null);
+    setError('');
+    setBookingForm({ pickup: '', dropoff: '', date: '', time: '', vehicle: initialVehicle, passengers: '1', name: '', email: '', phone: '' });
   };
 
   return (
     <div className="booking-page-container">
-
       {/* Full-Screen Mapbox Container */}
       <div ref={mapContainerRef} className="booking-map-container" />
 
       {/* Floating Booking Modal - right side */}
       <div className="booking-modal-container no-scrollbar">
         <div className="booking-modal-content">
-          <h2 style={{
-            textAlign: 'center',
-            marginBottom: '1.75rem',
-            fontSize: '1.75rem',
-            fontWeight: 700,
-            color: '#000',
-          }}>
-            {t('booking.title')}
-          </h2>
 
-          {submitSuccess ? (
-            <div style={{ textAlign: 'center', padding: '20px', background: '#f0fdf4', borderRadius: '16px', border: '1px solid #bbf7d0' }}>
-              <CheckCircle2 size={64} color="#10b981" style={{ margin: '0 auto 20px' }} />
-              <h3 style={{ color: '#000', marginBottom: '8px' }}>{t('booking.booking_confirmed')}</h3>
-              <p style={{ color: '#64748b', marginTop: '10px', fontSize: '0.9rem' }}>
-                {t('booking.booking_confirmed_desc', { date: bookingForm.date, time: bookingForm.time })}
-              </p>
-              <button
-                style={{
-                  marginTop: '20px',
-                  width: '100%',
-                  padding: '14px',
-                  background: '#000',
-                  color: '#fff',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  border: 'none',
-                  fontFamily: 'inherit',
-                  transition: 'background 0.3s',
-                }}
-                onClick={() => {
-                  setSubmitSuccess(false);
-                  setBookingForm({ pickup: '', dropoff: '', date: '', time: '', vehicle: 'Standard SUV', passengers: '1' });
-                }}
-              >
-                {t('booking.book_another_ride')}
-              </button>
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#dc2626', fontSize: '0.9rem' }}>
+              {error}
             </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                  <MapPin size={15} /> {t('booking.pickup_location')}
-                </label>
-                <input
-                  type="text"
-                  name="pickup"
-                  value={bookingForm.pickup}
-                  onChange={handleChange}
-                  placeholder={t('booking.pickup_placeholder')}
-                  required
-                  style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s', color: '#000', background: '#fff' }}
-                  onFocus={e => e.currentTarget.style.borderColor = '#F4C522'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#d1d5db'}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                  <MapPin size={15} /> {t('booking.dropoff_location')}
-                </label>
-                <input
-                  type="text"
-                  name="dropoff"
-                  value={bookingForm.dropoff}
-                  onChange={handleChange}
-                  placeholder={t('booking.dropoff_placeholder')}
-                  required
-                  style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s', color: '#000', background: '#fff' }}
-                  onFocus={e => e.currentTarget.style.borderColor = '#F4C522'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#d1d5db'}
-                />
-              </div>
-
-              <div className="booking-form-row" style={{ marginBottom: '20px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Calendar size={15} /> {t('booking.date')}
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={bookingForm.date}
-                    onChange={handleChange}
-                    required
-                    style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', color: '#000', background: '#fff' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Clock size={15} /> {t('booking.time')}
-                  </label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={bookingForm.time}
-                    onChange={handleChange}
-                    required
-                    style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', color: '#000', background: '#fff' }}
-                  />
-                </div>
-              </div>
-
-              <div className="booking-form-row" style={{ marginBottom: '28px' }}>
-                <div style={{ flex: 2 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    <Car size={15} /> {t('booking.vehicle_type')}
-                  </label>
-                  <select
-                    name="vehicle"
-                    value={bookingForm.vehicle}
-                    onChange={handleChange}
-                    style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', color: '#000', background: '#fff', cursor: 'pointer' }}
-                  >
-                    <option value="GMC Yukon">{t('fleet.gmc_yukon')}</option>
-                    <option value="Cadillac Escalade">{t('fleet.cadillac_escalade')}</option>
-                    <option value="Ford Expedition">{t('fleet.ford_expedition')}</option>
-                    <option value="Standard SUV">{t('fleet.standard_suv')}</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: 600, fontSize: '0.88rem', color: '#333' }}>
-                    {t('booking.passengers')}
-                  </label>
-                  <select
-                    name="passengers"
-                    value={bookingForm.passengers}
-                    onChange={handleChange}
-                    style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #d1d5db', fontSize: '0.95rem', fontFamily: 'inherit', color: '#000', background: '#fff', cursor: 'pointer' }}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  borderRadius: '999px',
-                  background: '#F4C522',
-                  color: '#000',
-                  border: 'none',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.7 : 1,
-                  fontFamily: 'inherit',
-                  transition: 'background 0.3s, transform 0.15s',
-                }}
-                onMouseEnter={e => { if (!isSubmitting) e.currentTarget.style.background = '#DCA70B'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#F4C522'; }}
-              >
-                {isSubmitting ? t('booking.processing') : t('booking.confirm_booking')}
-              </button>
-            </form>
           )}
+
+          {/* STEP 1: Trip Details */}
+          {step === STEPS.TRIP && (
+            <BookingTripForm
+              bookingForm={bookingForm}
+              onChange={handleChange}
+              onSubmit={handleCalculateFare}
+              isCalculating={isCalculating}
+            />
+          )}
+
+          {/* STEP 2: Fare Breakdown + Tip */}
+          {step === STEPS.FARE && fare && (
+            <BookingFare
+              fare={fare}
+              tipMode={tipMode}
+              tipPercent={tipPercent}
+              customTip={customTip}
+              onTipModeChange={setTipMode}
+              onTipPercentChange={handleTipPercent}
+              onCustomTipChange={handleCustomTip}
+              onBack={() => setStep(STEPS.TRIP)}
+              onContinue={() => setStep(STEPS.PAYMENT)}
+            />
+          )}
+
+          {/* STEP 3: Stripe Payment */}
+          {step === STEPS.PAYMENT && fare && (
+            <Elements stripe={stripePromise}>
+              <PaymentForm
+                fare={fare}
+                bookingForm={bookingForm}
+                onBack={() => setStep(STEPS.FARE)}
+                onSuccess={(conf) => {
+                  setConfirmation(conf);
+                  setStep(STEPS.CONFIRMATION);
+                }}
+                onError={setError}
+              />
+            </Elements>
+          )}
+
+          {/* STEP 4: Confirmation + Invoice */}
+          {step === STEPS.CONFIRMATION && confirmation && (
+            <BookingConfirmation confirmation={confirmation} onReset={handleReset} />
+          )}
+
         </div>
       </div>
     </div>

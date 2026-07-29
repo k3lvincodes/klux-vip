@@ -69,6 +69,8 @@ const yoNG = {
     book_chauffeur: 'Gba Awakọ̀',
     book_executive_ride: 'Gba Ọkọ̀ Alákóso',
     vip_pickup: 'Àmúkọ̀ VIP',
+    subheading: 'Gbà ọkọ̀ àlàfà pẹ̀lú iṣẹ́ ọkọ̀ dúdú àkọ́kọ́ ní ilẹ̀ Keenii. Àwọn ọkọ̀ àlàfà, àwọn akọ̀wọ́ àgbẹ́yìnjú, àti àmúkọ̀ létìbà tó rọrùn.',
+    get_the_app: 'Gbà Ápp',
   },
   booking: {
     title: 'Gba Ọkọ̀ Rẹ',
@@ -88,6 +90,25 @@ const yoNG = {
     title: 'Àmúkọ̀ Létìbà',
     airport_pickup: 'Àmúkọ̀ Létìbà',
     airport_transfer: 'Gbigbé Létìbà',
+  },
+  fleet: {
+    title: 'Àwọn Ọkọ̀ Wa',
+    book_now: 'Gbà báyìí',
+  },
+  contact: {
+    name: 'Orúkọ',
+    email: 'Imeeli',
+    phone: 'Fóònù',
+    subject: 'Kọ̀wọ́',
+    message: 'Ìfúnni',
+    send_message: 'Firanṣẹ́ Ìfúnni',
+    message_sent: 'A ti fi ìfúnni ránṣẹ́!',
+    message_error: 'Ìṣòro wáyé. Jọ̀wọ́ tún gbìyànjú.',
+  },
+  services: {
+    airport_transfers: 'Gbigbé Létìbà',
+    corporate_travel: 'Àwọn Iṣẹ́ Ẹ̀rọ',
+    vip_service: 'Iṣẹ́ VIP',
   },
   footer: {
     about: 'Nípa Wa',

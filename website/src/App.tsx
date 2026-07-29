@@ -1,9 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsConditions from './pages/TermsConditions';
-import CookiesPage from './pages/CookiesPage';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsConditions from './pages/legal/TermsConditions';
+import CookiesPage from './pages/legal/CookiesPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import Overview from './pages/admin/Overview';
@@ -16,12 +17,13 @@ import TransactionsPage from './pages/admin/TransactionsPage';
 import DocumentsPage from './pages/admin/DocumentsPage';
 import PricingPage from './pages/admin/PricingPage';
 import UserDetail from './pages/admin/UserDetail';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import PublicLayout from './components/PublicLayout';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import PublicLayout from './components/layout/PublicLayout';
 
 function App() {
   return (
-    <Routes>
+    <ErrorBoundary>
+      <Routes>
       {/* Public Pages */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<LandingPage />} />
@@ -50,6 +52,7 @@ function App() {
         </Route>
       </Route>
     </Routes>
+    </ErrorBoundary>
   );
 }
 

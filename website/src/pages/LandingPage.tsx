@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
-import HowItWorks from './HowItWorks';
-import Fleets from './Fleets';
-import Services from './Services';
-import AboutUs from './AboutUs';
-import Testimonials from './Testimonials';
-import Contact from './Contact';
-import FAQ from '../components/FAQ';
-import '../App.css';
-
+import HowItWorks from '../components/sections/HowItWorks';
+import Fleets from '../components/sections/Fleets';
+import Services from '../components/sections/Services';
+import AboutUs from '../components/sections/AboutUs';
+import Testimonials from '../components/sections/Testimonials';
+import Contact from '../components/sections/Contact';
+import FAQ from '../components/ui/FAQ';
 const HERO_IMAGES = ['/1.webp', '/2.webp', '/3.webp', '/4.webp'];
 
 export default function LandingPage() {
@@ -55,7 +53,7 @@ export default function LandingPage() {
               <span className="hero-headline-yellow">{t('hero.premium_black_car')}</span>
               <span className="hero-headline-white">{t('hero.experience_on_demand')}</span>
             </h1>
-            <p className="hero-subheading" dangerouslySetInnerHTML={{ __html: String(t('hero.subheading')) }} />
+            <p className="hero-subheading">{t('hero.subheading')}</p>
             <Link to="/book" style={{ textDecoration: 'none' }}>
               <button className="hero-cta-btn">
                 {t('hero.get_the_app')}
@@ -87,15 +85,15 @@ export default function LandingPage() {
               <img src="/ken_mockup_1.webp" alt={t('common.download_app')} loading="lazy" />
             </div>
             <div className="download-text-col">
-              <h2 dangerouslySetInnerHTML={{ __html: String(t('common.your_premium_ride_awaits')) }} />
+              <h2>{t('common.your_premium_ride_awaits')}</h2>
               <p>{t('common.available_ios_android')}</p>
               <div className="hero-badges" style={{ marginTop: 0 }}>
-                <button className="store-badge">
+                <a href="https://apps.apple.com/app/kenick-transportation" target="_blank" rel="noopener noreferrer" className="store-badge">
                   <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt={t('common.app_store')} />
-                </button>
-                <button className="store-badge">
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=com.kenickvip.app" target="_blank" rel="noopener noreferrer" className="store-badge">
                   <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt={t('common.google_play')} />
-                </button>
+                </a>
               </div>
             </div>
           </div>

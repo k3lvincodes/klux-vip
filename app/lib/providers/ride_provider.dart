@@ -152,7 +152,7 @@ class RideProvider extends ChangeNotifier {
             notifyListeners();
           },
           onError: (error) {
-            debugPrint('Error listening to ride: $error');
+
           },
         );
   }
@@ -214,7 +214,7 @@ class RideProvider extends ChangeNotifier {
           final paymentRepo = PaymentRepository();
           await paymentRepo.captureRidePayment(rideId: _currentRideId!);
         } catch (captureErr) {
-          debugPrint('Failed to capture payment for ride $_currentRideId: $captureErr');
+          // Payment capture failure is non-fatal; ride can still complete
         }
       }
 

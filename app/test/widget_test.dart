@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kenick_vip/main.dart';
+import 'package:kenick_vip/app.dart';
 
 void main() {
   testWidgets('App should load without errors', (WidgetTester tester) async {

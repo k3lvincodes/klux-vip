@@ -17,6 +17,7 @@ interface VehicleRow {
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function VehiclesPage() {
         })
       );
     } catch (err) {
-      console.error('Error fetching vehicles:', err);
+      setError('Failed to load vehicles');
     } finally {
       setLoading(false);
     }
@@ -122,6 +123,11 @@ export default function VehiclesPage() {
 
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>Loading vehicles...</div>
+        ) : error ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchVehicles(); }}>Try Again</button>
+          </div>
         ) : (
           <table className="admin-table">
             <thead>

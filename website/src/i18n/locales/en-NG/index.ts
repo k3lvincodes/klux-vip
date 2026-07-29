@@ -12,11 +12,16 @@ const enNG = {
     realise: 'Realise',
   },
   hero: {
+    premium_black_car: 'Your Premium Black Car',
+    experience_on_demand: 'On-Demand Luxury<br />Experience',
     reserve_luxury_ride: 'Reserve a Luxury Ride',
     book_executive_ride: 'Book Executive Ride',
     vip_pickup: 'VIP Pickup',
     airport_pickup: 'Airport Pickup',
     book_a_ride: 'Book a ride',
+    book_chauffeur: 'Book Chauffeur',
+    subheading: 'Book a luxury ride with Kenya\'s premier black car service. Executive vehicles, professional chauffeurs, and seamless airport transfers.',
+    get_the_app: 'Get the App',
   },
   booking: {
     title: 'Book Your Ride',
@@ -43,6 +48,14 @@ const enNG = {
     book_now: 'Book now',
   },
   contact: {
+    name: 'Name',
+    email: 'Email',
+    phone: 'Phone',
+    subject: 'Subject',
+    message: 'Message',
+    send_message: 'Send Message',
+    message_sent: 'Message sent successfully!',
+    message_error: 'Something went wrong. Please try again.',
   },
   services: {
     airport_transfers: 'Airport Transfers',
@@ -50,6 +63,15 @@ const enNG = {
     vip_service: 'VIP Service',
   },
   footer: {
+    about: 'About',
+    services: 'Services',
+    contact_us: 'Contact Us',
+    privacy_policy: 'Privacy Policy',
+    terms_conditions: 'Terms & Conditions',
+    cookies: 'Cookies',
+    legal: 'Legal',
+    admin_portal: 'Admin Portal',
+    copyright: '2026 All rights reserved @ Kenick Transportation LLC',
   },
 };
 

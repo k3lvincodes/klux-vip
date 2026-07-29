@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -22,10 +22,23 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [notifOpen]);
 
   const handleLogout = async () => {
     await signOut();
@@ -47,8 +60,7 @@ export default function AdminLayout() {
   return (
     <div className="admin-body admin-layout">
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+        <div
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 40, backdropFilter: 'blur(4px)' }}
           onClick={() => setSidebarOpen(false)}
         />
@@ -109,10 +121,24 @@ export default function AdminLayout() {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', position: 'relative' }}>
-              <Bell size={20} />
-              <span style={{ position: 'absolute', top: 0, right: 0, width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid #09090b' }}></span>
-            </button>
+            <div style={{ position: 'relative' }} ref={notifRef}>
+              <button
+                style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', position: 'relative' }}
+                onClick={() => setNotifOpen(!notifOpen)}
+              >
+                <Bell size={20} />
+                <span style={{ position: 'absolute', top: 0, right: 0, width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid #09090b' }}></span>
+              </button>
+              {notifOpen && (
+                <div style={{ position: 'absolute', top: '60px', right: 0, width: '320px', maxHeight: '400px', background: '#18181b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 9999, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                  <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>Notifications</span>
+                    <button onClick={() => setNotifOpen(false)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '18px' }}>&times;</button>
+                  </div>
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#71717a', fontSize: '13px' }}>No new notifications</div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

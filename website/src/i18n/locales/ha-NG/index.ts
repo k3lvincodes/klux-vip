@@ -69,6 +69,8 @@ const haNG = {
     book_chauffeur: 'Yi ajalolin Direba',
     book_executive_ride: 'Yi Ajalolin Gudanarwa',
     vip_pickup: 'Ɗauko VIP',
+    subheading: 'Yi ajalolin alatu tare da sufurin baƙi na ƙarshe na Keenii. Motoci na gudanarwa, masu shigarwa na ƙwararru, da ɗauko filin jirgi mai sauƙi.',
+    get_the_app: 'Sauke App',
   },
   booking: {
     title: 'Yi Ajalolin Ku',
@@ -88,6 +90,25 @@ const haNG = {
     title: 'Sufurin Filin Jirgi',
     airport_pickup: 'Ɗauko daga Filin Jirgi',
     airport_transfer: 'Canja shi a Filin Jirgi',
+  },
+  fleet: {
+    title: 'Motocin Mu',
+    book_now: 'Yi yanzu',
+  },
+  contact: {
+    name: 'Sunan',
+    email: 'Imel',
+    phone: 'Waya',
+    subject: 'Taken',
+    message: 'Saƙo',
+    send_message: 'Aika Saƙo',
+    message_sent: 'An aika saƙo!',
+    message_error: 'Rikicin ya faru. Da fatan a sake gwadawa.',
+  },
+  services: {
+    airport_transfers: 'Sufurin Filin Jirgi',
+    corporate_travel: 'Tafiya ta Kasuwanci',
+    vip_service: 'Sufuri na VIP',
   },
   footer: {
     about: 'Game da',

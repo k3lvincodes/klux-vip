@@ -23,11 +23,15 @@ interface DriverGroup {
 export default function DocumentsPage() {
   const [groups, setGroups] = useState<DriverGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Doc | null>(null);
   const [diditData, setDiditData] = useState<any>(null);
   const [diditLoading, setDiditLoading] = useState(false);
   const [diditError, setDiditError] = useState('');
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; docId: string | null }>({ open: false, docId: null });
+  const [rejectReason, setRejectReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -79,7 +83,7 @@ export default function DocumentsPage() {
         }))
       );
     } catch (err) {
-      console.error('Error fetching documents:', err);
+      setError('Failed to load documents');
     } finally {
       setLoading(false);
     }
@@ -98,46 +102,61 @@ export default function DocumentsPage() {
   };
 
   const handleApprove = async (docId: string) => {
-    const { error } = await supabase
-      .from('driver_documents')
-      .update({ status: 'approved', updated_at: new Date().toISOString() })
-      .eq('id', docId);
+    setActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('driver_documents')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('id', docId);
 
-    if (error) {
-      console.error('Failed to approve document:', error);
-      return;
+      if (error) {
+        return;
+      }
+
+      setGroups((prev) =>
+        prev.map((g) => ({
+          ...g,
+          docs: g.docs.map((d) => (d.id === docId ? { ...d, status: 'approved' } : d)),
+        }))
+      );
+    } finally {
+      setActionLoading(false);
     }
-
-    setGroups((prev) =>
-      prev.map((g) => ({
-        ...g,
-        docs: g.docs.map((d) => (d.id === docId ? { ...d, status: 'approved' } : d)),
-      }))
-    );
   };
 
-  const handleReject = async (docId: string) => {
-    const reason = window.prompt('Rejection reason:');
-    if (reason === null) return;
+  const handleReject = (docId: string) => {
+    setRejectModal({ open: true, docId });
+    setRejectReason('');
+  };
 
-    const { error } = await supabase
-      .from('driver_documents')
-      .update({ status: 'rejected', rejection_reason: reason || null, updated_at: new Date().toISOString() })
-      .eq('id', docId);
+  const confirmReject = async () => {
+    if (!rejectModal.docId) return;
+    setActionLoading(true);
+    try {
+      const reason = rejectReason.trim();
 
-    if (error) {
-      console.error('Failed to reject document:', error);
-      return;
+      const { error } = await supabase
+        .from('driver_documents')
+        .update({ status: 'rejected', rejection_reason: reason || null, updated_at: new Date().toISOString() })
+        .eq('id', rejectModal.docId);
+
+      if (error) {
+        setRejectModal({ open: false, docId: null });
+        return;
+      }
+
+      setGroups((prev) =>
+        prev.map((g) => ({
+          ...g,
+          docs: g.docs.map((d) =>
+            d.id === rejectModal.docId ? { ...d, status: 'rejected', rejection_reason: reason || null } : d
+          ),
+        }))
+      );
+      setRejectModal({ open: false, docId: null });
+    } finally {
+      setActionLoading(false);
     }
-
-    setGroups((prev) =>
-      prev.map((g) => ({
-        ...g,
-        docs: g.docs.map((d) =>
-          d.id === docId ? { ...d, status: 'rejected', rejection_reason: reason || null } : d
-        ),
-      }))
-    );
   };
 
   const typeLabel = (type: string) => {
@@ -271,6 +290,11 @@ export default function DocumentsPage() {
           <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>
             Loading documents...
           </div>
+        ) : error ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchDocuments(); }}>Try Again</button>
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>
             {search ? 'No chauffeurs match your search.' : 'No documents found.'}
@@ -388,7 +412,6 @@ export default function DocumentsPage() {
                                     if (fnData?.error) throw new Error(fnData.error + (fnData.details ? ': ' + fnData.details : ''));
                                     setDiditData(fnData);
                                   } catch (err: any) {
-                                    console.error('Didit lookup error:', err);
                                     setDiditError(JSON.stringify(err));
                                   } finally {
                                     setDiditLoading(false);
@@ -409,6 +432,7 @@ export default function DocumentsPage() {
                                   e.stopPropagation();
                                   handleApprove(doc.id);
                                 }}
+                                disabled={actionLoading}
                                 style={{
                                   padding: '0.4rem 0.6rem',
                                   fontSize: '0.8rem',
@@ -429,6 +453,7 @@ export default function DocumentsPage() {
                                   e.stopPropagation();
                                   handleReject(doc.id);
                                 }}
+                                disabled={actionLoading}
                                 style={{
                                   padding: '0.4rem 0.6rem',
                                   fontSize: '0.8rem',
@@ -607,6 +632,7 @@ export default function DocumentsPage() {
                       handleApprove(previewDoc.id);
                       setPreviewDoc(null);
                     }}
+                    disabled={actionLoading}
                     style={{
                       padding: '0.5rem 1rem',
                       fontSize: '0.85rem',
@@ -629,6 +655,7 @@ export default function DocumentsPage() {
                       handleReject(previewDoc.id);
                       setPreviewDoc(null);
                     }}
+                    disabled={actionLoading}
                     style={{
                       padding: '0.5rem 1rem',
                       fontSize: '0.85rem',
@@ -653,6 +680,52 @@ export default function DocumentsPage() {
                   {statusBadge(previewDoc.status)}
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectModal.open && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }} onClick={() => setRejectModal({ open: false, docId: null })}>
+          <div style={{
+            background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px',
+            padding: '24px', width: '400px', maxWidth: '90vw',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', color: '#fff', fontSize: '1.1rem' }}>Rejection Reason</h3>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Enter reason for rejection (optional)"
+              rows={3}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #333',
+                background: '#0a0a0a', color: '#e0e0e0', fontSize: '0.9rem', resize: 'vertical',
+                fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button
+                onClick={() => setRejectModal({ open: false, docId: null })}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #333',
+                  background: 'transparent', color: '#999', cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReject}
+                disabled={actionLoading}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: 'none',
+                  background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                Reject Document
+              </button>
             </div>
           </div>
         </div>

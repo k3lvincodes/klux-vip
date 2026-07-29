@@ -14,6 +14,7 @@ interface Passenger {
 export default function UsersPage() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function UsersPage() {
         }))
       );
     } catch (err) {
-      console.error('Error fetching passengers:', err);
+      setError('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -135,6 +136,11 @@ export default function UsersPage() {
 
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>Loading users...</div>
+        ) : error ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchPassengers(); }}>Try Again</button>
+          </div>
         ) : (
           <table className="admin-table">
             <thead>

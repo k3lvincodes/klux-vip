@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +13,9 @@ class FirebaseService {
 
   final NotificationRepository _notificationRepo = NotificationRepository();
   String? _fcmToken;
+  StreamSubscription? _onTokenRefreshSub;
+  StreamSubscription? _onMessageSub;
+  StreamSubscription? _onMessageOpenedAppSub;
 
   String? get fcmToken => _fcmToken;
 
@@ -18,7 +23,7 @@ class FirebaseService {
     try {
       await Firebase.initializeApp();
 
-      FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+      _onTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((token) {
         _fcmToken = token;
         _updateDeviceToken(token);
       });
@@ -85,15 +90,21 @@ class FirebaseService {
   }
 
   void setForegroundHandler(Function(RemoteMessage) handler) {
-    FirebaseMessaging.onMessage.listen(handler);
+    _onMessageSub = FirebaseMessaging.onMessage.listen(handler);
   }
 
   void setNotificationOpenedHandler(Function(RemoteMessage) handler) {
-    FirebaseMessaging.onMessageOpenedApp.listen(handler);
+    _onMessageOpenedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(handler);
   }
 
   static void setBackgroundHandler(Future<void> Function(RemoteMessage) handler) {
     FirebaseMessaging.onBackgroundMessage(handler);
+  }
+
+  void dispose() {
+    _onTokenRefreshSub?.cancel();
+    _onMessageSub?.cancel();
+    _onMessageOpenedAppSub?.cancel();
   }
 
   static Future<void> firebaseMessagingBackgroundHandler(

@@ -52,6 +52,7 @@ function buildDayRange() {
 export default function Overview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [revenueData, setRevenueData] = useState<{ name: string; amount: number }[]>([]);
   const [ridesData, setRidesData] = useState<{ name: string; rides: number }[]>([]);
   const [revenueChange, setRevenueChange] = useState(0);
@@ -67,7 +68,7 @@ export default function Overview() {
       if (error) throw error;
       setStats(data as DashboardStats);
     } catch (err) {
-      console.error('Error fetching stats:', err);
+      setError('Failed to load dashboard stats');
     }
   };
 
@@ -135,7 +136,6 @@ export default function Overview() {
       setRidesData(currentWeekRides);
       setRevenueChange(change);
     } catch (err) {
-      console.error('Error fetching chart data:', err);
       setRevenueData([]);
       setRidesData([]);
     } finally {
@@ -147,6 +147,17 @@ export default function Overview() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', color: '#a1a1aa' }}>
         Loading command center...
+      </div>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', color: '#a1a1aa', gap: '1rem' }}>
+        <p style={{ color: '#ef4444', fontSize: '14px' }}>{error}</p>
+        <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchStats(); fetchChartData(); }}>
+          Try Again
+        </button>
       </div>
     );
   }

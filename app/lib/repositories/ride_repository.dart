@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:kenick_vip/models/ride.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -48,8 +47,8 @@ class RideRepository {
               'pickup_lng': pickupLng,
             },
           );
-        } catch (e) {
-          debugPrint('Matchmaker dispatch (non-fatal): $e');
+        } catch (_) {
+          // Matchmaker invocation is best-effort; ignore failures.
         }
       }
 
@@ -84,8 +83,8 @@ class RideRepository {
         'driver_lat': lat,
         'driver_lng': lng,
       }).eq('id', rideId);
-    } catch (e) {
-      debugPrint('Failed to update driver location: $e');
+    } catch (_) {
+      // Location update is non-critical; ignore failures.
     }
   }
 
@@ -94,6 +93,7 @@ class RideRepository {
         .from('rides')
         .stream(primaryKey: ['id'])
         .eq('id', rideId)
+        .where((events) => events.isNotEmpty)
         .map((events) => Ride.fromJson(events.first));
   }
 
@@ -104,7 +104,7 @@ class RideRepository {
         .eq('status', 'pending')
         .map((events) => events)
         .handleError((Object error) {
-          debugPrint('listenToRequestedRides error: $error');
+
           return <Map<String, dynamic>>[];
         });
   }
