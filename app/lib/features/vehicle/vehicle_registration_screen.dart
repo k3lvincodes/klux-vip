@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -146,24 +145,21 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: isDark
-            ? AppColors.darkBackground
-            : AppColors.background,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDark ? AppColors.white : AppColors.black,
-          ),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'Register Your Vehicle',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -174,18 +170,22 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 4),
-              _buildImagePicker(isDark),
+              _buildImagePicker(context),
               const SizedBox(height: 24),
               _buildInput(
                 controller: _makeController,
                 hintText: 'Make (e.g., Toyota, Honda, Ford)',
                 icon: Icons.directions_car_outlined,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
               const SizedBox(height: 20),
               _buildInput(
                 controller: _modelController,
                 hintText: 'Model (e.g., Camry, Civic, F-150)',
                 icon: Icons.directions_car_outlined,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
               const SizedBox(height: 20),
               _buildInput(
@@ -193,14 +193,18 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                 hintText: 'Year',
                 icon: Icons.calendar_today_outlined,
                 keyboardType: TextInputType.number,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
               const SizedBox(height: 20),
-              _buildColorSelector(isDark),
+              _buildColorSelector(context),
               const SizedBox(height: 20),
               _buildInput(
                 controller: _licensePlateController,
                 hintText: 'License Plate',
                 icon: Icons.tag,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
               const SizedBox(height: 40),
               CustomButton(
@@ -218,9 +222,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                   onTap: () => context.go('/driver-home'),
                   child: Text(
                     'Skip',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -234,16 +237,18 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     );
   }
 
-  Widget _buildImagePicker(bool isDark) {
+  Widget _buildImagePicker(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Car Images',
-          style: TextStyle(
-            fontSize: 13,
+          style: textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            color: colorScheme.onSurfaceVariant,
             letterSpacing: 0.5,
           ),
         ),
@@ -251,11 +256,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
+            color: colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
-            ),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -287,14 +290,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               child: Container(
                                 width: 24,
                                 height: 24,
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.inverseSurface.withValues(alpha: 0.7),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.close,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: colorScheme.onInverseSurface,
                                 ),
                               ),
                             ),
@@ -312,12 +315,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                   width: double.infinity,
                   height: _pickedImages.isEmpty ? 140 : 56,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.grey.shade800.withValues(alpha: 0.3)
-                        : Colors.grey.shade50,
+                    color: colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                      color: colorScheme.outlineVariant,
                       width: 1.5,
                     ),
                   ),
@@ -328,28 +329,20 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                             Icon(
                               Icons.add_photo_alternate_outlined,
                               size: 40,
-                              color: isDark
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade400,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Tap to upload car images',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade500,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${_pickedImages.length}/5',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade400,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -357,17 +350,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.add_photo_alternate_outlined,
                               size: 22,
-                              color: Colors.grey,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Add more (${_pickedImages.length}/5)',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -386,19 +378,18 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     required String hintText,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -407,17 +398,17 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
+          Icon(icon, color: colorScheme.onSurfaceVariant, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
+            child: TextField(
+              scrollPadding: const EdgeInsets.only(bottom: 10),
               controller: controller,
               keyboardType: keyboardType,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: const TextStyle(
-                  color: Color(0xFF9CA3AF),
-                  fontSize: 14,
+                hintStyle: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -427,9 +418,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? AppColors.white : AppColors.black,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
               ),
             ),
           ),
@@ -438,17 +428,18 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     );
   }
 
-  Widget _buildColorSelector(bool isDark) {
+  Widget _buildColorSelector(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -457,32 +448,27 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          const Icon(
-            Icons.palette_outlined,
-            color: Color(0xFF9CA3AF),
-            size: 20,
-          ),
+          Icon(Icons.palette_outlined, color: colorScheme.onSurfaceVariant, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _selectedColor.isEmpty ? 'Color' : _selectedColor,
-              style: TextStyle(
-                fontSize: 14,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _selectedColor.isEmpty
-                    ? const Color(0xFF9CA3AF)
-                    : (isDark ? AppColors.white : AppColors.black),
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onSurface,
               ),
             ),
           ),
           GestureDetector(
-            onTap: () => _showColorPicker(isDark),
+            onTap: () => _showColorPicker(context),
             child: Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
                 color: _getColorFromName(_selectedColor),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade400),
+                border: Border.all(color: colorScheme.outline),
               ),
             ),
           ),
@@ -491,10 +477,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     );
   }
 
-  void _showColorPicker(bool isDark) {
+  void _showColorPicker(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppColors.darkSurface : const Color(0xFFF3F4F6),
+      backgroundColor: colorScheme.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -503,11 +492,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'Select Color',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
               Wrap(
@@ -528,15 +517,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: _selectedColor == color
-                                  ? AppColors.primary
-                                  : Colors.grey.shade400,
+                                  ? colorScheme.primary
+                                  : colorScheme.outline,
                               width: _selectedColor == color ? 2 : 1,
                             ),
                           ),
                           child: _selectedColor == color
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check,
-                                  color: AppColors.white,
+                                  color: colorScheme.onPrimary,
                                   size: 20,
                                 )
                               : null,

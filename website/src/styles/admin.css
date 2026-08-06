@@ -720,6 +720,7 @@
   font-size: 1.75rem;
   line-height: 1;
   flex-shrink: 0;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
 .vip-country-info > div {
@@ -1025,6 +1026,7 @@
   font-size: 1.35rem;
   line-height: 1;
   flex-shrink: 0;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
 .vip-country-option-name {

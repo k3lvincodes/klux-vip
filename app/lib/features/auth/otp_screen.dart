@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/auth_routing_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:pinput/pinput.dart';
@@ -13,7 +12,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OtpScreen extends StatefulWidget {
-
   const OtpScreen({super.key, this.role, this.email, this.isSignup, this.isPasswordReset});
   final String? role;
   final String? email;
@@ -69,12 +67,11 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _handleVerify() async {
     final otp = _otpController.text;
 
-    
     if (otp.length != 6) {
       CustomToast.showError(context, 'Please enter all 6 digits');
       return;
     }
-    
+
     if (widget.email == null) {
       CustomToast.showError(context, 'Email not found');
       return;
@@ -82,12 +79,12 @@ class _OtpScreenState extends State<OtpScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.verifyOtp(
-      widget.email!, 
-      otp, 
+      widget.email!,
+      otp,
       isSignup: widget.isSignup ?? false,
       isPasswordReset: widget.isPasswordReset ?? false,
     );
-    
+
     if (success) {
       if (widget.isPasswordReset != true) {
         final user = auth.currentUser;
@@ -130,17 +127,14 @@ class _OtpScreenState extends State<OtpScreen> {
   void _showDemoRoleSelection() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Demo: Where do you want to go?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              Text('Demo: Where do you want to go?',
+                  style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 20),
               ListTile(
                 title: const Text('Client Flow'),
@@ -169,9 +163,21 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    final defaultPinTheme = PinTheme(
+      width: 45,
+      height: 40,
+      textStyle: tt.titleSmall,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
+      ),
+    );
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -179,101 +185,89 @@ class _OtpScreenState extends State<OtpScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 180),
-              Text(
-                'Verify Code',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
+                Text(
+                  'Verify Code',
+                  style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Please enter the code we just sent to email',
-                style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                widget.email ?? 'your email',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                const SizedBox(height: 8),
+                Text(
+                  'Please enter the code we just sent to email',
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 40),
-              Pinput(
-                length: 6,
-                controller: _otpController,
-                focusNode: _focusNode,
-                defaultPinTheme: PinTheme(
-                  width: 45,
-                  height: 40,
-                  textStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
+                Text(
+                  widget.email ?? 'your email',
+                  style: tt.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
                   ),
                 ),
-                onCompleted: (pin) => _handleVerify(),
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Didn’t receive OTP? '),
-                  GestureDetector(
-                    onTap: _start == 0 ? () async {
-                      if (widget.email != null) {
-                        try {
-                          final supabase = Supabase.instance.client;
-                          if (widget.isPasswordReset == true) {
-                            await supabase.auth.resetPasswordForEmail(widget.email!);
-                          } else {
-                            await supabase.auth.resend(
-                              type: widget.isSignup == true ? OtpType.signup : OtpType.magiclink,
-                              email: widget.email,
-                            );
-                          }
-                          _startTimer();
-                          if (!context.mounted) return;
-                          CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          CustomToast.showError(context, 'Failed to resend OTP');
-                        }
-                      }
-                    } : null,
-                    child: Text(
-                      _start == 0 ? 'Resend code' : 'Resend code in ${_start}s',
-                      style: TextStyle(
-                        color: _start == 0 ? AppColors.primary : Colors.grey,
-                        fontWeight: FontWeight.bold,
+                const SizedBox(height: 40),
+                Pinput(
+                  length: 6,
+                  controller: _otpController,
+                  focusNode: _focusNode,
+                  defaultPinTheme: defaultPinTheme,
+                  onCompleted: (pin) => _handleVerify(),
+                ),
+                const SizedBox(height: 40),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Didn't receive OTP? ",
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                    GestureDetector(
+                      onTap: _start == 0
+                          ? () async {
+                              if (widget.email != null) {
+                                try {
+                                  final supabase = Supabase.instance.client;
+                                  if (widget.isPasswordReset == true) {
+                                    await supabase.auth.resetPasswordForEmail(widget.email!);
+                                  } else {
+                                    await supabase.auth.resend(
+                                      type: widget.isSignup == true ? OtpType.signup : OtpType.magiclink,
+                                      email: widget.email,
+                                    );
+                                  }
+                                  _startTimer();
+                                  if (!context.mounted) return;
+                                  CustomToast.showSuccess(context, 'OTP resent to ${widget.email}');
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  CustomToast.showError(context, 'Failed to resend OTP');
+                                }
+                              }
+                            }
+                          : null,
+                      child: Text(
+                        _start == 0 ? 'Resend code' : 'Resend code in ${_start}s',
+                        style: tt.bodySmall?.copyWith(
+                          color: _start == 0 ? cs.primary : cs.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 48),
-              Consumer<AuthProvider>(
-                builder: (context, auth, _) {
-                  return CustomButton(
-                    title: auth.isLoading ? 'Verifying...' : 'Verify',
-                    onPress: auth.isLoading ? () {} : _handleVerify,
-                    variant: ButtonVariant.primary,
-                    height: 39,
-                    borderRadius: 20,
-                  );
-                }
-              ),
-              const SizedBox(height: 20),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 48),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    return CustomButton(
+                      title: auth.isLoading ? 'Verifying...' : 'Verify',
+                      onPress: auth.isLoading ? () {} : _handleVerify,
+                      variant: ButtonVariant.primary,
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 }
-

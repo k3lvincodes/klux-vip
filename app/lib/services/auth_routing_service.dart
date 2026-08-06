@@ -14,17 +14,13 @@ class AuthRoutingService {
     }
 
     if (role == 'Chauffeur' || role == 'Affiliate') {
-      final results = await Future.wait([
-        _profileRepo.getDriverProfile(user.id),
-        _documentRepo.getDocumentByType(user.id, 'driver_license'),
-      ]);
+      final profile = await _profileRepo.getDriverProfile(user.id);
 
-      final profile = results[0];
-      final idDoc = results[1];
-
-      if (profile == null || (profile as Map)['first_name'] == null) {
+      if (profile == null || profile.firstName == null) {
         return '/driver-profile-setup';
       }
+
+      final idDoc = await _documentRepo.getDocumentByType(user.id, 'driver_license');
 
       if (idDoc == null) {
         return '/driver-id-verification';

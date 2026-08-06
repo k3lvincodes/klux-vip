@@ -164,7 +164,7 @@ class _KenickVipAppState extends State<KenickVipApp>
               );
             },
             theme: _buildLightTheme(baseTextTheme),
-            darkTheme: _buildDarkTheme(),
+            darkTheme: _buildDarkTheme(baseTextTheme),
             routerConfig: appRouter,
           );
         },
@@ -173,72 +173,121 @@ class _KenickVipAppState extends State<KenickVipApp>
   }
 
   ThemeData _buildLightTheme(TextTheme baseTextTheme) {
+    final colorScheme = AppColors.lightColorScheme;
+    final textTheme = baseTextTheme.copyWith(
+      displayLarge: baseTextTheme.displayLarge?.copyWith(color: colorScheme.onSurface),
+      displayMedium: baseTextTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
+      displaySmall: baseTextTheme.displaySmall?.copyWith(color: colorScheme.onSurface),
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(color: colorScheme.onSurface),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(color: colorScheme.onSurface),
+      headlineSmall: baseTextTheme.headlineSmall?.copyWith(color: colorScheme.onSurface),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(color: colorScheme.onSurface),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(color: colorScheme.onSurface),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(color: colorScheme.onSurface),
+      labelMedium: baseTextTheme.labelMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+    );
+
     return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-      ),
+      colorScheme: colorScheme,
       useMaterial3: true,
-      textTheme: baseTextTheme,
-      scaffoldBackgroundColor: AppColors.background,
+      textTheme: textTheme,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.black),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
         titleTextStyle: GoogleFonts.poppins(
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: AppColors.black,
+          color: colorScheme.onSurface,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF5F0EF),
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        fillColor: colorScheme.surfaceContainerLow,
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.black,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.black,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+          foregroundColor: colorScheme.onSurface,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          side: BorderSide(color: colorScheme.outline),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -249,11 +298,85 @@ class _KenickVipAppState extends State<KenickVipApp>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLowest,
+        surfaceTintColor: Colors.transparent,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        selectedColor: colorScheme.primary,
+        labelStyle: TextStyle(color: colorScheme.onSurface),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colorScheme.outline),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return colorScheme.onPrimary;
+          return colorScheme.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return colorScheme.primary;
+          return colorScheme.surfaceContainerHighest;
+        }),
+      ),
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurface,
+        ),
+        subtitleTextStyle: GoogleFonts.poppins(
+          fontSize: 13,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        leadingAndTrailingTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        iconColor: colorScheme.onSurfaceVariant,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        showDragHandle: true,
+        dragHandleColor: Color(0xFFD1D5DB),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        elevation: 3,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onInverseSurface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.shade200,
+        color: colorScheme.outlineVariant,
         thickness: 1,
+        space: 1,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -265,74 +388,123 @@ class _KenickVipAppState extends State<KenickVipApp>
     );
   }
 
-  ThemeData _buildDarkTheme() {
+  ThemeData _buildDarkTheme(TextTheme baseTextTheme) {
+    final colorScheme = AppColors.darkColorScheme;
+    final textTheme = baseTextTheme.copyWith(
+      displayLarge: baseTextTheme.displayLarge?.copyWith(color: colorScheme.onSurface),
+      displayMedium: baseTextTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
+      displaySmall: baseTextTheme.displaySmall?.copyWith(color: colorScheme.onSurface),
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(color: colorScheme.onSurface),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(color: colorScheme.onSurface),
+      headlineSmall: baseTextTheme.headlineSmall?.copyWith(color: colorScheme.onSurface),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(color: colorScheme.onSurface),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(color: colorScheme.onSurface),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(color: colorScheme.onSurface),
+      labelMedium: baseTextTheme.labelMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+    );
+
     return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.dark,
-      ),
+      colorScheme: colorScheme,
       useMaterial3: true,
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-      scaffoldBackgroundColor: AppColors.darkBackground,
+      brightness: Brightness.dark,
+      textTheme: textTheme,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
         titleTextStyle: GoogleFonts.poppins(
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: AppColors.white,
+          color: colorScheme.onSurface,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.darkSurface,
-        hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        fillColor: colorScheme.surfaceContainerLow,
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade800),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade800),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.black,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: Colors.grey.shade700),
+          foregroundColor: colorScheme.onSurface,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          side: BorderSide(color: colorScheme.outline),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -343,11 +515,85 @@ class _KenickVipAppState extends State<KenickVipApp>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: AppColors.darkSurface,
+        color: colorScheme.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        selectedColor: colorScheme.primary,
+        labelStyle: TextStyle(color: colorScheme.onSurface),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colorScheme.outline),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return colorScheme.onPrimary;
+          return colorScheme.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return colorScheme.primary;
+          return colorScheme.surfaceContainerHighest;
+        }),
+      ),
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurface,
+        ),
+        subtitleTextStyle: GoogleFonts.poppins(
+          fontSize: 13,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        leadingAndTrailingTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        iconColor: colorScheme.onSurfaceVariant,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        showDragHandle: true,
+        dragHandleColor: Color(0xFF4B5563),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        elevation: 3,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: colorScheme.onInverseSurface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.shade800,
+        color: colorScheme.outlineVariant,
         thickness: 1,
+        space: 1,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

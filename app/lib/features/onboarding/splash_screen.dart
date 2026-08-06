@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/services/auth_routing_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -124,6 +123,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -133,8 +133,8 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? [AppColors.darkBackground, const Color(0xFF0F0D1A)]
-                : [AppColors.backgroundGradient, AppColors.background],
+                ? [cs.surface, Colors.black]
+                : [cs.primaryContainer, cs.surface],
           ),
         ),
         child: Center(
@@ -158,6 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
                               size: const Size(120, 120),
                               painter: _GlowingRingPainter(
                                 angle: _ringAngle.value,
+                                color: cs.primary,
                               ),
                             );
                           },
@@ -185,9 +186,9 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 class _GlowingRingPainter extends CustomPainter {
-
-  _GlowingRingPainter({required this.angle});
+  _GlowingRingPainter({required this.angle, required this.color});
   final double angle;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -197,21 +198,19 @@ class _GlowingRingPainter extends CustomPainter {
 
     const sweep = 0.7;
 
-    // Glow layers trailing behind the arc
     for (int i = 3; i >= 0; i--) {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3.0 + (3 - i) * 3.0
         ..maskFilter =
             MaskFilter.blur(BlurStyle.normal, (3 - i) * 2.0 + 1.0)
-        ..color = AppColors.primary.withValues(alpha: 0.08 * (4 - i));
+        ..color = color.withValues(alpha: 0.08 * (4 - i));
 
       canvas.drawArc(rect, angle + i * 0.15, sweep - i * 0.1, false, paint);
     }
 
-    // Main bright arc
     final paint = Paint()
-      ..color = AppColors.primary
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;

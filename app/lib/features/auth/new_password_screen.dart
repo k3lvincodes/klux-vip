@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:provider/provider.dart';
@@ -47,10 +46,10 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.updatePassword(password);
-    
+
     if (success && mounted) {
       CustomToast.showSuccess(context, 'Password updated successfully!');
-      context.go('/sign-in'); // Return to sign in
+      context.go('/sign-in');
     } else if (mounted) {
       CustomToast.showError(context, auth.errorMessage ?? 'Failed to update password');
     }
@@ -58,14 +57,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
@@ -79,42 +76,64 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               Center(
                 child: Text(
                   'Set New Password',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.white : AppColors.black,
-                  ),
+                  style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 48),
-              
-              // New Password Input
-              _buildPasswordInput(
+              TextField(
+                scrollPadding: const EdgeInsets.only(bottom: 10),
                 controller: _passwordController,
-                hintText: 'New Password',
-                isObscure: _obscurePassword,
-                onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  hintText: 'New Password',
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      size: 20,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                ),
               ),
               const SizedBox(height: 16),
-
-              // Confirm Password Input
-              _buildPasswordInput(
+              TextField(
+                scrollPadding: const EdgeInsets.only(bottom: 10),
                 controller: _confirmController,
-                hintText: 'Confirm Password',
-                isObscure: _obscureConfirm,
-                onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
+                  hintText: 'Confirm Password',
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                      size: 20,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                ),
               ),
               const SizedBox(height: 40),
-
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
                   return CustomButton(
                     title: auth.isLoading ? 'Updating...' : 'Update Password',
                     onPress: auth.isLoading ? () {} : _handleUpdatePassword,
                     variant: ButtonVariant.primary,
-                    height: 40,
                   );
-                }
+                },
               ),
             ],
           ),
@@ -122,55 +141,4 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       ),
     );
   }
-
-  Widget _buildPasswordInput({
-    required TextEditingController controller,
-    required String hintText,
-    required bool isObscure,
-    required VoidCallback onToggle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
-      ),
-      padding: const EdgeInsets.only(left: 16, right: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
-              controller: controller,
-              obscureText: isObscure,
-              style: TextStyle(fontSize: 12, color: isDark ? AppColors.white : AppColors.black),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : AppColors.white,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              isObscure ? Icons.visibility_off : Icons.visibility,
-              color: Colors.grey,
-              size: 20,
-            ),
-            onPressed: onToggle,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
 }
-

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class AnimatedInputField extends StatefulWidget {
@@ -93,15 +92,24 @@ class _AnimatedInputFieldState extends State<AnimatedInputField>
     });
   }
 
-  Color _getBorderColor() {
-    if (_hasError) return Colors.red.shade400;
-    if (_isSuccess) return Colors.green;
-    if (_isFocused) return AppColors.primary;
-    return Colors.transparent;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    final borderColor = _hasError
+        ? cs.error
+        : _isSuccess
+            ? cs.primary
+            : _isFocused
+                ? cs.primary
+                : cs.outline;
+
+    final labelColor = _hasError
+        ? cs.error
+        : _isFocused
+            ? cs.primary
+            : cs.onSurfaceVariant;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -112,13 +120,7 @@ class _AnimatedInputFieldState extends State<AnimatedInputField>
             style: TextStyle(
               fontSize: 13,
               fontWeight: _isFocused ? FontWeight.w600 : FontWeight.w500,
-              color: _hasError
-                  ? Colors.red.shade400
-                  : _isFocused
-                      ? AppColors.primary
-                      : widget.isDark
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade600,
+              color: labelColor,
             ),
             child: Text(widget.label!),
           ),
@@ -135,41 +137,22 @@ class _AnimatedInputFieldState extends State<AnimatedInputField>
           child: AnimatedContainer(
             duration: AppDurations.fast,
             curve: AppCurves.easeOutCubic,
-            height: widget.maxLines != null && widget.maxLines! > 1
-                ? null
-                : 50,
+            height: widget.maxLines != null && widget.maxLines! > 1 ? null : 50,
             decoration: BoxDecoration(
-              color: widget.isDark
-                  ? AppColors.darkBackground
-                  : const Color(0xFFF5F0EF),
+              color: cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: _getBorderColor(),
-                width: _hasError || _isSuccess || _isFocused ? 1.5 : 0,
+                color: borderColor,
+                width: _hasError || _isSuccess || _isFocused ? 1.5 : 1,
               ),
-              boxShadow: _isSuccess
+              boxShadow: _isFocused
                   ? [
                       BoxShadow(
-                        color: Colors.green.withValues(alpha: 0.2),
+                        color: cs.primary.withValues(alpha: 0.12),
                         blurRadius: 8,
                       ),
                     ]
-                  : _hasError
-                      ? [
-                          BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.15),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : _isFocused
-                          ? [
-                              BoxShadow(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.12),
-                                blurRadius: 8,
-                              ),
-                            ]
-                          : null,
+                  : null,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
@@ -191,39 +174,35 @@ class _AnimatedInputFieldState extends State<AnimatedInputField>
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: TextStyle(
-                  color: widget.isDark
-                      ? Colors.grey.shade500
-                      : Colors.grey.shade600,
+                  color: cs.onSurfaceVariant,
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
                 ),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                filled: true,
-                fillColor: Colors.transparent,
+                filled: false,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
                 prefixIcon: widget.prefix,
                 suffixIcon: _hasError
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
+                    ? Padding(
+                        padding: const EdgeInsets.all(14),
                         child: Icon(Icons.error_outline,
-                            size: 18, color: Colors.red),
+                            size: 18, color: cs.error),
                       )
                     : _isSuccess
-                        ? const Padding(
-                            padding: EdgeInsets.all(14),
+                        ? Padding(
+                            padding: const EdgeInsets.all(14),
                             child: Icon(Icons.check_circle_outline,
-                                size: 18, color: Colors.green),
+                                size: 18, color: cs.primary),
                           )
                         : widget.suffix,
                 counterText: '',
               ),
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: widget.isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurface,
               ),
             ),
           ),

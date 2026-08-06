@@ -35,6 +35,13 @@ Future<void> main() async {
     debugPrint('Firebase init skipped: $e');
   }
 
+  try {
+    final envContent = await rootBundle.loadString('.env');
+    EnvConfig.init(envContent);
+  } catch (e) {
+    debugPrint('Failed to load .env: $e');
+  }
+
   Stripe.publishableKey = EnvConfig.stripePublishableKey;
 
   await Supabase.initialize(

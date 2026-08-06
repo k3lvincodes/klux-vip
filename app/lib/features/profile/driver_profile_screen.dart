@@ -1,10 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/models/user_profile.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverProfileScreen extends StatefulWidget {
@@ -41,10 +39,12 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+        backgroundColor: cs.surface,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -55,17 +55,17 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
     final double rating = (_profile?.driverDetails?['rating'] ?? 0.0).toDouble();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back, color: cs.onSurface),
           onPressed: () => context.pop(),
         ),
-        title:  Text(
+        title: Text(
           'Chauffeur Profile',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
+          style: tt.titleLarge?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -80,35 +80,27 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFD6D6D6),
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: cs.surfaceContainerLow,
+                  border: Border.all(color: cs.outline, width: 3),
                 ),
                 child: (imageUrl != null && imageUrl.isNotEmpty)
                     ? ClipOval(
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => const Icon(Icons.person, size: 50, color: Colors.grey),
+                          placeholder: (context, url) => Icon(Icons.person, size: 50, color: cs.onSurfaceVariant),
                           errorWidget: (context, url, error) =>
-                              Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
+                              Icon(Icons.person, size: 50, color: cs.onSurface),
                         ),
                       )
-                    : Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
+                    : Icon(Icons.person, size: 50, color: cs.onSurface),
               ),
               const SizedBox(height: 16),
               Text(
                 '$firstName $lastName'.trim(),
-                style: TextStyle(
-                  fontSize: 24,
+                style: tt.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
+                  color: cs.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -119,74 +111,39 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                   const SizedBox(width: 4),
                   Text(
                     rating.toStringAsFixed(1),
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: tt.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
-              _buildProfileOption(
-                icon: Icons.person_outline,
-                title: 'Edit Personal Details',
-                onTap: () => context.push('/driver-edit-profile'),
-              ).animate().fadeIn(duration: 300.ms, curve: Curves.easeOut).slideX(begin: 0.05, end: 0),
-              const SizedBox(height: 16),
-              _buildProfileOption(
-                icon: Icons.directions_car_outlined,
-                title: 'Vehicle Information',
-                onTap: () => context.push('/vehicle-info'),
-              ).animate().fadeIn(delay: 80.ms, duration: 300.ms, curve: Curves.easeOut).slideX(begin: 0.05, end: 0),
-              const SizedBox(height: 16),
-              _buildProfileOption(
-                icon: Icons.badge_outlined,
-                title: 'ID Verification Documents',
-                onTap: () => context.push('/driver-id-documents'),
-              ).animate().fadeIn(delay: 160.ms, duration: 300.ms, curve: Curves.easeOut).slideX(begin: 0.05, end: 0),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileOption({required IconData icon, required String title, required VoidCallback onTap}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        splashColor: AppColors.primary.withValues(alpha: 0.15),
-        highlightColor: AppColors.primary.withValues(alpha: 0.08),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          decoration: BoxDecoration(
-            color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.darkSurface : AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.white : AppColors.black),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.white : AppColors.black,
-                  ),
+              const SizedBox(height: 32),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: const Text('Edit Profile Details'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/driver-edit-profile'),
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    ListTile(
+                      leading: const Icon(Icons.directions_car_outlined),
+                      title: const Text('Vehicle Information'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/vehicle-info'),
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    ListTile(
+                      leading: const Icon(Icons.badge_outlined),
+                      title: const Text('ID Verification Documents'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/driver-id-documents'),
+                    ),
+                  ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: (Theme.of(context).brightness == Brightness.dark) ? Colors.grey.shade500 : Colors.grey),
             ],
           ),
         ),
@@ -194,5 +151,3 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
     );
   }
 }
-
-

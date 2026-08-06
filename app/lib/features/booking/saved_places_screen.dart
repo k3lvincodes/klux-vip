@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -57,23 +56,13 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
       if (mounted) {
         setState(() => _places.removeWhere((p) => p['id'] == id));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Place removed'),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          const SnackBar(content: Text('Place removed')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to remove place'),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          const SnackBar(content: Text('Failed to remove place')),
         );
       }
     }
@@ -87,16 +76,10 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return Padding(
           padding: EdgeInsets.fromLTRB(
-            24, 12, 24, MediaQuery.of(ctx).viewInsets.bottom + 24,
+            24, 0, 24, MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
           child: Form(
             key: formKey,
@@ -104,41 +87,15 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Add Saved Place',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.white : AppColors.text,
-                  ),
-                ),
+                Text('Add Saved Place',
+                    style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Place name (e.g. Home, Office)',
-                    hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                    ),
+                    prefixIcon: Icon(Icons.label_outline),
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? 'Enter a name' : null,
                 ),
@@ -146,32 +103,20 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                 TextFormField(
                   controller: addressController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Address',
-                    hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                    ),
+                    prefixIcon: Icon(Icons.location_on_outlined),
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? 'Enter an address' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
                       final user = Supabase.instance.client.auth.currentUser;
                       if (user == null) return;
-
                       try {
                         final response = await Supabase.instance.client
                             .from('saved_places')
@@ -182,7 +127,6 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                             })
                             .select()
                             .single();
-
                         if (mounted) {
                           setState(() => _places.insert(0, response));
                           if (Navigator.of(context).canPop()) {
@@ -190,35 +134,19 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                           }
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Place saved'),
-                                backgroundColor: AppColors.primary,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
+                              const SnackBar(content: Text('Place saved')),
                             );
                           }
                         }
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Failed to save place'),
-                              backgroundColor: const Color(0xFFEF4444),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
+                            const SnackBar(content: Text('Failed to save place')),
                           );
                         }
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Save Place', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    child: const Text('Save Place'),
                   ),
                 ),
               ],
@@ -241,43 +169,26 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.white : AppColors.black),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: Text(
-          'Saved Places',
-          style: TextStyle(
-            color: isDark ? AppColors.white : AppColors.black,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            letterSpacing: -0.3,
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        title: const Text('Saved Places'),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddPlaceDialog,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.black,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.add_rounded, size: 22),
-        label: const Text('Add Place', style: TextStyle(fontWeight: FontWeight.w700)),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add Place'),
       ),
-      body: _buildBody(isDark),
+      body: _buildBody(cs),
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody(ColorScheme cs) {
     if (_isLoading) {
       return Padding(
         padding: const EdgeInsets.all(16),
@@ -300,21 +211,25 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
               Container(
                 width: 72, height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  color: cs.errorContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.error_outline_rounded, size: 36, color: Color(0xFFEF4444)),
+                child: Icon(Icons.error_outline_rounded, size: 36, color: cs.error),
               ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
               const SizedBox(height: 16),
-              Text('Something went wrong', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? AppColors.white : AppColors.text)),
+              Text('Something went wrong',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: isDark ? AppColors.darkText.withValues(alpha: 0.6) : Colors.grey.shade600)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      )),
               const SizedBox(height: 24),
               TextButton.icon(
                 onPressed: _fetchPlaces,
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Try Again'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               ),
             ],
           ),
@@ -332,31 +247,28 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
               Container(
                 width: 88, height: 88,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: cs.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.add_location_alt_rounded, size: 40, color: AppColors.primary.withValues(alpha: 0.7)),
+                child: Icon(Icons.add_location_alt_rounded,
+                    size: 40, color: cs.onPrimaryContainer),
               ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
               const SizedBox(height: 20),
-              Text('No saved places', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? AppColors.white : AppColors.text)),
+              Text('No saved places',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(
                 'Save your favourite locations\nfor faster booking.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, height: 1.5, color: isDark ? AppColors.darkText.withValues(alpha: 0.6) : Colors.grey.shade600),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: _showAddPlaceDialog,
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Add Your First Place'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
               ),
             ],
           ),
@@ -366,7 +278,6 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
 
     return RefreshIndicator(
       onRefresh: _fetchPlaces,
-      color: AppColors.primary,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         itemCount: _places.length,
@@ -386,72 +297,25 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.only(right: 24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444),
+                  color: cs.error,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.delete_rounded, color: Colors.white, size: 24),
+                child: Icon(Icons.delete_rounded, color: cs.onError, size: 24),
               ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
+              child: Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(_iconForName(name), size: 20, color: cs.onPrimaryContainer),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(_iconForName(name), size: 20, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.white : AppColors.text,
-                            ),
-                          ),
-                          if (address.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              address,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? AppColors.darkText.withValues(alpha: 0.5)
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: isDark ? Colors.white24 : Colors.grey.shade300,
-                    ),
-                  ],
+                  title: Text(name),
+                  subtitle: address.isNotEmpty ? Text(address, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+                  trailing: Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
                 ),
               ),
             ),

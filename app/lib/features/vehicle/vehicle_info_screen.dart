@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/models/vehicle.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -48,60 +47,65 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Vehicle Information',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           TextButton.icon(
             onPressed: () => context.push('/vehicle-management'),
-            icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
-            label: const Text('Manage', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+            icon: Icon(Icons.edit, size: 18, color: colorScheme.primary),
+            label: Text('Manage', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
       body: _isLoading
         ? const Center(child: CircularProgressIndicator())
         : _vehicle == null
-            ? _buildEmptyState(isDark)
-            : _buildVehicleDetails(isDark),
+            ? _buildEmptyState(context)
+            : _buildVehicleDetails(context),
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_car_outlined, size: 80, color: isDark ? Colors.grey.shade700 : Colors.grey.shade400),
+            Icon(Icons.directions_car_outlined, size: 80, color: colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               'No vehicle registered',
-              style: TextStyle(
-                fontSize: 18,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.white : AppColors.black,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Register a vehicle to start accepting rides.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -119,7 +123,9 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     );
   }
 
-  Widget _buildVehicleDetails(bool isDark) {
+  Widget _buildVehicleDetails(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final String make = _vehicle?.make ?? '';
     final String model = _vehicle?.model ?? '';
     final int year = _vehicle?.year ?? 0;
@@ -144,23 +150,32 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
                 ),
               ),
             ),
-          _buildDetailCard(isDark, [
-            _buildDetailRow(Icons.directions_car, 'Make', make, isDark),
-            _buildDetailRow(Icons.model_training, 'Model', model, isDark),
-            _buildDetailRow(Icons.calendar_today, 'Year', year.toString(), isDark),
-            _buildDetailRow(Icons.palette, 'Color', color, isDark),
-            _buildDetailRow(Icons.confirmation_number, 'License Plate', licensePlate, isDark),
-          ]),
+          Card(
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildDetailRow(context, Icons.directions_car, 'Make', make),
+                  _buildDetailRow(context, Icons.model_training, 'Model', model),
+                  _buildDetailRow(context, Icons.calendar_today, 'Year', year.toString()),
+                  _buildDetailRow(context, Icons.palette, 'Color', color),
+                  _buildDetailRow(context, Icons.confirmation_number, 'License Plate', licensePlate),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => context.push('/vehicle-management'),
-              icon: Icon(Icons.edit, size: 18, color: isDark ? AppColors.white : AppColors.black),
-              label: Text('Manage Vehicles', style: TextStyle(color: isDark ? AppColors.white : AppColors.black)),
+              icon: Icon(Icons.edit, size: 18, color: colorScheme.onSurface),
+              label: Text('Manage Vehicles', style: TextStyle(color: colorScheme.onSurface)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)),
+                side: BorderSide(color: colorScheme.outline),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
             ),
@@ -170,31 +185,15 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     );
   }
 
-  Widget _buildDetailCard(bool isDark, List<Widget> children) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-  Widget _buildDetailRow(IconData icon, String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.primary),
+          Icon(icon, size: 20, color: colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -202,18 +201,16 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.white : AppColors.black,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],

@@ -39,9 +39,8 @@ class _PremiumCardState extends State<PremiumCard>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = widget.color ??
-        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final cs = Theme.of(context).colorScheme;
+    final cardColor = widget.color ?? cs.surfaceContainerLowest;
 
     return FadeSlideIn(
       delay: Duration(milliseconds: widget.index * 60),
@@ -61,26 +60,23 @@ class _PremiumCardState extends State<PremiumCard>
             borderRadius: BorderRadius.circular(widget.borderRadius),
             border: widget.borderColor != null
                 ? Border.all(color: widget.borderColor!)
-                : null,
+                : widget.elevated
+                    ? Border.all(color: cs.outlineVariant.withValues(alpha: 0.5))
+                    : null,
             boxShadow: widget.elevated
                 ? _isPressed
                     ? [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: cs.shadow.withValues(alpha: 0.04),
                           offset: const Offset(0, 1),
                           blurRadius: 3,
                         ),
                       ]
                     : [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          offset: const Offset(0, 4),
-                          blurRadius: 12,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: cs.shadow.withValues(alpha: 0.08),
                           offset: const Offset(0, 2),
-                          blurRadius: 4,
+                          blurRadius: 8,
                         ),
                       ]
                 : null,

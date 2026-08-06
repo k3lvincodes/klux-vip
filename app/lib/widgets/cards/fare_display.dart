@@ -19,7 +19,7 @@ class FareDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = color ?? (isDark ? const Color(0xFF08060D) : const Color(0xFFF5F0EF));
+    final bgColor = color ?? Theme.of(context).colorScheme.surfaceContainerLow;
 
     return Container(
       width: double.infinity,

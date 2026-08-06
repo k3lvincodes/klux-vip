@@ -5,9 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PassengerProfileSetupScreen extends StatefulWidget {
@@ -110,7 +108,6 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
       }
       if (mounted) context.go('/passenger-home');
     } catch (e) {
-
       if (mounted) CustomToast.showError(context, 'Failed to save profile: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -118,14 +115,15 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
   }
 
   void _showCountryPicker() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final searchController = TextEditingController();
     String filter = '';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -149,24 +147,23 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                       Container(
                         width: 40, height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: cs.outline,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                       const SizedBox(height: 20),
                       Text(
                         'Select Country',
-                        style: TextStyle(
-                          fontSize: 18,
+                        style: tt.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                          color: cs.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -176,15 +173,13 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                           decoration: InputDecoration(
                             hintText: 'Search countries...',
                             border: InputBorder.none,
-                            hintStyle: TextStyle(
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                              fontSize: 14,
+                            hintStyle: tt.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
                             ),
-                            icon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, size: 20),
+                            icon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 20),
                           ),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppColors.white : AppColors.black,
+                          style: tt.bodySmall?.copyWith(
+                            color: cs.onSurface,
                           ),
                         ),
                       ),
@@ -194,7 +189,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                             ? Center(
                                 child: Text(
                                   'No countries found',
-                                  style: TextStyle(color: Colors.grey.shade500),
+                                  style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                                 ),
                               )
                             : ListView.separated(
@@ -210,21 +205,20 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                                       children: [
                                         Text(
                                           _flagFor(country),
-                                          style: const TextStyle(fontSize: 20),
+                                          style: tt.titleMedium,
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
                                           country,
-                                          style: TextStyle(
-                                            fontSize: 14,
+                                          style: tt.bodyMedium?.copyWith(
                                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                            color: isDark ? AppColors.white : AppColors.black,
+                                            color: cs.onSurface,
                                           ),
                                         ),
                                       ],
                                     ),
                                     trailing: isSelected
-                                        ? const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+                                        ? Icon(Icons.check_circle, color: cs.primary, size: 22)
                                         : null,
                                     onTap: () {
                                       setState(() => _country = country);
@@ -257,10 +251,11 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
   }
 
   void _showPickerSheet(String title, List<String> options, Function(String) onSelect) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -274,17 +269,16 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                 Container(
                   width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: cs.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: tt.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.white : AppColors.black,
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -296,18 +290,17 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                       borderRadius: BorderRadius.circular(12),
                     ),
                     tileColor: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.1)
+                        ? cs.primary.withValues(alpha: 0.1)
                         : null,
                     title: Text(
                       opt,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: tt.bodyMedium?.copyWith(
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? AppColors.primary : (isDark ? AppColors.white : AppColors.black),
+                        color: isSelected ? cs.primary : cs.onSurface,
                       ),
                     ),
                     trailing: isSelected
-                        ? const Icon(Icons.check_circle, color: AppColors.primary, size: 22)
+                        ? Icon(Icons.check_circle, color: cs.primary, size: 22)
                         : null,
                     onTap: () {
                       onSelect(opt);
@@ -325,9 +318,11 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
@@ -339,18 +334,16 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                   children: [
                     Text(
                       'Complete Your Profile',
-                      style: TextStyle(
-                        fontSize: 26,
+                      style: tt.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.white : AppColors.black,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Tell us a bit about yourself',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      style: tt.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -367,10 +360,10 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                         height: 110,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.primary,
+                          color: cs.primary,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
+                              color: cs.primary.withValues(alpha: 0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -380,7 +373,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isDark ? AppColors.darkBackground : Colors.white,
+                            color: cs.surface,
                           ),
                           child: _pickedImage != null
                               ? ClipOval(
@@ -394,7 +387,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                               : Icon(
                                   Icons.person,
                                   size: 50,
-                                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+                                  color: cs.onSurfaceVariant,
                                 ),
                         ),
                       ),
@@ -424,11 +417,11 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: cs.primary,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.4),
+                                color: cs.primary.withValues(alpha: 0.4),
                                 blurRadius: 8,
                               ),
                             ],
@@ -436,7 +429,7 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
                           child: Icon(
                             _pickedImage != null ? Icons.edit : Icons.camera_alt,
                             size: 16,
-                            color: Colors.white,
+                            color: cs.onPrimary,
                           ),
                         ),
                       ),
@@ -447,10 +440,8 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
               const SizedBox(height: 36),
               Text(
                 'Personal Information',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                style: tt.labelLarge?.copyWith(
+                  color: cs.onSurfaceVariant,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -499,16 +490,26 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: CustomButton(
-                  title: _isLoading ? 'Setting up...' : 'Continue',
-                  onPress: _isLoading ? () {} : _handleContinue,
-                  variant: ButtonVariant.primary,
-                  height: 48,
-                  borderRadius: 16,
-                  textStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _handleContinue,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Text(
+                          'Continue',
+                          style: tt.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onPrimary,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -524,48 +525,38 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
     required String hintText,
     required IconData icon,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: cs.outline),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.primary, size: 20),
+          Icon(icon, color: cs.primary, size: 20),
           const SizedBox(width: 14),
           Expanded(
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
-                  fontSize: 14,
+                hintStyle: tt.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
                 ),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
+                fillColor: Colors.transparent,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? AppColors.white : AppColors.black,
+              style: tt.bodyMedium?.copyWith(
+                color: cs.onSurface,
               ),
             ),
           ),
@@ -580,7 +571,8 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final hasValue = value.isNotEmpty;
     return GestureDetector(
       onTap: () {
@@ -590,41 +582,31 @@ class _PassengerProfileSetupScreenState extends State<PassengerProfileSetupScree
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: hasValue
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : (isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
+                ? cs.primary.withValues(alpha: 0.3)
+                : cs.outline,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
+            Icon(icon, color: cs.primary, size: 20),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 hasValue ? value : hintText,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: hasValue
-                      ? (isDark ? AppColors.white : AppColors.black)
-                      : (isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                style: tt.bodyMedium?.copyWith(
+                  color: hasValue ? cs.onSurface : cs.onSurfaceVariant,
                   fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
             ),
             Icon(
               Icons.chevron_right,
-              color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              color: cs.onSurfaceVariant,
               size: 22,
             ),
           ],

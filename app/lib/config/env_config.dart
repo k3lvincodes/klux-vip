@@ -1,6 +1,21 @@
 class EnvConfig {
   EnvConfig._();
 
+  static Map<String, String> _env = {};
+
+  static void init(String raw) {
+    _env = {};
+    for (final line in raw.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+      final idx = trimmed.indexOf('=');
+      if (idx < 0) continue;
+      final key = trimmed.substring(0, idx).trim();
+      final value = trimmed.substring(idx + 1).trim();
+      _env[key] = value;
+    }
+  }
+
   // Supabase
   static String get supabaseUrl => _get('SUPABASE_URL');
   static String get supabaseAnonKey => _get('SUPABASE_ANON_KEY');
@@ -29,8 +44,8 @@ class EnvConfig {
   static String get stripePublishableKey => _get('STRIPE_PUBLISHABLE_KEY');
 
   static String _get(String key, {String fallback = ''}) {
-    final fromEnv = String.fromEnvironment(key);
-    if (fromEnv.isNotEmpty) return fromEnv;
-    return fallback;
+    final fromDefine = String.fromEnvironment(key);
+    if (fromDefine.isNotEmpty) return fromDefine;
+    return _env[key] ?? fallback;
   }
 }

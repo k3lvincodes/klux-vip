@@ -6,9 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverEditProfileScreen extends StatefulWidget {
@@ -117,20 +115,21 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back, color: cs.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Edit Personal Details',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
+          style: tt.titleLarge?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -152,20 +151,20 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isDark ? AppColors.darkSurface : const Color(0xFFD6D6D6),
-                              border: Border.all(color: AppColors.primary, width: 2),
+                              color: cs.surfaceContainerLow,
+                              border: Border.all(color: cs.primary, width: 2),
                             ),
                             child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
                                 ? ClipOval(
                                     child: CachedNetworkImage(
                                       imageUrl: _profileImageUrl!,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => const Icon(Icons.person, size: 50, color: Colors.grey),
+                                      placeholder: (context, url) => Icon(Icons.person, size: 50, color: cs.onSurfaceVariant),
                                       errorWidget: (context, url, error) =>
-                                          Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
+                                          Icon(Icons.person, size: 50, color: cs.onSurface),
                                     ),
                                   )
-                                : Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
+                                : Icon(Icons.person, size: 50, color: cs.onSurface),
                           ),
                           Positioned(
                             bottom: 0,
@@ -175,22 +174,22 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: _isUploadingImage ? Colors.grey : AppColors.primary,
+                                  color: _isUploadingImage ? cs.outline : cs.primary,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(color: cs.surface, width: 2),
                                 ),
                                 child: _isUploadingImage
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         width: 16,
                                         height: 16,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white,
+                                          color: cs.onPrimary,
                                         ),
                                       )
-                                    : const Icon(
+                                    : Icon(
                                         Icons.camera_alt,
-                                        color: Colors.white,
+                                        color: cs.onPrimary,
                                         size: 16,
                                       ),
                               ),
@@ -204,7 +203,6 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                       controller: _firstNameController,
                       label: 'First Name',
                       icon: Icons.person_outline,
-                      isDark: isDark,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter your first name';
@@ -217,7 +215,6 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                       controller: _lastNameController,
                       label: 'Last Name',
                       icon: Icons.person_outline,
-                      isDark: isDark,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter your last name';
@@ -226,11 +223,30 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                       },
                     ),
                     const SizedBox(height: 40),
-                    CustomButton(
-                      title: 'Save Changes',
-                      isLoading: _isSaving,
-                      onPress: _saveProfile,
-                      variant: ButtonVariant.primary,
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _saveProfile,
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2.5),
+                              )
+                            : Text(
+                                'Save Changes',
+                                style: tt.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onPrimary,
+                                ),
+                              ),
+                      ),
                     ),
                   ],
                 ),
@@ -244,38 +260,39 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required bool isDark,
     String? Function(String?)? validator,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return TextFormField(
       controller: controller,
       validator: validator,
-      style: TextStyle(color: isDark ? AppColors.white : AppColors.black),
+      style: tt.bodyLarge?.copyWith(color: cs.onSurface),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+        labelStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+        prefixIcon: Icon(icon, color: cs.onSurfaceVariant),
         filled: true,
-        fillColor: isDark ? AppColors.darkSurface : AppColors.white,
+        fillColor: cs.surfaceContainerLow,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+          borderSide: BorderSide(color: cs.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: cs.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: BorderSide(color: cs.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderSide: BorderSide(color: cs.error, width: 2),
         ),
       ),
     );

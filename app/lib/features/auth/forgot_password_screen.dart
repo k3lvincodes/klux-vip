@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:provider/provider.dart';
@@ -31,7 +30,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.sendPasswordResetOtp(email);
-    
+
     if (success && mounted) {
       CustomToast.showSuccess(context, 'OTP sent to $email');
       context.push('/otp?isPasswordReset=true&email=$email');
@@ -42,14 +41,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
@@ -63,10 +61,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Center(
                 child: Text(
                   'Forgot Password',
-                  style: TextStyle(
-                    fontSize: 24,
+                  style: tt.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.white : AppColors.black,
                   ),
                 ),
               ),
@@ -74,49 +70,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Center(
                 child: Text(
                   'Enter your registered email address to receive a password reset code.',
-                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey),
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 48),
-              
-              // Email Input
-              Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(fontSize: 12, color: isDark ? AppColors.white : AppColors.black),
-                  decoration: InputDecoration(
-                    hintText: 'Email address',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: true,
-                    fillColor: isDark ? AppColors.darkSurface : AppColors.white,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              TextField(
+                scrollPadding: const EdgeInsets.only(bottom: 10),
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Email address',
+                  prefixIcon: const Icon(Icons.mail_outline, size: 20),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  filled: true,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 ),
               ),
               const SizedBox(height: 40),
-
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
                   return CustomButton(
                     title: auth.isLoading ? 'Sending...' : 'Send Code',
                     onPress: auth.isLoading ? () {} : _handleSendOtp,
                     variant: ButtonVariant.primary,
-                    height: 40,
                   );
-                }
+                },
               ),
             ],
           ),
@@ -125,4 +107,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
-

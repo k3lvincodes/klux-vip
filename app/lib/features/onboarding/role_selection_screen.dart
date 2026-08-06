@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +34,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   }
 
   Future<void> _handleSelectRole(String role) async {
-    // Call AuthProvider to update role
     final auth = context.read<AuthProvider>();
     final success = await auth.updateUserRole(role);
 
@@ -55,9 +53,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -67,11 +65,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             children: [
               Text(
                 'Who are you?',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
-                ),
+                style: tt.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
               Column(

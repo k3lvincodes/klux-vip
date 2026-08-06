@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/models/user_profile.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PassengerProfileScreen extends StatefulWidget {
@@ -40,11 +39,11 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -53,135 +52,73 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
     final String? imageUrl = _profile?.avatarUrl;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title:  Text(
-          'My Profile',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: const Text('My Profile'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ListView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFD6D6D6),
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: (imageUrl != null && imageUrl.isNotEmpty)
-                    ? ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Icon(Icons.person, size: 50, color: Colors.grey),
-                          errorWidget: (context, url, error) =>
-                              Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
-                        ),
-                      )
-                    : Icon(Icons.person, size: 50, color: isDark ? AppColors.white : Colors.black54),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '$firstName $lastName'.trim(),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
-                ),
-              ),
-              const SizedBox(height: 40),
-              _buildProfileOption(
-                icon: Icons.person_outline,
-                title: 'Edit Profile Details',
-                onTap: () async {
-                  final didUpdate = await context.push<bool>('/edit-profile');
-                  if (didUpdate == true) {
-                    setState(() {
-                      _isLoading = true;
-                    });
-                    _loadProfile();
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildProfileOption(
-                icon: Icons.home_outlined,
-                title: 'Saved Places',
-                onTap: () {
-                  context.push('/saved-places');
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildProfileOption(
-                icon: Icons.security_outlined,
-                title: 'Privacy Center',
-                onTap: () {
-                  context.push('/privacy-policy');
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileOption({required IconData icon, required String title, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.darkSurface : AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
           children: [
-            Icon(icon, color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.white : AppColors.black),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: (Theme.of(context).brightness == Brightness.dark) ? AppColors.white : AppColors.black,
-                ),
+            const SizedBox(height: 20),
+            Center(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: cs.surfaceContainerHighest,
+                backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                    ? CachedNetworkImageProvider(imageUrl)
+                    : null,
+                child: (imageUrl == null || imageUrl.isEmpty)
+                    ? Icon(Icons.person, size: 50, color: cs.onSurfaceVariant)
+                    : null,
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                '$firstName $lastName'.trim(),
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: const Text('Edit Profile Details'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      final didUpdate = await context.push<bool>('/edit-profile');
+                      if (didUpdate == true) {
+                        setState(() => _isLoading = true);
+                        _loadProfile();
+                      }
+                    },
+                  ),
+                  const Divider(height: 1, indent: 56),
+                  ListTile(
+                    leading: const Icon(Icons.home_outlined),
+                    title: const Text('Saved Places'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/saved-places'),
+                  ),
+                  const Divider(height: 1, indent: 56),
+                  ListTile(
+                    leading: const Icon(Icons.security_outlined),
+                    title: const Text('Privacy Center'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/privacy-policy'),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-

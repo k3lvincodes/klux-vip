@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/cards/active_trip_card.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -108,6 +107,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = context.watch<RideProvider>();
     final ride = rideProv.currentRideDetails;
@@ -149,9 +149,9 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   polylines: [
                     Polyline(
                       points: _routePoints,
-                      color: AppColors.primary,
+                      color: cs.primary,
                       strokeWidth: 4.0,
-                      borderColor: AppColors.primary.withValues(alpha: 0.3),
+                      borderColor: cs.primary.withValues(alpha: 0.3),
                       borderStrokeWidth: 1.5,
                     ),
                   ],
@@ -165,7 +165,6 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
               ),
             ],
           ),
-
           Positioned(
             top: 50, left: 16,
             child: GestureDetector(
@@ -173,14 +172,13 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.white.withValues(alpha: 0.5),
+                  color: cs.surface,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
+                child: Icon(Icons.arrow_back, size: 18, color: cs.onSurface),
               ),
             ),
           ),
-
           Positioned(
             bottom: 0, left: 0, right: 0,
             child: ActiveTripCard(

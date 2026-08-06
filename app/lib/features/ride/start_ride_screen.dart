@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -79,6 +78,8 @@ class _StartRideScreenState extends State<StartRideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = context.watch<RideProvider>();
     final ride = rideProv.currentRideDetails;
@@ -120,22 +121,21 @@ class _StartRideScreenState extends State<StartRideScreen> {
                   polylines: [
                     Polyline(
                       points: [_currentPosition, dropoffPos],
-                      color: AppColors.primary,
+                      color: cs.primary,
                       strokeWidth: 4.0,
-                      borderColor: AppColors.primary.withValues(alpha: 0.3),
+                      borderColor: cs.primary.withValues(alpha: 0.3),
                       borderStrokeWidth: 1.5,
                     ),
                   ],
                 ),
               MarkerLayer(
                 markers: [
-                  AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                  AnimatedMarker.locationDot(point: _currentPosition, color: cs.primary),
                   if (dropoffPos != null) AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
                 ],
               ),
             ],
           ),
-
           Positioned(
             top: 50, left: 16,
             child: GestureDetector(
@@ -143,20 +143,19 @@ class _StartRideScreenState extends State<StartRideScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.white.withValues(alpha: 0.5),
+                  color: cs.surface,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
+                child: Icon(Icons.arrow_back, size: 18, color: cs.onSurface),
               ),
             ),
           ),
-
           Positioned(
             bottom: 0, left: 0, right: 0,
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : const Color(0xFFF5EFEE),
+                color: cs.surfaceContainerLow,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Column(
@@ -164,12 +163,12 @@ class _StartRideScreenState extends State<StartRideScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    Text('Waiting time', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+                    Text('Waiting time', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 16),
-                    Text(_formattedTime, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+                    Text(_formattedTime, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                   ]),
                   const SizedBox(height: 8),
-                  Text('You may cancel the offer', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
+                  Text('You may cancel the offer', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
                   const SizedBox(height: 24),
                   Consumer<RideProvider>(
                     builder: (context, rideProv, _) {
@@ -181,19 +180,14 @@ class _StartRideScreenState extends State<StartRideScreen> {
                         },
                         variant: ButtonVariant.primary,
                       );
-                    }
+                    },
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () => context.pop(),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
-                      child: Text('Cancel', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(height: 16),

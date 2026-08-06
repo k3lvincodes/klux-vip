@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 enum ButtonVariant { primary, secondary, outline }
@@ -14,7 +13,7 @@ class CustomButton extends StatefulWidget {
     required this.onPress,
     this.variant = ButtonVariant.secondary,
     this.height = 52,
-    this.borderRadius = 30,
+    this.borderRadius = 14,
     this.textStyle,
     this.icon,
     this.isLoading = false,
@@ -62,41 +61,41 @@ class _CustomButtonState extends State<CustomButton> {
       widget.status == ButtonStatus.normal;
 
   Color _getBackgroundColor(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (widget.status == ButtonStatus.success) return Colors.green;
-    if (widget.status == ButtonStatus.error) return Colors.red.shade500;
+    final cs = Theme.of(context).colorScheme;
+    if (widget.status == ButtonStatus.success) return cs.error;
+    if (widget.status == ButtonStatus.error) return cs.error;
     switch (widget.variant) {
       case ButtonVariant.primary:
-        return AppColors.primary;
+        return cs.primary;
       case ButtonVariant.outline:
         return Colors.transparent;
       case ButtonVariant.secondary:
-        return isDark ? AppColors.darkSurface : Colors.white;
+        return cs.surfaceContainerLow;
     }
   }
 
   Color _getTextColor(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     if (widget.status == ButtonStatus.success ||
         widget.status == ButtonStatus.error) {
-      return Colors.white;
+      return cs.onError;
     }
     switch (widget.variant) {
       case ButtonVariant.primary:
-        return Colors.black;
+        return cs.onPrimary;
       case ButtonVariant.outline:
-        return isDark ? Colors.white : Colors.black;
+        return cs.onSurface;
       case ButtonVariant.secondary:
-        return isDark ? Colors.white : Colors.black;
+        return cs.onSurface;
     }
   }
 
   Widget _buildContent(BuildContext context) {
     if (widget.status == ButtonStatus.success) {
-      return const Icon(Icons.check, size: 22, color: Colors.white);
+      return Icon(Icons.check, size: 22, color: _getTextColor(context));
     }
     if (widget.status == ButtonStatus.error) {
-      return const Icon(Icons.close, size: 22, color: Colors.white);
+      return Icon(Icons.close, size: 22, color: _getTextColor(context));
     }
     if (widget.isLoading) {
       return SizedBox(
@@ -118,10 +117,9 @@ class _CustomButtonState extends State<CustomButton> {
         Text(
           widget.title,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: _getTextColor(context),
-            letterSpacing: 0.3,
           ).merge(widget.textStyle),
         ),
       ],
@@ -130,7 +128,7 @@ class _CustomButtonState extends State<CustomButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
     return AnimatedScale(
       scale: _isPressed && _isActive ? 0.97 : 1.0,
@@ -150,30 +148,17 @@ class _CustomButtonState extends State<CustomButton> {
             borderRadius: BorderRadius.circular(widget.borderRadius),
             border: widget.variant == ButtonVariant.outline &&
                     widget.status == ButtonStatus.normal
-                ? Border.all(
-                    color: isDark
-                        ? Colors.grey.shade700
-                        : AppColors.primary.withValues(alpha: 0.5),
-                  )
+                ? Border.all(color: cs.outline)
                 : null,
-            boxShadow: widget.status == ButtonStatus.normal
-                ? widget.variant == ButtonVariant.primary
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          offset: const Offset(0, 4),
-                          blurRadius: 12,
-                        ),
-                      ]
-                    : widget.variant == ButtonVariant.secondary
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              offset: const Offset(0, 2),
-                              blurRadius: 8,
-                            ),
-                          ]
-                        : null
+            boxShadow: widget.status == ButtonStatus.normal &&
+                    widget.variant == ButtonVariant.primary
+                ? [
+                    BoxShadow(
+                      color: cs.primary.withValues(alpha: 0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                    ),
+                  ]
                 : null,
           ),
           child: AnimatedSwitcher(

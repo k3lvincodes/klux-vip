@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 
 class BookingSelectionScreen extends StatelessWidget {
@@ -8,12 +7,14 @@ class BookingSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBackground : AppColors.white,
+          color: colorScheme.surface,
         ),
         child: SafeArea(
           child: Column(
@@ -24,15 +25,14 @@ class BookingSelectionScreen extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 leading: IconButton(
-                  icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+                  icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
                   onPressed: () => context.pop(),
                 ),
                 title: Text(
                   'Book a Ride',
-                  style: TextStyle(
-                    color: isDark ? AppColors.white : AppColors.black,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
                   ),
                 ),
                 centerTitle: true,

@@ -5,7 +5,6 @@ import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/auth_routing_service.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
@@ -167,17 +166,18 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: isDark ? AppColors.darkBackground : AppColors.background,
-            child: SingleChildScrollView(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: cs.surface,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 120, 0, 120),
@@ -192,21 +192,16 @@ class _SignInScreenState extends State<SignInScreen> {
                         children: [
                           Text(
                             'Welcome back',
-                            style: TextStyle(
-                              fontSize: 32,
+                            style: tt.headlineLarge?.copyWith(
                               fontWeight: FontWeight.w600,
-                              height: 1.15,
                               letterSpacing: -0.5,
-                              color: isDark ? AppColors.white : AppColors.black,
                             ),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             'Sign in to continue to Kenick',
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.4,
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            style: tt.bodyMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -251,11 +246,10 @@ class _SignInScreenState extends State<SignInScreen> {
                           const Spacer(),
                           GestureDetector(
                             onTap: () => context.push('/forgot-password'),
-                            child: const Text(
+                            child: Text(
                               'Forgot password?',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.primary,
+                              style: tt.labelMedium?.copyWith(
+                                color: cs.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -275,7 +269,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             title: isLoading ? 'Signing in...' : 'Sign In',
                             onPress: isLoading ? () {} : _handleLogin,
                             variant: ButtonVariant.primary,
-                            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                            textStyle: tt.labelLarge,
                             isLoading: isLoading,
                           );
                         },
@@ -291,7 +285,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           title: 'Log in with Biometrics',
                           onPress: _handleBiometricLogin,
                           variant: ButtonVariant.outline,
-                          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          textStyle: tt.labelLarge,
                           icon: Icons.fingerprint,
                         ),
                       ),
@@ -301,63 +295,148 @@ class _SignInScreenState extends State<SignInScreen> {
                       duration: AppDurations.slow,
                       delay: const Duration(milliseconds: 280),
                       slideOffset: 0.04,
-                      child: _buildDivider(isDark),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: cs.outlineVariant,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'Or continue with',
+                              style: tt.labelSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: cs.outlineVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FadeSlideIn(
+                      duration: AppDurations.slow,
+                      delay: const Duration(milliseconds: 320),
+                      slideOffset: 0.04,
+                      child: _buildSocialButtons(),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 36),
-              child: FadeSlideIn(
-                duration: AppDurations.slow,
-                delay: const Duration(milliseconds: 360),
-                slideOffset: 0.06,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _handleSignUp,
-                      child: const Text(
-                        'Sign up',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 36),
+                child: FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 360),
+                  slideOffset: 0.06,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: _handleSignUp,
+                        child: Text(
+                          'Sign up',
+                          style: tt.bodySmall?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDivider(bool isDark) {
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(OAuthProvider.google);
+    } catch (e) {
+      if (mounted) {
+        CustomToast.showError(context, 'Google sign in failed: $e');
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(OAuthProvider.apple);
+    } catch (e) {
+      if (mounted) {
+        CustomToast.showError(context, 'Apple sign in failed: $e');
+      }
+    }
+  }
+
+  Widget _buildSocialButtons() {
+    final cs = Theme.of(context).colorScheme;
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Expanded(
-          child: Divider(
-            height: 1,
-            thickness: 1,
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.15),
+        GestureDetector(
+          onTap: _handleGoogleSignIn,
+          child: _socialButton(
+            label: 'G',
+            color: const Color(0xFFDB4437),
+          ),
+        ),
+        const SizedBox(width: 18),
+        GestureDetector(
+          onTap: _handleAppleSignIn,
+          child: _socialButton(
+            iconWidget: Icon(Icons.apple, size: 22, color: cs.onSurface),
+            color: cs.onSurface,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _socialButton({String? label, Widget? iconWidget, required Color color}) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: label != null
+            ? Text(
+                label,
+                style: TextStyle(
+                  fontSize: label.length == 1 && label.toLowerCase() == 'f' ? 20 : 22,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              )
+            : (iconWidget ?? const SizedBox()),
+      ),
     );
   }
 
@@ -370,59 +449,31 @@ class _SignInScreenState extends State<SignInScreen> {
     VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.shade800
-              : const Color(0xFFE5E7EB),
+    final cs = Theme.of(context).colorScheme;
+    return TextField(
+      scrollPadding: const EdgeInsets.only(bottom: 10),
+      controller: controller,
+      obscureText: isPassword && !isPasswordVisible,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hintText,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                  size: 20,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.0 : 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey.shade400, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              scrollPadding: const EdgeInsets.only(bottom: 10),
-              controller: controller,
-              obscureText: isPassword && !isPasswordVisible,
-              keyboardType: keyboardType,
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: TextStyle(fontSize: 14, color: isDark ? AppColors.white : AppColors.black),
-            ),
-          ),
-          if (isPassword)
-            IconButton(
-              icon: Icon(
-                isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey.shade400,
-              ),
-              onPressed: onToggleVisibility,
-            ),
-        ],
+        filled: true,
+        fillColor: cs.surfaceContainerLow,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }

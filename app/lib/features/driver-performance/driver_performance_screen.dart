@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/models/review.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DriverPerformanceScreen extends StatefulWidget {
@@ -48,7 +47,8 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     double avgRating = 0;
     if (_reviews.isNotEmpty) {
@@ -60,15 +60,15 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: Text('Performance & Ratings', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold)),
+        title: Text('Performance & Ratings', style: textTheme.titleLarge?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -79,9 +79,9 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
+                        Icon(Icons.error_outline, size: 48, color: colorScheme.error),
                         const SizedBox(height: 16),
-                        Text(_error!, style: TextStyle(fontSize: 16, color: isDark ? AppColors.white : AppColors.text), textAlign: TextAlign.center),
+                        Text(_error!, style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface), textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         TextButton.icon(onPressed: _loadData, icon: const Icon(Icons.refresh), label: const Text('Try Again')),
                       ],
@@ -94,62 +94,53 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Rating Card
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [AppColors.darkSurface, Colors.grey.shade900]
-                            : [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.05)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        // Average Rating
-                        Column(
-                          children: [
-                            Text(
-                              avgRating.toStringAsFixed(1),
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? AppColors.white : AppColors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: List.generate(5, (i) {
-                                final filled = i < avgRating.round();
-                                return Icon(
-                                  filled ? Icons.star : Icons.star_border,
-                                  size: 18,
-                                  color: filled ? Colors.amber : (isDark ? Colors.grey.shade600 : Colors.grey.shade300),
-                                );
-                              }),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_reviews.length} review${_reviews.length == 1 ? '' : 's'}',
-                              style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 32),
-                        // Stats
-                        Expanded(
-                          child: Column(
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Row(
+                        children: [
+                          // Average Rating
+                          Column(
                             children: [
-                              _buildStat(Icons.directions_car_outlined, 'Total Rides', '$_totalRides', isDark),
-                              const SizedBox(height: 16),
-                              _buildStat(Icons.reviews_outlined, 'Reviews', '${_reviews.length}', isDark),
+                              Text(
+                                avgRating.toStringAsFixed(1),
+                                style: textTheme.displaySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: List.generate(5, (i) {
+                                  final filled = i < avgRating.round();
+                                  return Icon(
+                                    filled ? Icons.star : Icons.star_border,
+                                    size: 18,
+                                    color: filled ? colorScheme.tertiary : colorScheme.onSurfaceVariant,
+                                  );
+                                }),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_reviews.length} review${_reviews.length == 1 ? '' : 's'}',
+                                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                              ),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 32),
+                          // Stats
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildStat(context, Icons.directions_car_outlined, 'Total Rides', '$_totalRides'),
+                                const SizedBox(height: 16),
+                                _buildStat(context, Icons.reviews_outlined, 'Reviews', '${_reviews.length}'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -157,10 +148,9 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                   // Rating Breakdown
                   Text(
                     'Rating Breakdown',
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.white : AppColors.black,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -172,8 +162,8 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          SizedBox(width: 40, child: Text('$star', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600))),
-                          const Icon(Icons.star, size: 14, color: Colors.amber),
+                          SizedBox(width: 40, child: Text('$star', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant))),
+                          Icon(Icons.star, size: 14, color: colorScheme.tertiary),
                           const SizedBox(width: 8),
                           Expanded(
                             child: ClipRRect(
@@ -181,13 +171,13 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                               child: LinearProgressIndicator(
                                 value: pct,
                                 minHeight: 8,
-                                backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                                valueColor: const AlwaysStoppedAnimation(Colors.amber),
+                                backgroundColor: colorScheme.surfaceContainerHighest,
+                                valueColor: AlwaysStoppedAnimation(colorScheme.tertiary),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          SizedBox(width: 24, child: Text('$count', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400))),
+                          SizedBox(width: 24, child: Text('$count', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant))),
                         ],
                       ),
                     );
@@ -197,10 +187,9 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                   // Recent Reviews
                   Text(
                     'Recent Reviews',
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.white : AppColors.black,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -208,7 +197,7 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Center(
-                        child: Text('No reviews yet', style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400)),
+                        child: Text('No reviews yet', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
                       ),
                     )
                   else
@@ -216,29 +205,26 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                       final int rating = r.rating;
                       final String? comment = r.comment;
                       final String date = r.createdAt.toLocal().toString().split(' ')[0];
-                      return Container(
+                      return Card(
                         margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : AppColors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                ...List.generate(5, (i) => Icon(i < rating ? Icons.star : Icons.star_border, size: 16, color: Colors.amber)),
-                                const Spacer(),
-                                Text(date, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  ...List.generate(5, (i) => Icon(i < rating ? Icons.star : Icons.star_border, size: 16, color: colorScheme.tertiary)),
+                                  const Spacer(),
+                                  Text(date, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                                ],
+                              ),
+                              if (comment != null && comment.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(comment, style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
                               ],
-                            ),
-                            if (comment != null && comment.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(comment, style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700)),
                             ],
-                          ],
+                          ),
                         ),
                       );
                     }),
@@ -248,16 +234,18 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
     );
   }
 
-  Widget _buildStat(IconData icon, String label, String value, bool isDark) {
+  Widget _buildStat(BuildContext context, IconData icon, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
-        Icon(icon, size: 20, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+        Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400)),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+            Text(label, style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+            Text(value, style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
           ],
         ),
       ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -68,14 +67,15 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     return '\$${amount.toStringAsFixed(2)}';
   }
 
-  Color _statusColor(String status, bool isDark) {
+  Color _statusColor(BuildContext context, String status) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status) {
       case 'completed':
-        return const Color(0xFF22C55E);
+        return colorScheme.tertiary;
       case 'cancelled':
-        return const Color(0xFFEF4444);
+        return colorScheme.error;
       default:
-        return isDark ? AppColors.darkText : AppColors.text;
+        return colorScheme.onSurfaceVariant;
     }
   }
 
@@ -92,49 +92,51 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back_rounded, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Ride History',
-          style: TextStyle(
-            color: isDark ? AppColors.white : AppColors.black,
+          style: textTheme.titleLarge?.copyWith(
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.w700,
-            fontSize: 20,
             letterSpacing: -0.3,
           ),
         ),
         centerTitle: false,
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: _buildBody(isDark),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_isLoading) {
-      return _buildLoadingSkeleton(isDark);
+      return _buildLoadingSkeleton();
     }
 
     if (_error != null) {
-      return _buildErrorState(isDark);
+      return _buildErrorState();
     }
 
     if (_rides.isEmpty) {
-      return _buildEmptyState(isDark);
+      return _buildEmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: _fetchRideHistory,
-      color: AppColors.primary,
+      color: colorScheme.primary,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         itemCount: _rides.length,
@@ -145,7 +147,6 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
             delay: Duration(milliseconds: 50 * index),
             child: _RideHistoryCard(
               ride: ride,
-              isDark: isDark,
               formatDate: _formatDate,
               formatTime: _formatTime,
               formatFare: _formatFare,
@@ -158,7 +159,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     );
   }
 
-  Widget _buildLoadingSkeleton(bool isDark) {
+  Widget _buildLoadingSkeleton() {
     return const Padding(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -188,7 +189,9 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     );
   }
 
-  Widget _buildErrorState(bool isDark) {
+  Widget _buildErrorState() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -199,28 +202,24 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                color: colorScheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline_rounded, size: 36, color: Color(0xFFEF4444)),
+              child: Icon(Icons.error_outline_rounded, size: 36, color: colorScheme.error),
             ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
-              style: TextStyle(
-                fontSize: 18,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.white : AppColors.text,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? AppColors.darkText.withValues(alpha: 0.6) : Colors.grey.shade600,
-              ),
+              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             TextButton.icon(
@@ -228,7 +227,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Try Again'),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
@@ -238,7 +237,9 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -249,33 +250,28 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.directions_car_filled_rounded,
                 size: 40,
-                color: AppColors.primary.withValues(alpha: 0.7),
+                color: colorScheme.primary.withValues(alpha: 0.7),
               ),
             ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 20),
             Text(
               'No rides yet',
-              style: TextStyle(
-                fontSize: 18,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.white : AppColors.text,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your completed and cancelled trips\nwill appear here.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: isDark ? AppColors.darkText.withValues(alpha: 0.6) : Colors.grey.shade600,
-              ),
+              style: textTheme.bodyMedium?.copyWith(height: 1.5, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -287,7 +283,6 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
 class _RideHistoryCard extends StatelessWidget {
   const _RideHistoryCard({
     required this.ride,
-    required this.isDark,
     required this.formatDate,
     required this.formatTime,
     required this.formatFare,
@@ -296,38 +291,24 @@ class _RideHistoryCard extends StatelessWidget {
   });
 
   final Map<String, dynamic> ride;
-  final bool isDark;
   final String Function(String) formatDate;
   final String Function(String) formatTime;
   final String Function(dynamic) formatFare;
-  final Color Function(String, bool) statusColor;
+  final Color Function(BuildContext, String) statusColor;
   final IconData Function(String) statusIcon;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     final status = ride['status'] as String? ?? 'unknown';
     final createdAt = ride['created_at'] as String? ?? '';
     final pickup = ride['pickup_address'] as String? ?? 'Unknown pickup';
     final dropoff = ride['dropoff_address'] as String? ?? 'Unknown dropoff';
     final fare = ride['fare_amount'];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.black.withValues(alpha: 0.04),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -339,13 +320,13 @@ class _RideHistoryCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: statusColor(status, isDark).withValues(alpha: 0.12),
+                    color: statusColor(context, status).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     statusIcon(status),
                     size: 20,
-                    color: statusColor(status, isDark),
+                    color: statusColor(context, status),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -357,11 +338,10 @@ class _RideHistoryCard extends StatelessWidget {
                         [pickup, dropoff].join(' → '),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           height: 1.3,
-                          color: isDark ? AppColors.white : AppColors.text,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -369,11 +349,8 @@ class _RideHistoryCard extends StatelessWidget {
                         createdAt.isNotEmpty
                             ? '${formatDate(createdAt)}  •  ${formatTime(createdAt)}'
                             : 'Unknown date',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? AppColors.darkText.withValues(alpha: 0.5)
-                              : Colors.grey.shade500,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -385,25 +362,23 @@ class _RideHistoryCard extends StatelessWidget {
                   children: [
                     Text(
                       formatFare(fare),
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.white : AppColors.text,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: statusColor(status, isDark).withValues(alpha: 0.12),
+                        color: statusColor(context, status).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         status[0].toUpperCase() + status.substring(1),
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: statusColor(status, isDark),
+                          color: statusColor(context, status),
                         ),
                       ),
                     ),

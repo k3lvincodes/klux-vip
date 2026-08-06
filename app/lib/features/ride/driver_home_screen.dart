@@ -6,7 +6,6 @@ import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
@@ -57,9 +56,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Future<void> _loadDeclinedRides() async {
     final prefs = await SharedPreferences.getInstance();
     final declined = prefs.getStringList('declined_ride_ids') ?? [];
-    if (mounted) {
-      setState(() => _declinedRideIds.addAll(declined));
-    }
+    if (mounted) setState(() => _declinedRideIds.addAll(declined));
   }
 
   Future<void> _saveDeclinedRides() async {
@@ -79,9 +76,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             _profileImageUrl = profile.avatarUrl;
           });
         }
-      } catch (e) {
-        // Profile fetch failure is non-critical
-      }
+      } catch (e) {}
     }
   }
 
@@ -129,60 +124,49 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
       key: _scaffoldKey,
-      drawer: _buildDrawer(context, isDark),
+      drawer: _buildDrawer(context),
       body: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBackground : AppColors.white,
-        ),
+        color: cs.surface,
         child: SafeArea(
           child: Column(
             children: [
               const SizedBox(height: 16),
-              // Header Row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   children: [
-                    // Menu icon
                     IconButton(
-                      icon: Icon(Icons.menu, color: isDark ? AppColors.white : AppColors.black, size: 28),
+                      icon: Icon(Icons.menu, color: cs.onSurface, size: 28),
                       onPressed: () {
                         _fetchProfile().ignore();
-                        if (mounted) {
-                          _scaffoldKey.currentState?.openDrawer();
-                        }
+                        if (mounted) _scaffoldKey.currentState?.openDrawer();
                       },
                     ),
                     const SizedBox(width: 8),
-                    // Tab Bar
                     Expanded(
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : AppColors.white.withValues(alpha: 0.5),
+                          color: cs.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: TabBar(
                           controller: _tabController,
                           indicator: BoxDecoration(
-                            color: AppColors.primary,
+                            color: cs.primary,
                             borderRadius: BorderRadius.circular(30),
                           ),
                           indicatorSize: TabBarIndicatorSize.tab,
-                          labelColor: AppColors.white,
-                          unselectedLabelColor: isDark ? AppColors.white : AppColors.black,
-                          labelStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          unselectedLabelStyle: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
+                          labelColor: cs.onPrimary,
+                          unselectedLabelColor: cs.onSurface,
+                          labelStyle: tt.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                          unselectedLabelStyle: tt.labelSmall,
                           dividerHeight: 0,
                           tabs: const [
                             Tab(text: 'Completed'),
@@ -195,13 +179,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              // Tab Views
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildCompletedTab(isDark),
-                    _buildAvailableTab(isDark),
+                    _buildCompletedTab(),
+                    _buildAvailableTab(),
                   ],
                 ),
               ),
@@ -212,8 +195,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  // Completed Tab
-  Widget _buildCompletedTab(bool isDark) {
+  Widget _buildCompletedTab() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     if (_completedRidesFuture == null) return const SizedBox();
 
     return FutureBuilder<List<Ride>>(
@@ -229,12 +214,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.history, size: 64, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  Icon(Icons.history, size: 64, color: cs.outline),
                   const SizedBox(height: 16),
-                  Text(
-                    'No completed rides yet',
-                    style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
-                  ),
+                  Text('No completed rides yet', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -250,32 +232,29 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Unknown location';
             final dropoff = ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Unknown location';
             final fare = '\$${ride.fareAmount.toStringAsFixed(2)}';
-            return Container(
+            return Card(
               margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Completed Ride', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('\$$fare', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLocationDetail(Icons.my_location, Colors.green, pickup, isDark),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 9),
-                    child: SizedBox(height: 8, child: VerticalDivider(width: 2, thickness: 2, color: Colors.grey)),
-                  ),
-                  _buildLocationDetail(Icons.location_on, Colors.red, dropoff, isDark),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Completed Ride', style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(fare, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: cs.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLocationDetail(Icons.my_location, cs.tertiary, pickup),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 9),
+                      child: SizedBox(height: 8, child: VerticalDivider(width: 2, thickness: 2, color: cs.outline)),
+                    ),
+                    _buildLocationDetail(Icons.location_on, cs.error, dropoff),
+                  ],
+                ),
               ),
             );
           },
@@ -284,8 +263,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  // Available Tab
-  Widget _buildAvailableTab(bool isDark) {
+  Widget _buildAvailableTab() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: RideRepository().listenToRequestedRides(),
       builder: (context, snapshot) {
@@ -294,22 +275,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: AppColors.primary,
-                  ),
+                SizedBox(
+                  width: 32, height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Finding available rides...',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                  ),
-                ),
+                Text('Finding available rides...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
               ],
             ),
           );
@@ -320,12 +291,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.cloud_off, size: 48, color: isDark ? Colors.grey.shade700 : Colors.grey.shade400),
+                Icon(Icons.cloud_off, size: 48, color: cs.outline),
                 const SizedBox(height: 12),
-                Text(
-                  'No available rides right now',
-                  style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
-                ),
+                Text('No available rides right now', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
               ],
             ),
           );
@@ -337,7 +305,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           if (createdAt != null && createdAt.isBefore(fifteenMinsAgo)) return false;
           return true;
         }).toList();
-        
+
         final currentRideIds = rides.map((e) => e['id']).join(',');
         if (currentRideIds != _lastRideIds) {
           _lastRideIds = currentRideIds;
@@ -345,7 +313,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           if (newRides.isNotEmpty && _tabController.index == 1) {
             _notifiedRideIds.addAll(newRides.map((r) => r['id'] as String));
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showRideNotification(newRides.first, isDark);
+              _showRideNotification(newRides.first);
             });
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -366,67 +334,48 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               ),
             );
           },
-          child: rides.isEmpty
-              ? _buildEmptyState(isDark)
-              : _buildRidesList(rides, isDark),
+          child: rides.isEmpty ? _buildEmptyState() : _buildRidesList(rides),
         );
       },
     );
   }
 
-  void _showRideNotification(Map<String, dynamic> ride, bool isDark) {
+  void _showRideNotification(Map<String, dynamic> ride) {
     if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Icon(Icons.notifications_active, size: 48, color: AppColors.primary),
+              Icon(Icons.notifications_active, size: 48, color: cs.primary),
               const SizedBox(height: 16),
-              Text(
-                'New Booking Request!',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
-                ),
-              ),
+              Text('New Booking Request!', style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              _buildNotifRow(Icons.my_location, 'Pickup', ride['pickup_address'] ?? 'Unknown', isDark),
+              _buildNotifRow(Icons.my_location, 'Pickup', ride['pickup_address'] ?? 'Unknown', cs),
               const SizedBox(height: 6),
-              _buildNotifRow(Icons.location_on, 'Dropoff', ride['dropoff_address'] ?? 'Unknown', isDark),
+              _buildNotifRow(Icons.location_on, 'Dropoff', ride['dropoff_address'] ?? 'Unknown', cs),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.attach_money, size: 18, color: AppColors.primary),
+                    Icon(Icons.attach_money, size: 18, color: cs.onPrimaryContainer),
                     const SizedBox(width: 4),
                     Text(
                       '\$${ride['fare_amount'] ?? '0.00'}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+                      style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: cs.onPrimaryContainer),
                     ),
                   ],
                 ),
@@ -443,11 +392,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                           setState(() => _declinedRideIds.add(ride['id']));
                           _saveDeclinedRides();
                         },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade300),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                        ),
-                        child: Text('Decline', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                        child: Text('Decline', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -455,7 +400,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   Expanded(
                     child: SizedBox(
                       height: 44,
-                      child: ElevatedButton(
+                      child: FilledButton(
                         onPressed: () {
                           Navigator.pop(ctx);
                           final auth = context.read<AuthProvider>();
@@ -469,12 +414,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                             }
                           });
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          elevation: 0,
-                        ),
-                        child: const Text('Accept', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+                        child: const Text('Accept'),
                       ),
                     ),
                   ),
@@ -487,15 +427,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildNotifRow(IconData icon, String label, String value, bool isDark) {
+  Widget _buildNotifRow(IconData icon, String label, String value, ColorScheme cs) {
+    final tt = Theme.of(context).textTheme;
     return Row(
       children: [
-        Icon(icon, size: 16, color: label == 'Pickup' ? Colors.green : Colors.red),
+        Icon(icon, size: 16, color: label == 'Pickup' ? cs.tertiary : cs.error),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             '$label: $value',
-            style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -504,7 +445,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Center(
       key: const ValueKey('empty'),
       child: Padding(
@@ -512,34 +456,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.airline_seat_recline_normal,
-              size: 64,
-              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-            ),
+            Icon(Icons.airline_seat_recline_normal, size: 64, color: cs.outline),
             const SizedBox(height: 16),
-            Text(
-              'No available rides right now',
-              style: TextStyle(
-                fontSize: 16,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-              ),
-            ),
+            Text('No available rides right now', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 8),
-            Text(
-              'New ride requests will appear here',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
-              ),
-            ),
+            Text('New ride requests will appear here', style: tt.bodySmall?.copyWith(color: cs.outline)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRidesList(List<Map<String, dynamic>> rides, bool isDark) {
+  Widget _buildRidesList(List<Map<String, dynamic>> rides) {
     return RefreshIndicator(
       key: const ValueKey('rides'),
       onRefresh: () async {},
@@ -567,17 +495,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 if (success && context.mounted) {
                   context.push('/confirm-arrival');
                 } else if (context.mounted) {
-                  CustomToast.showError(
-                    context,
-                    rideProv.errorMessage ?? 'Failed to accept ride',
-                  );
+                  CustomToast.showError(context, rideProv.errorMessage ?? 'Failed to accept ride');
                 }
               });
             },
             onDecline: () {
-              setState(() {
-                _declinedRideIds.add(ride['id']);
-              });
+              setState(() => _declinedRideIds.add(ride['id']));
               _saveDeclinedRides();
             },
           );
@@ -586,29 +509,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildLocationDetail(IconData icon, Color iconColor, String address, bool isDark) {
+  Widget _buildLocationDetail(IconData icon, Color iconColor, String address) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, color: iconColor, size: 18),
-        ),
+        Padding(padding: const EdgeInsets.only(top: 2), child: Icon(icon, color: iconColor, size: 18)),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            address,
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? AppColors.white : AppColors.black,
-            ),
-          ),
-        ),
+        Expanded(child: Text(address, style: tt.bodySmall)),
       ],
     );
   }
 
-  Widget _buildDrawer(BuildContext context, bool isDark) {
+  Widget _buildDrawer(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     final header = GestureDetector(
       onTap: () {
         Navigator.pop(context);
@@ -618,38 +536,40 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade900 : AppColors.primary.withValues(alpha: 0.1),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isDark ? Colors.grey.shade800 : AppColors.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
             Container(
               width: 50, height: 50,
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade800 : AppColors.white,
+                color: cs.surfaceContainerHigh,
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                  ? ClipOval(child: CachedNetworkImage(imageUrl: _profileImageUrl!, width: 50, height: 50, fit: BoxFit.cover,
-                      placeholder: (context, url) => const Icon(Icons.person, size: 28, color: Colors.grey),
-                      errorWidget: (context, url, error) => Icon(Icons.person, size: 28, color: isDark ? AppColors.white : Colors.black54),
-                    ))
-                  : Icon(Icons.person, size: 28, color: isDark ? AppColors.white : Colors.black54),
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: _profileImageUrl!,
+                        width: 50, height: 50, fit: BoxFit.cover,
+                        placeholder: (context, url) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
+                        errorWidget: (context, url, error) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
+                      ),
+                    )
+                  : Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_userName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black)),
+                  Text(_userName, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  const Text('View Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
+                  Text('View Profile', style: tt.labelMedium?.copyWith(color: cs.primary)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: isDark ? AppColors.white : AppColors.black),
+            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
           ],
         ),
       ),
@@ -678,19 +598,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
 
     return PremiumDrawer(
-      isDark: isDark,
+      isDark: Theme.of(context).brightness == Brightness.dark,
       header: header,
       footer: footer,
       items: [
-        DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: isDark),
-        DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: isDark),
-        DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: isDark),
-        DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: isDark),
-        DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: isDark),
-        DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: isDark),
+        DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
       ],
     );
   }
 }
-
-
