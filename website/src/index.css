@@ -1254,6 +1254,7 @@ ul { list-style: none; }
   background-size: cover;
   background-position: center;
   color: var(--black);
+  overflow: hidden;
 }
 .testimonials.page-layout {
   padding: 2rem 0 4rem;
