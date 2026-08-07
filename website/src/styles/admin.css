@@ -1059,3 +1059,61 @@
   color: var(--admin-text-muted);
   font-size: 0.85rem;
 }
+
+/* =============================================
+   MOBILE RESPONSIVENESS REFINEMENTS
+   ============================================= */
+
+/* Notification dropdown: keep it on-screen on phones */
+@media (max-width: 640px) {
+  .admin-notif-dropdown {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 80px) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Table search bars should breathe on phones */
+  .admin-table-wrapper > div:first-child {
+    padding: 0.85rem;
+  }
+  /* VIP country header: keep amount/actions on their own line */
+  .vip-country-info {
+    flex: 1;
+  }
+  .vip-country-amount {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-content {
+    padding: 0.85rem;
+  }
+  .admin-topbar {
+    padding: 0 0.75rem;
+  }
+  .admin-topbar-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .admin-page-header .admin-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .admin-table {
+    min-width: 440px;
+  }
+  .admin-card {
+    padding: 0.85rem;
+  }
+  .admin-stat-value {
+    font-size: 1.25rem;
+  }
+}

@@ -173,8 +173,8 @@ ul { list-style: none; }
    COMMON COMPONENTS
    ======================================== */
 .section-title {
-  font-size: 3rem;
-  font-weight: 700;
+  font-size: 62px;
+  font-weight: 500;
   text-align: center;
   margin-bottom: 3rem;
 }
@@ -709,6 +709,7 @@ ul { list-style: none; }
   font-family: 'Poppins', sans-serif;
   text-decoration: none;
   transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  align-self: center;
 }
 .hiw-cta:hover {
   background: var(--yellow-hover);
@@ -748,7 +749,7 @@ ul { list-style: none; }
   pointer-events: none;
 }
 
-.hiw-step-group:last-child::after {
+.hiw-step-group:last-of-type::after {
   display: none;
 }
 
@@ -1120,8 +1121,13 @@ ul { list-style: none; }
   gap: 1.75rem;
 }
 
+.wcu-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
 .wcu-headline {
-  font-size: 4rem;
+  font-size: 62px;
   font-weight: 500;
   line-height: 1.05;
   margin: 0;
@@ -1137,8 +1143,8 @@ ul { list-style: none; }
   font-size: 1.1rem;
   color: #4A4A4A;
   line-height: 1.7;
-  margin: 0;
-  max-width: 440px;
+  margin: 1.25rem auto 0;
+  max-width: 680px;
 }
 
 .wcu-photo {
@@ -1874,7 +1880,7 @@ ul { list-style: none; }
 @media (max-width: 1024px) {
   .container { padding: 0 2rem; }
   .section-padding { padding: 4rem 0; }
-  .section-title { font-size: 2.5rem; margin-bottom: 2rem; }
+  .section-title { font-size: 62px; margin-bottom: 2rem; }
 
   /* Hero */
   .hero-content { padding: 380px 2rem 0; }
@@ -1890,7 +1896,7 @@ ul { list-style: none; }
     max-width: 100%;
     text-align: center;
   }
-  .hiw-headline { font-size: 48px; }
+  .hiw-headline { font-size: 62px; }
   .hiw-timeline { max-width: 600px; margin: 0 auto; }
 
   /* Services */
@@ -1904,13 +1910,13 @@ ul { list-style: none; }
     grid-template-columns: 1fr;
     gap: 4rem;
   }
-  .wcu-headline { font-size: 3rem; }
+  .wcu-headline { font-size: 62px; }
   .wcu-photo img { max-width: 100%; }
   .wcu-tagline { max-width: 100%; }
 
   /* About Us */
   .about-us-section { padding: 3rem 0; }
-  .about-us-heading { font-size: 48px; }
+  .about-us-heading { font-size: 62px; }
   .about-us-text { font-size: 1rem; }
 
   /* Download */
@@ -1942,7 +1948,7 @@ ul { list-style: none; }
 @media (max-width: 768px) {
   .container { padding: 0 1.25rem; }
   .section-padding { padding: 3.5rem 0; }
-  .section-title { font-size: 2rem; margin-bottom: 1.75rem; }
+  .section-title { font-size: 36px; margin-bottom: 1.75rem; }
 
   /* Navbar */
   .navbar { padding: 0.75rem 1rem; }
@@ -1960,8 +1966,9 @@ ul { list-style: none; }
 
   /* How It Works */
   .how-it-works .container { padding: 0 1rem; }
+  .hiw-layout { gap: 2rem; }
   .hiw-headline { font-size: 36px; }
-  .hiw-subtitle { font-size: 18px; }
+  .hiw-subtitle { font-size: 18px; margin-bottom: 1.25rem; }
   .hiw-timeline { gap: 1.5rem; padding: 0.5rem 0; }
   .hiw-step-group { gap: 1.5rem; }
   .hiw-step-group::after { left: 1.25rem; top: 2.5rem; bottom: -1.5rem; }
@@ -1972,7 +1979,7 @@ ul { list-style: none; }
   .hiw-card p { font-size: 0.875rem; }
 
   /* Fleets */
-  .fleets .section-title { font-size: 1.65rem; }
+  .fleets .section-title { font-size: 36px; }
   .fleets-subtitle { font-size: 0.95rem; margin-bottom: 2rem; }
   .fleet-card {
     min-width: 260px;
@@ -1987,6 +1994,7 @@ ul { list-style: none; }
   .fleet-book-btn { padding: 0.75rem 2rem; font-size: 0.9rem; }
 
   /* Services */
+  .services > .section-title { font-size: 36px; }
   .services-bg-circle-1,
   .services-bg-circle-2 { display: none; }
   .service-card-img { height: 160px; }
@@ -1997,11 +2005,21 @@ ul { list-style: none; }
 
   /* Why Choose Us */
   .why-choose { padding: 3.5rem 0; }
+  .wcu-header { margin-bottom: 3rem; }
   .wcu-layout { gap: 3rem; }
-  .wcu-headline { font-size: 2.5rem; }
+  .wcu-headline { font-size: 36px; }
   .wcu-tagline { font-size: 1rem; max-width: 100%; }
-  .wcu-feature { gap: 1.25rem; }
-  .wcu-feature-num { font-size: 4rem; min-width: 3.5rem; }
+  .wcu-feature { gap: 1rem; align-items: flex-start; }
+  .wcu-feature:first-child .wcu-feature-text { padding-left: 0; }
+  .wcu-feature-num {
+    font-size: 1.5rem;
+    line-height: 1.35;
+    width: 2.5rem;
+    min-width: 2.5rem;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .wcu-feature-text { padding-top: 0.1rem; flex: 1; }
   .wcu-feature-text h3 { font-size: 1.05rem; }
   .wcu-feature-text p { font-size: 0.88rem; }
   .wcu-right { gap: 2rem; }
@@ -2009,7 +2027,7 @@ ul { list-style: none; }
 
   /* Testimonials */
   .testimonials { padding: 5rem 0; }
-  .testimonials-title { font-size: 2.5rem; }
+  .testimonials-title { font-size: 36px; }
   .testimonials-subtitle { font-size: 1rem; max-width: 100%; }
   .testimonials-cards { gap: 1.5rem; }
   .test-card { width: 340px; padding: 2.5rem 2rem; }
@@ -2090,23 +2108,23 @@ ul { list-style: none; }
   .hero-headline { font-size: 1.65rem; }
   .hero-headline-yellow { font-size: inherit; }
   .hero-subheading { font-size: 14px; }
-  .section-title { font-size: 1.45rem; }
+  .section-title { font-size: 36px; }
 
   .fleet-card { min-width: 230px; padding: 1rem 1.25rem; }
   .fleet-card-img { height: 130px; }
 
   .testimonials { padding: 3.5rem 0; }
-  .testimonials-title { font-size: 2rem; }
+  .testimonials-title { font-size: 36px; }
   .test-card { padding: 2rem 1.5rem; }
   .test-card-avatar { width: 64px; height: 64px; }
   .testimonials-nav { margin-top: 2rem; }
   .test-nav-btn { width: 42px; height: 42px; }
 
   .why-choose { padding: 2.5rem 0; }
-  .wcu-headline { font-size: 2rem; }
-  .wcu-feature-num { font-size: 3rem; min-width: 2.75rem; }
+  .wcu-headline { font-size: 36px; }
+  .wcu-feature-num { font-size: 1.35rem; width: 2.25rem; min-width: 2.25rem; }
   .wcu-right { gap: 1.5rem; }
-  .wcu-feature { gap: 1rem; }
+  .wcu-feature { gap: 0.875rem; }
   .wcu-feature-text h3 { font-size: 0.95rem; }
   .wcu-feature-text p { font-size: 0.82rem; }
   .wcu-photo img { border-radius: 14px; }
@@ -2125,7 +2143,7 @@ ul { list-style: none; }
   .fleet-card { min-width: 230px; padding: 1rem 1.25rem; }
   .fleet-card-img { height: 130px; }
   .testimonials { padding: 2.5rem 0; }
-  .testimonials-title { font-size: 1.65rem; }
+  .testimonials-title { font-size: 36px; }
   .testimonials-header { margin-bottom: 2rem; }
   .test-card { padding: 1.5rem 1.25rem; }
   .test-card-avatar { width: 56px; height: 56px; margin-bottom: 1rem; }

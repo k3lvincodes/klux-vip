@@ -12,9 +12,6 @@ export default function HowItWorks() {
           <div className="hiw-left">
             <h2 className="hiw-headline">{t('how_it_works.title')}</h2>
             <p className="hiw-subtitle">{t('how_it_works.subtitle')}</p>
-            <Link to="/book" className="hiw-cta">
-              {t('how_it_works.book_a_ride_now')}
-            </Link>
           </div>
 
           {/* Right column: vertical step timeline */}
@@ -60,6 +57,11 @@ export default function HowItWorks() {
                 <p>{t('how_it_works.step3_desc')}</p>
               </div>
             </div>
+
+            {/* CTA after confirm booking */}
+            <Link to="/book" className="hiw-cta">
+              {t('how_it_works.book_a_ride_now')}
+            </Link>
           </div>
         </div>
       </div>

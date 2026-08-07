@@ -46,13 +46,15 @@ export default function AboutUs() {
       </section>
       <section className="why-choose section-padding" id="why-choose-us">
       <div className="container">
+        <div className="wcu-header">
+          <h2 className="wcu-headline">
+            <span>{t('about.why_choose_us_line1')}</span>
+            <span>{t('about.why_choose_us_line2')}</span>
+          </h2>
+          <p className="wcu-tagline">{t('about.why_choose_tagline')}</p>
+        </div>
         <div className="wcu-layout">
           <div className="wcu-left">
-            <h2 className="wcu-headline">
-              <span>{t('about.why_choose_us_line1')}</span>
-              <span>{t('about.why_choose_us_line2')}</span>
-            </h2>
-            <p className="wcu-tagline">{t('about.why_choose_tagline')}</p>
             <div className="wcu-photo">
               <img
                 src="/Mask group.png"

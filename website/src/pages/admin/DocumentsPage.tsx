@@ -312,6 +312,8 @@ export default function DocumentsPage() {
                     padding: '1rem 1.25rem',
                     cursor: 'pointer',
                     userSelect: 'none',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
@@ -377,6 +379,7 @@ export default function DocumentsPage() {
                           gap: '1rem',
                           padding: '0.85rem 1.25rem',
                           borderBottom: '1px solid rgba(255,255,255,0.03)',
+                          flexWrap: 'wrap',
                         }}
                       >
                         <span style={{ fontSize: '1.2rem' }}>{docTypeIcon(doc.type)}</span>

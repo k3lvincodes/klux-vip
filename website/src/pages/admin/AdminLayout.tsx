@@ -130,7 +130,7 @@ export default function AdminLayout() {
                 <span style={{ position: 'absolute', top: 0, right: 0, width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid #09090b' }}></span>
               </button>
               {notifOpen && (
-                <div style={{ position: 'absolute', top: '60px', right: 0, width: '320px', maxHeight: '400px', background: '#18181b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 9999, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                <div className="admin-notif-dropdown" style={{ position: 'absolute', top: '60px', right: 0, width: '320px', maxHeight: '400px', background: '#18181b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 9999, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
                   <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>Notifications</span>
                     <button onClick={() => setNotifOpen(false)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '18px' }}>&times;</button>

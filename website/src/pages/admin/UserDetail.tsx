@@ -144,7 +144,7 @@ export default function UserDetail() {
 
       {/* Profile Card */}
       <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
             background: 'linear-gradient(135deg, #eab308, #ca8a04)',
