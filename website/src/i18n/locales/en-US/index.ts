@@ -40,7 +40,7 @@ const enUS = {
     google_play: 'Google Play',
     available_ios_android: 'Available for iOS and Android devices',
     download_app: 'Download App',
-    your_premium_ride_awaits: 'Your premium ride<br />awaits!',
+    your_premium_ride_awaits: 'Your premium ride awaits!',
     language: 'Language',
     change_language: 'Change Language',
     english: 'English',
@@ -77,7 +77,7 @@ const enUS = {
   hero: {
     premium_black_car: 'Your Premium Black Car',
     experience_on_demand: 'Experience On Demand',
-    subheading: 'Enjoy safe, reliable, and premium transportation with professionally<br />driven luxury vehicles tailored to your schedule.',
+    subheading: 'Enjoy safe, reliable, and premium transportation with professionally driven luxury vehicles tailored to your schedule.',
     get_the_app: 'Get the app',
     book_a_ride: 'Book a ride',
     available_ios_android: 'Available for iOS and Android devices',

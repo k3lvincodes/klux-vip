@@ -13,7 +13,7 @@ const enNG = {
   },
   hero: {
     premium_black_car: 'Your Premium Black Car',
-    experience_on_demand: 'On-Demand Luxury<br />Experience',
+    experience_on_demand: 'On-Demand Luxury Experience',
     reserve_luxury_ride: 'Reserve a Luxury Ride',
     book_executive_ride: 'Book Executive Ride',
     vip_pickup: 'VIP Pickup',

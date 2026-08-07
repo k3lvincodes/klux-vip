@@ -40,7 +40,7 @@ const ar = {
     google_play: 'جوجل بلاي',
     available_ios_android: 'متوفر لأجهزة iOS و Android',
     download_app: 'حمّل التطبيق',
-    your_premium_ride_awaits: 'رحلتك الفاخرة<br />في انتظارك!',
+    your_premium_ride_awaits: 'رحلتك الفاخرة في انتظارك!',
     language: 'اللغة',
     change_language: 'تغيير اللغة',
     english: 'English',
@@ -74,7 +74,7 @@ const ar = {
   },
   hero: {
     premium_black_car: 'سيارتك السوداء الفاخرة',
-    experience_on_demand: 'تجربة فاخرة<br />عند الطلب',
+    experience_on_demand: 'تجربة فاخرة عند الطلب',
     book_a_ride: 'احجز رحلة',
     reserve_luxury_ride: 'احجز سيارة فاخرة',
     airport_pickup: 'استقبال من المطار',

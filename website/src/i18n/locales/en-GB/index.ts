@@ -15,7 +15,7 @@ const enGB = {
   },
   hero: {
     premium_black_car: 'Your Premium Black Car',
-    experience_on_demand: 'Experience On<br />Demand',
+    experience_on_demand: 'Experience On Demand',
     book_chauffeur: 'Book a Chauffeur',
     airport_transfer: 'Airport Transfer',
     book_a_ride: 'Book a ride',

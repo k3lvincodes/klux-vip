@@ -29,7 +29,7 @@ const haNG = {
     email_address: 'Adireshin imel',
     phone_number: 'Lambar waya',
     download_app: 'Sauke app',
-    your_premium_ride_awaits: 'Sufurinku na alatu<br />yana jiran ku!',
+    your_premium_ride_awaits: 'Sufurinku na alatu yana jiran ku!',
     language: 'Harshe',
     change_language: 'Canza harshe',
     english: 'English',
@@ -62,7 +62,7 @@ const haNG = {
   },
   hero: {
     premium_black_car: 'Motar Baƙi Mai Alatu',
-    experience_on_demand: 'Kwarewa Kan<br />Buƙata',
+    experience_on_demand: 'Kwarewa Kan Buƙata',
     book_a_ride: 'Yi ajaloli',
     reserve_luxury_ride: 'Yi Ajalolin Alatu',
     airport_pickup: 'Ɗauko daga Filin Jirgi',

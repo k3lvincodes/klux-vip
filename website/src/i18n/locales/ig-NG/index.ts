@@ -29,7 +29,7 @@ const igNG = {
     email_address: 'Adreesị email',
     phone_number: 'Nọmba ekwentị',
     download_app: 'Budata ngwa',
-    your_premium_ride_awaits: 'Ụgbọ okomoso gị<br />na-echere gị!',
+    your_premium_ride_awaits: 'Ụgbọ okomoso gị na-echere gị!',
     language: 'Asụsụ',
     change_language: 'Gbanwee asụsụ',
     english: 'English',
@@ -62,7 +62,7 @@ const igNG = {
   },
   hero: {
     premium_black_car: 'Ụgbọ Ojii Okomoso Gị',
-    experience_on_demand: 'Ahụmahụ Ị Nwere<br />Ike Ịkpọ Ozugbo',
+    experience_on_demand: 'Ahụmahụ Ị Nwere Ike Ịkpọ Ozugbo',
     book_a_ride: 'Nye ụgbọ',
     reserve_luxury_ride: 'Nye Ụgbọ Okomoso',
     airport_pickup: "Ịbata n'Ọdụ Ụgbọelu",

@@ -40,7 +40,7 @@ const ptBR = {
     google_play: 'Google Play',
     available_ios_android: 'Disponível para iOS e Android',
     download_app: 'Baixar app',
-    your_premium_ride_awaits: 'Sua viagem premium<br />espera por você!',
+    your_premium_ride_awaits: 'Sua viagem premium espera por você!',
     language: 'Idioma',
     change_language: 'Alterar idioma',
     english: 'English',
@@ -74,7 +74,7 @@ const ptBR = {
   },
   hero: {
     premium_black_car: 'Seu Carro Preto Premium',
-    experience_on_demand: 'Experiência Sob<br />Demanda',
+    experience_on_demand: 'Experiência Sob Demanda',
     book_a_ride: 'Reservar viagem',
     reserve_luxury_ride: 'Reserve um Carro de Luxo',
     airport_pickup: 'Busca no Aeroporto',

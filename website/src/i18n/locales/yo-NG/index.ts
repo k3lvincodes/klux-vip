@@ -29,7 +29,7 @@ const yoNG = {
     email_address: 'Adirẹ́sì imeeli',
     phone_number: 'Nọ́mbà tẹlifóònù',
     download_app: 'Gbà ápp',
-    your_premium_ride_awaits: 'Ọkọ̀ àlàfà rẹ<br />ń dúró!',
+    your_premium_ride_awaits: 'Ọkọ̀ àlàfà rẹ ń dúró!',
     language: 'Èdè',
     change_language: 'Yí èdè padà',
     english: 'English',
@@ -62,7 +62,7 @@ const yoNG = {
   },
   hero: {
     premium_black_car: 'Ọkọ̀ Dúdú Àlàfà Rẹ',
-    experience_on_demand: 'Ìrírí Tí O Lè<br />Pè Báyìí',
+    experience_on_demand: 'Ìrírí Tí O Lè Pè Báyìí',
     book_a_ride: 'Gba ọkọ̀',
     reserve_luxury_ride: 'Gba Ọkọ̀ Àlàfà',
     airport_pickup: 'Àmúkọ̀ Létìbà',

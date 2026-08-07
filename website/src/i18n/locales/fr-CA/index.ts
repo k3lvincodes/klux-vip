@@ -40,7 +40,7 @@ const frCA = {
     google_play: 'Google Play',
     available_ios_android: 'Disponible sur iOS et Android',
     download_app: 'Télécharger l\'application',
-    your_premium_ride_awaits: 'Votre trajet premium<br />vous attend !',
+    your_premium_ride_awaits: 'Votre trajet premium vous attend !',
     language: 'Langue',
     change_language: 'Changer de langue',
     english: 'English',
@@ -74,7 +74,7 @@ const frCA = {
   },
   hero: {
     premium_black_car: 'Votre Voiture Noire de Prestige',
-    experience_on_demand: 'Expérience Sur<br />Demande',
+    experience_on_demand: 'Expérience Sur Demande',
     book_a_ride: 'Réserver un trajet',
     reserve_luxury_ride: 'Réserver une Voiture de Luxe',
     airport_pickup: 'Prise en charge Aéroport',

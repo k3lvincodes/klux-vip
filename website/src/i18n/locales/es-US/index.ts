@@ -40,7 +40,7 @@ const esUS = {
     google_play: 'Google Play',
     available_ios_android: 'Disponible para iOS y Android',
     download_app: 'Descargar app',
-    your_premium_ride_awaits: '¡Su viaje premium<br />le espera!',
+    your_premium_ride_awaits: '¡Su viaje premium le espera!',
     language: 'Idioma',
     change_language: 'Cambiar idioma',
     english: 'English',
@@ -74,7 +74,7 @@ const esUS = {
   },
   hero: {
     premium_black_car: 'Su Auto Negro Premium',
-    experience_on_demand: 'Experiencia Bajo<br />Demanda',
+    experience_on_demand: 'Experiencia Bajo Demanda',
     book_a_ride: 'Reservar un viaje',
     reserve_luxury_ride: 'Reserve un Viaje de Lujo',
     airport_pickup: 'Recogida en Aeropuerto',

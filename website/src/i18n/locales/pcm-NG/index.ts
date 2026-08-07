@@ -40,7 +40,7 @@ const pcmNG = {
     google_play: 'Google Play',
     available_ios_android: 'E dey for iOS and Android',
     download_app: 'Download App',
-    your_premium_ride_awaits: 'Your premium ride<br />dey wait you!',
+    your_premium_ride_awaits: 'Your premium ride dey wait you!',
     language: 'Language',
     change_language: 'Change Language',
     english: 'English',
@@ -74,7 +74,7 @@ const pcmNG = {
   },
   hero: {
     premium_black_car: 'Your Premium Black Car',
-    experience_on_demand: 'Ride Wey You<br />Fit Call Any Time',
+    experience_on_demand: 'Ride Wey You Fit Call Any Time',
     book_a_ride: 'Book ride',
     reserve_luxury_ride: 'Reserve Luxury Ride',
     airport_pickup: 'Airport Pickup',
