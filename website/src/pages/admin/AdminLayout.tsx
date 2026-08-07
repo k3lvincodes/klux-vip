@@ -120,7 +120,7 @@ export default function AdminLayout() {
             </h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ position: 'relative' }} ref={notifRef}>
               <button
                 style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', position: 'relative' }}
@@ -138,6 +138,16 @@ export default function AdminLayout() {
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#71717a', fontSize: '13px' }}>No new notifications</div>
                 </div>
               )}
+            </div>
+
+            {/* Topbar User Profile & Logout */}
+            <div className="admin-topbar-profile">
+              <div className="admin-user-avatar">
+                {user?.email?.charAt(0).toUpperCase() || 'A'}
+              </div>
+              <button className="admin-topbar-logout" onClick={handleLogout} title="Logout">
+                <LogOut size={16} />
+              </button>
             </div>
           </div>
         </header>
