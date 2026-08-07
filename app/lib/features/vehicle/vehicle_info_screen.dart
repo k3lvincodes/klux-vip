@@ -125,7 +125,6 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
 
   Widget _buildVehicleDetails(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final String make = _vehicle?.make ?? '';
     final String model = _vehicle?.model ?? '';
     final int year = _vehicle?.year ?? 0;

@@ -44,7 +44,7 @@ void main() {
 
   testWidgets('Passenger home renders and opens the location dialog',
       (tester) async {
-    await initTestSupabase(FakeBackend(role: 'client'));
+    await initTestSupabase(FakeBackend());
 
     await tester.pumpWidget(
       MultiProvider(
@@ -83,7 +83,7 @@ void main() {
 
   testWidgets('Passenger Book ride navigates to booking selection',
       (tester) async {
-    await initTestSupabase(FakeBackend(role: 'client'));
+    await initTestSupabase(FakeBackend());
 
     await tester.pumpWidget(
       MultiProvider(
@@ -131,7 +131,7 @@ void main() {
       FakeBackend(
         role: 'Chauffeur',
         completedRides: [
-          completedRideJson(fare: 55.0),
+          completedRideJson(),
           completedRideJson(id: 'ride-completed-2', fare: 32.5),
         ],
       ),
@@ -174,5 +174,10 @@ void main() {
     // Completed ride cards should render with fares.
     expect(find.text('\$55.00', skipOffstage: false), findsOneWidget);
     expect(find.text('\$32.50', skipOffstage: false), findsOneWidget);
+
+    // Unmount the screen so the realtime StreamBuilder unsubscribes, then cancel
+    // the realtime reconnect timer so no timer is left pending at teardown.
+    await tester.pumpWidget(const SizedBox());
+    Supabase.instance.client.realtime.reconnectTimer.reset();
   });
 }

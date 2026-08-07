@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
 import 'package:provider/provider.dart';
@@ -233,11 +232,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.memory, color: Colors.white, size: 30),
-              const Icon(Icons.credit_card, color: Colors.white, size: 30),
+              Icon(Icons.memory, color: Colors.white, size: 30),
+              Icon(Icons.credit_card, color: Colors.white, size: 30),
             ],
           ),
           const SizedBox(height: 24),

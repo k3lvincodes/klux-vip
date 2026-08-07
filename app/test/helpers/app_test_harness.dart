@@ -60,10 +60,10 @@ class FakeBackend {
     this.userId = 'test-user-id-123',
     this.email = 'test@kenick.com',
     this.role = 'client',
-    Map<String, dynamic>? profile,
+    this.profile,
     this.completedRides = const [],
     this.requestedRides = const [],
-  }) : profile = profile;
+  });
 
   final String userId;
   final String email;
@@ -81,7 +81,7 @@ Future<void> initTestSupabase(FakeBackend backend) async {
   SharedPreferences.setMockInitialValues({});
   stubGeolocatorChannels();
 
-  final anonKey = 'test-anon-key';
+  const anonKey = 'test-anon-key';
 
   final profileData = backend.profile ??
       {

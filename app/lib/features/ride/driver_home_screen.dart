@@ -9,8 +9,8 @@ import 'package:kenick_vip/repositories/ride_repository.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/navigation/drawer_item.dart';
 import 'package:kenick_vip/widgets/cards/driver_offer_card.dart';
+import 'package:kenick_vip/widgets/navigation/drawer_item.dart';
 import 'package:kenick_vip/widgets/navigation/premium_drawer.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,7 +76,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             _profileImageUrl = profile.avatarUrl;
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        // Profile fetch is best-effort; defaults are used on failure.
+      }
     }
   }
 
@@ -510,7 +512,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Widget _buildLocationDetail(IconData icon, Color iconColor, String address) {
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     return Row(

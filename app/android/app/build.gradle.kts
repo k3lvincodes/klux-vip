@@ -40,6 +40,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 minification runs out of heap on dev machines with low RAM
+            // (this build is a debug-signed test APK, not a store release).
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

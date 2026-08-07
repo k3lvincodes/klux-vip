@@ -13,6 +13,9 @@ interface SelectedCountry {
   name: string;
   flag: string;
   vipAmount: number;
+  perKmRate: number;
+  baseFare: number;
+  perMinuteRate: number;
   states: CountryState[];
   expanded: boolean;
 }
@@ -22,7 +25,14 @@ interface FareRate {
   country_code: string;
   state_or_region: string | null;
   vip_amount: number | null;
+  per_km_rate: number | null;
+  base_fare: number | null;
+  per_minute_rate: number | null;
 }
+
+const DEFAULT_PER_KM_RATE = 1.85;
+const DEFAULT_BASE_FARE = 3.5;
+const DEFAULT_PER_MINUTE_RATE = 0.45;
 
 const COUNTRIES: { code: string; name: string; flag: string; states: string[] }[] = [
   { code: 'US', name: 'United States', flag: '🇺🇸', states: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'] },
@@ -143,6 +153,9 @@ export default function PricingPage() {
         name: info.name,
         flag: info.flag,
         vipAmount: countryDefault?.vip_amount ?? 0,
+        perKmRate: countryDefault?.per_km_rate ?? DEFAULT_PER_KM_RATE,
+        baseFare: countryDefault?.base_fare ?? DEFAULT_BASE_FARE,
+        perMinuteRate: countryDefault?.per_minute_rate ?? DEFAULT_PER_MINUTE_RATE,
         states: info.states.map(s => {
           const match = stateRates.find(r => r.state_or_region === s);
           return {
@@ -176,6 +189,9 @@ export default function PricingPage() {
       name: info.name,
       flag: info.flag,
       vipAmount: 0,
+      perKmRate: DEFAULT_PER_KM_RATE,
+      baseFare: DEFAULT_BASE_FARE,
+      perMinuteRate: DEFAULT_PER_MINUTE_RATE,
       states: info.states.map(s => ({ name: s, vipAmount: 0, inherited: true })),
       expanded: false,
     };
@@ -183,6 +199,9 @@ export default function PricingPage() {
     const { error } = await supabase.from('fare_rates').insert({
       country_code: code.toLowerCase(),
       state_or_region: null,
+      per_km_rate: DEFAULT_PER_KM_RATE,
+      base_fare: DEFAULT_BASE_FARE,
+      per_minute_rate: DEFAULT_PER_MINUTE_RATE,
       vip_amount: 0,
     });
 
@@ -218,7 +237,7 @@ export default function PricingPage() {
     if (existing) {
       ({ error } = await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id));
     } else {
-      ({ error } = await supabase.from('fare_rates').insert({ country_code: code.toLowerCase(), state_or_region: null, vip_amount: amount }));
+      ({ error } = await supabase.from('fare_rates').insert({ country_code: code.toLowerCase(), state_or_region: null, per_km_rate: DEFAULT_PER_KM_RATE, base_fare: DEFAULT_BASE_FARE, per_minute_rate: DEFAULT_PER_MINUTE_RATE, vip_amount: amount }));
     }
 
     if (error) {
@@ -232,6 +251,40 @@ export default function PricingPage() {
           : c
       )
     );
+  }
+
+  async function updateCountryRates(code: string, patch: { perKmRate?: number; baseFare?: number; perMinuteRate?: number }) {
+    const { data: existing } = await supabase
+      .from('fare_rates')
+      .select('id')
+      .eq('country_code', code.toLowerCase())
+      .is('state_or_region', null)
+      .maybeSingle();
+
+    const dbPatch: Partial<Record<string, number>> = {};
+    if (patch.perKmRate !== undefined) dbPatch.per_km_rate = patch.perKmRate;
+    if (patch.baseFare !== undefined) dbPatch.base_fare = patch.baseFare;
+    if (patch.perMinuteRate !== undefined) dbPatch.per_minute_rate = patch.perMinuteRate;
+
+    let error;
+    if (existing) {
+      ({ error } = await supabase.from('fare_rates').update(dbPatch).eq('id', existing.id));
+    } else {
+      ({ error } = await supabase.from('fare_rates').insert({
+        country_code: code.toLowerCase(),
+        state_or_region: null,
+        vip_amount: 0,
+        per_km_rate: patch.perKmRate ?? DEFAULT_PER_KM_RATE,
+        base_fare: patch.baseFare ?? DEFAULT_BASE_FARE,
+        per_minute_rate: patch.perMinuteRate ?? DEFAULT_PER_MINUTE_RATE,
+      }));
+    }
+
+    if (error) {
+      return;
+    }
+
+    setSelectedCountries(prev => prev.map(c => (c.code === code ? { ...c, ...patch } : c)));
   }
 
   async function updateStateVip(code: string, stateName: string, amount: number) {
@@ -250,6 +303,9 @@ export default function PricingPage() {
         country_code: code.toLowerCase(),
         state_or_region: stateName,
         vip_amount: amount,
+        per_km_rate: DEFAULT_PER_KM_RATE,
+        base_fare: DEFAULT_BASE_FARE,
+        per_minute_rate: DEFAULT_PER_MINUTE_RATE,
       }));
     }
 
@@ -398,6 +454,32 @@ export default function PricingPage() {
 
               <div className={`vip-accordion-wrapper ${country.expanded ? 'open' : ''}`}>
                 <div className="vip-accordion-inner">
+                  <div style={{ marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="vip-states-header">
+                      <span>Base Fare Rates</span>
+                      <span className="vip-inherit-hint">Used by the app to calculate ride estimates</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                      {[
+                        { label: 'Per km ($)', key: 'perKmRate' as const, value: country.perKmRate },
+                        { label: 'Base fare ($)', key: 'baseFare' as const, value: country.baseFare },
+                        { label: 'Per min ($)', key: 'perMinuteRate' as const, value: country.perMinuteRate },
+                      ].map(f => (
+                        <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+                          {f.label}
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={f.value}
+                            onChange={e => updateCountryRates(country.code, { [f.key]: parseFloat(e.target.value) || 0 })}
+                            className="vip-amount-input"
+                            style={{ width: 90 }}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                   <div className="vip-states-header">
                     <span>Regions / States</span>
                     <span className="vip-inherit-hint">Inherited amounts update automatically from country default</span>

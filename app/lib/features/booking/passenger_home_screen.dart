@@ -9,10 +9,10 @@ import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/navigation/drawer_item.dart';
 import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/navigation/drawer_item.dart';
 import 'package:kenick_vip/widgets/navigation/premium_drawer.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -140,7 +140,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
             _profileImageUrl = profile.avatarUrl;
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        // Profile fetch is best-effort; defaults are used on failure.
+      }
     }
   }
 

@@ -25,10 +25,9 @@ interface Ride {
 
 interface PaymentMethod {
   id: string;
-  card_brand: string;
-  card_last4: string;
-  card_exp_month: number;
-  card_exp_year: number;
+  type: string;
+  last4: string | null;
+  is_default: boolean;
 }
 
 export default function UserDetail() {
@@ -69,7 +68,7 @@ export default function UserDetail() {
 
       const { data: pmData } = await supabase
         .from('payment_methods')
-        .select('id, card_brand, card_last4, card_exp_month, card_exp_year')
+        .select('id, type, last4, is_default')
         .eq('user_id', userId);
 
       setPaymentMethods(pmData || []);
@@ -217,14 +216,19 @@ export default function UserDetail() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '11px', fontWeight: 700, color: '#eab308', textTransform: 'uppercase',
                   }}>
-                    {pm.card_brand?.slice(0, 4) || 'CARD'}
+                    {pm.type === 'bank_account' ? 'BANK' : 'CARD'}
                   </div>
                   <div>
                     <p style={{ fontSize: '14px', margin: 0, color: '#e4e4e7' }}>
-                      •••• •••• •••• {pm.card_last4}
+                      •••• •••• •••• {pm.last4 || '••••'}
+                      {pm.is_default ? (
+                        <span style={{ marginLeft: '8px', fontSize: '11px', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '4px', padding: '1px 6px' }}>
+                          Default
+                        </span>
+                      ) : null}
                     </p>
                     <p style={{ fontSize: '12px', margin: '2px 0 0', color: '#71717a' }}>
-                      Expires {pm.card_exp_month}/{pm.card_exp_year}
+                      {pm.type === 'bank_account' ? 'Bank account' : 'Card'}
                     </p>
                   </div>
                 </div>

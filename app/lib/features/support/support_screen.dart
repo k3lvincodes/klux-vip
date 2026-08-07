@@ -86,7 +86,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 24),
               DropdownButtonFormField<String>(
-                value: _selectedCategory.isEmpty ? null : _selectedCategory,
+                initialValue: _selectedCategory.isEmpty ? null : _selectedCategory,
                 hint: const Text('Select a category'),
                 decoration: const InputDecoration(
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
