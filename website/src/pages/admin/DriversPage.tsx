@@ -134,7 +134,7 @@ export default function DriversPage() {
           <h1>Chauffeur Operations</h1>
           <p>Manage chauffeur profiles, approvals, and statuses</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="admin-page-header-actions">
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
             Export CSV
@@ -143,15 +143,15 @@ export default function DriversPage() {
       </div>
 
       <div className="admin-table-wrapper">
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+        <div className="admin-table-filter-bar">
+          <div className="admin-search-wrapper">
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
             <input
               type="text"
               placeholder="Search chauffeurs..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              className="admin-search-input"
             />
           </div>
         </div>
@@ -184,15 +184,15 @@ export default function DriversPage() {
               ) : (
                 filtered.map((d) => (
                   <tr key={d.id}>
-                    <td><div style={{ fontWeight: 500 }}>{fullName(d)}</div></td>
-                    <td>
+                    <td data-label="Chauffeur"><div style={{ fontWeight: 500 }}>{fullName(d)}</div></td>
+                    <td data-label="Vehicle">
                       {d.vehicle
                         ? `${d.vehicle.make} ${d.vehicle.model} (${d.vehicle.license_plate})`
                         : '--'}
                     </td>
-                    <td>{d.driver_details?.rating != null ? `⭐ ${d.driver_details.rating.toFixed(1)}` : '--'}</td>
-                    <td>{d.completed_rides}</td>
-                    <td>{statusBadge(d)}</td>
+                    <td data-label="Rating">{d.driver_details?.rating != null ? `⭐ ${d.driver_details.rating.toFixed(1)}` : '--'}</td>
+                    <td data-label="Completed Rides">{d.completed_rides}</td>
+                    <td data-label="Status">{statusBadge(d)}</td>
                   </tr>
                 ))
               )}

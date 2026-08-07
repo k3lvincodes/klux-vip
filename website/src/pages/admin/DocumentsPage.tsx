@@ -1,5 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Download, Eye, CheckCircle, XCircle, ChevronDown, Loader2 } from 'lucide-react';
+import {
+  Search,
+  Download,
+  Eye,
+  CheckCircle,
+  XCircle,
+  ChevronDown,
+  Loader2,
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
+  Users,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Doc {
@@ -25,6 +37,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [previewDoc, setPreviewDoc] = useState<Doc | null>(null);
   const [diditData, setDiditData] = useState<any>(null);
   const [diditLoading, setDiditLoading] = useState(false);
@@ -77,28 +90,75 @@ export default function DocumentsPage() {
       setGroups(
         [...grouped.entries()].map(([driver_id, docs]) => ({
           driver_id,
-          driver_name: nameMap.get(driver_id) || 'Unknown',
+          driver_name: nameMap.get(driver_id) || 'Unknown Chauffeur',
           docs,
           expanded: false,
         }))
       );
     } catch (err) {
-      setError('Failed to load documents');
+      setError('Failed to load document records');
     } finally {
       setLoading(false);
     }
   };
 
+  // Stats computation
+  const stats = useMemo(() => {
+    let totalDocs = 0;
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+
+    groups.forEach((g) => {
+      g.docs.forEach((d) => {
+        totalDocs++;
+        if (d.status === 'pending') pending++;
+        else if (d.status === 'approved') approved++;
+        else if (d.status === 'rejected') rejected++;
+      });
+    });
+
+    return {
+      chauffeurs: groups.length,
+      totalDocs,
+      pending,
+      approved,
+      rejected,
+    };
+  }, [groups]);
+
+  // Filtering by search and tab
   const filtered = useMemo(() => {
-    if (!search.trim()) return groups;
-    const q = search.toLowerCase();
-    return groups.filter((g) => g.driver_name.toLowerCase().includes(q));
-  }, [groups, search]);
+    return groups
+      .map((g) => {
+        const matchesSearch = !search.trim() || g.driver_name.toLowerCase().includes(search.toLowerCase());
+        if (!matchesSearch) return null;
+
+        if (statusFilter === 'all') return g;
+
+        const matchingDocs = g.docs.filter((d) => d.status === statusFilter);
+        if (matchingDocs.length === 0) return null;
+
+        return {
+          ...g,
+          docs: matchingDocs,
+        };
+      })
+      .filter(Boolean) as DriverGroup[];
+  }, [groups, search, statusFilter]);
 
   const toggleExpand = (driver_id: string) => {
     setGroups((prev) =>
       prev.map((g) => (g.driver_id === driver_id ? { ...g, expanded: !g.expanded } : g))
     );
+  };
+
+  const expandAll = () => {
+    setGroups((prev) => prev.map((g) => ({ ...g, expanded: true })));
+  };
+
+  const collapseAll = () => {
+    setGroups((prev) => prev.map((g) => ({ ...g, expanded: false })));
   };
 
   const handleApprove = async (docId: string) => {
@@ -109,9 +169,7 @@ export default function DocumentsPage() {
         .update({ status: 'approved', updated_at: new Date().toISOString() })
         .eq('id', docId);
 
-      if (error) {
-        return;
-      }
+      if (error) return;
 
       setGroups((prev) =>
         prev.map((g) => ({
@@ -168,9 +226,9 @@ export default function DocumentsPage() {
       case 'registration':
         return 'Vehicle Registration';
       case 'background_check':
-        return 'Background Check';
+        return 'Background Security Check';
       default:
-        return type;
+        return type.replace(/_/g, ' ');
     }
   };
 
@@ -182,7 +240,7 @@ export default function DocumentsPage() {
         return <span className="admin-badge admin-badge-danger">Rejected</span>;
       case 'pending':
       default:
-        return <span className="admin-badge admin-badge-warning">Pending</span>;
+        return <span className="admin-badge admin-badge-warning">Pending Review</span>;
     }
   };
 
@@ -226,7 +284,7 @@ export default function DocumentsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `documents_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `document_verifications_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -234,13 +292,20 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div>
+    <div className="doc-page">
+      {/* ── Page Header ── */}
       <div className="admin-page-header">
         <div>
           <h1>Document Verification</h1>
-          <p>Review and approve chauffeur licenses, insurance, and background checks</p>
+          <p>Review and verify chauffeur credentials, licenses, insurance policies, and background checks.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="admin-page-header-actions">
+          <button className="admin-btn admin-btn-outline" onClick={expandAll} style={{ fontSize: '0.8rem' }}>
+            Expand All
+          </button>
+          <button className="admin-btn admin-btn-outline" onClick={collapseAll} style={{ fontSize: '0.8rem' }}>
+            Collapse All
+          </button>
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
             Export CSV
@@ -248,16 +313,77 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      <div className="admin-table-wrapper">
-        <div
-          style={{
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            display: 'flex',
-            gap: '1rem',
-          }}
-        >
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+      {/* ── Stats Bar ── */}
+      <div className="pricing-stats-bar">
+        <div className="pricing-stat-card">
+          <div className="pricing-stat-icon" style={{ background: 'rgba(244, 197, 34, 0.12)', color: '#F4C522' }}>
+            <Users size={18} />
+          </div>
+          <div>
+            <div className="pricing-stat-value">{stats.chauffeurs}</div>
+            <div className="pricing-stat-label">Total Chauffeurs</div>
+          </div>
+        </div>
+        <div className="pricing-stat-card">
+          <div className="pricing-stat-icon" style={{ background: 'rgba(234, 179, 8, 0.12)', color: '#eab308' }}>
+            <Clock size={18} />
+          </div>
+          <div>
+            <div className="pricing-stat-value">{stats.pending}</div>
+            <div className="pricing-stat-label">Pending Review</div>
+          </div>
+        </div>
+        <div className="pricing-stat-card">
+          <div className="pricing-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+            <ShieldCheck size={18} />
+          </div>
+          <div>
+            <div className="pricing-stat-value">{stats.approved}</div>
+            <div className="pricing-stat-label">Approved Docs</div>
+          </div>
+        </div>
+        <div className="pricing-stat-card">
+          <div className="pricing-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+            <ShieldAlert size={18} />
+          </div>
+          <div>
+            <div className="pricing-stat-value">{stats.rejected}</div>
+            <div className="pricing-stat-label">Rejected Docs</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Content Container ── */}
+      <div className="doc-content-card">
+        {/* Filter Bar & Tabs */}
+        <div className="doc-filter-header">
+          <div className="doc-tabs">
+            {(['all', 'pending', 'approved', 'rejected'] as const).map((t) => {
+              const count =
+                t === 'all'
+                  ? stats.totalDocs
+                  : t === 'pending'
+                  ? stats.pending
+                  : t === 'approved'
+                  ? stats.approved
+                  : stats.rejected;
+
+              return (
+                <button
+                  key={t}
+                  className={`doc-tab ${statusFilter === t ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(t)}
+                >
+                  <span className="doc-tab-label">
+                    {t === 'all' ? 'All Documents' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </span>
+                  <span className="doc-tab-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="admin-search-wrapper" style={{ maxWidth: 300 }}>
             <Search
               size={16}
               style={{
@@ -265,341 +391,276 @@ export default function DocumentsPage() {
                 left: '1rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#a1a1aa',
+                color: 'var(--admin-text-muted)',
               }}
             />
             <input
               type="text"
-              placeholder="Search by chauffeur name..."
+              placeholder="Search by chauffeur..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.6rem 1rem 0.6rem 2.5rem',
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '8px',
-                color: '#fff',
-                outline: 'none',
-              }}
+              className="admin-search-input"
             />
           </div>
         </div>
 
+        {/* Content Body */}
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>
-            Loading documents...
+          <div className="pricing-loading" style={{ padding: '4rem 2rem' }}>
+            <div className="pricing-loading-spinner" />
+            <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.9rem' }}>Loading documents…</p>
           </div>
         ) : error ? (
-          <div style={{ padding: '3rem', textAlign: 'center' }}>
+          <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
             <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
-            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchDocuments(); }}>Try Again</button>
+            <button className="admin-btn" onClick={() => { setError(null); setLoading(true); fetchDocuments(); }}>
+              Try Again
+            </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa' }}>
-            {search ? 'No chauffeurs match your search.' : 'No documents found.'}
+          <div className="doc-empty-state">
+            <div className="doc-empty-icon">📂</div>
+            <h3>No documents found</h3>
+            <p>
+              {search
+                ? `No chauffeurs matching "${search}" found.`
+                : statusFilter !== 'all'
+                ? `No ${statusFilter} documents to display.`
+                : 'No document submissions found.'}
+            </p>
           </div>
         ) : (
-          <div>
-            {filtered.map((group) => (
-              <div key={group.driver_id} className="admin-card" style={{ margin: '0.75rem 1.25rem' }}>
-                <div
-                  onClick={() => toggleExpand(group.driver_id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1rem 1.25rem',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    flexWrap: 'wrap',
-                    gap: '0.75rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        background: 'rgba(244, 197, 34, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        color: '#F4C522',
-                      }}
-                    >
-                      {group.driver_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{group.driver_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>
-                        {group.docs.length} document{group.docs.length !== 1 ? 's' : ''}
-                        {' · '}
-                        {group.docs.filter((d) => d.status === 'pending').length} pending
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {group.docs.some((d) => d.status === 'pending') && (
-                      <span
-                        style={{
-                          background: 'rgba(244, 197, 34, 0.15)',
-                          color: '#F4C522',
-                          fontSize: '0.65rem',
-                          fontWeight: 600,
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: '999px',
-                        }}
-                      >
-                        PENDING
-                      </span>
-                    )}
-                    <ChevronDown
-                      size={18}
-                      style={{
-                        color: '#a1a1aa',
-                        transition: 'transform 0.3s ease',
-                        transform: group.expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      }}
-                    />
-                  </div>
-                </div>
+          <div className="doc-groups-list">
+            {filtered.map((group) => {
+              const groupPendingCount = group.docs.filter((d) => d.status === 'pending').length;
 
-                {group.expanded && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    {group.docs.map((doc) => (
-                      <div
-                        key={doc.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem',
-                          padding: '0.85rem 1.25rem',
-                          borderBottom: '1px solid rgba(255,255,255,0.03)',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <span style={{ fontSize: '1.2rem' }}>{docTypeIcon(doc.type)}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{typeLabel(doc.type)}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#71717a', display: 'flex', gap: '1rem' }}>
-                            <span>Submitted: {formatDate(doc.created_at)}</span>
-                            <span>Expires: {formatDate(doc.expires_at)}</span>
-                          </div>
-                          {doc.rejection_reason && (
-                            <div style={{ fontSize: '0.75rem', color: '#fca5a5', marginTop: '0.2rem' }}>
-                              Reason: {doc.rejection_reason}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          {statusBadge(doc.status)}
-                          {doc.file_url && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setPreviewDoc(doc);
-                                setDiditData(null);
-                                setDiditError('');
-                                if (doc.file_url.startsWith('didit://')) {
-                                  const sid = doc.file_url.replace('didit://', '');
-                                  setDiditLoading(true);
-                                  try {
-                                    const { data: fnData, error: fnError } = await supabase.functions.invoke('didit-lookup', {
-                                      body: { session_id: sid },
-                                    });
-                                    if (fnError) throw fnError;
-                                    if (fnData?.error) throw new Error(fnData.error + (fnData.details ? ': ' + fnData.details : ''));
-                                    setDiditData(fnData);
-                                  } catch (err: any) {
-                                    setDiditError(JSON.stringify(err));
-                                  } finally {
-                                    setDiditLoading(false);
-                                  }
-                                }
-                              }}
-                              className="admin-btn admin-btn-outline"
-                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer' }}
-                              title="Preview document"
-                            >
-                              <Eye size={14} />
-                            </button>
-                          )}
-                          {doc.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApprove(doc.id);
-                                }}
-                                disabled={actionLoading}
-                                style={{
-                                  padding: '0.4rem 0.6rem',
-                                  fontSize: '0.8rem',
-                                  background: 'rgba(16,185,129,0.1)',
-                                  color: '#10b981',
-                                  border: '1px solid rgba(16,185,129,0.2)',
-                                  borderRadius: '8px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }}
-                                title="Approve"
-                              >
-                                <CheckCircle size={14} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleReject(doc.id);
-                                }}
-                                disabled={actionLoading}
-                                style={{
-                                  padding: '0.4rem 0.6rem',
-                                  fontSize: '0.8rem',
-                                  background: 'rgba(239,68,68,0.1)',
-                                  color: '#ef4444',
-                                  border: '1px solid rgba(239,68,68,0.2)',
-                                  borderRadius: '8px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }}
-                                title="Reject"
-                              >
-                                <XCircle size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
+              return (
+                <div
+                  key={group.driver_id}
+                  className={`doc-group-card ${group.expanded ? 'expanded' : ''}`}
+                >
+                  <div className="doc-group-header" onClick={() => toggleExpand(group.driver_id)}>
+                    <div className="doc-group-info">
+                      <div className="doc-avatar-badge">
+                        {group.driver_name.charAt(0).toUpperCase()}
                       </div>
-                    ))}
+                      <div>
+                        <span className="doc-driver-name">{group.driver_name}</span>
+                        <span className="doc-driver-sub">
+                          {group.docs.length} document{group.docs.length !== 1 ? 's' : ''} submitted
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="doc-group-header-right">
+                      {groupPendingCount > 0 && (
+                        <span className="doc-pending-pill">
+                          {groupPendingCount} PENDING
+                        </span>
+                      )}
+                      <div className={`vip-chevron ${group.expanded ? 'open' : ''}`}>
+                        <ChevronDown size={18} />
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {group.expanded && (
+                    <div className="doc-group-body">
+                      {group.docs.map((doc) => (
+                        <div key={doc.id} className="doc-item-row">
+                          <div className="doc-item-left">
+                            <span className="doc-item-icon">{docTypeIcon(doc.type)}</span>
+                            <div>
+                              <div className="doc-item-title">{typeLabel(doc.type)}</div>
+                              <div className="doc-item-meta">
+                                <span>Submitted: {formatDate(doc.created_at)}</span>
+                                <span>·</span>
+                                <span>Expires: {formatDate(doc.expires_at)}</span>
+                              </div>
+                              {doc.rejection_reason && (
+                                <div className="doc-rejection-reason">
+                                  Reason for rejection: {doc.rejection_reason}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="doc-item-right">
+                            {statusBadge(doc.status)}
+
+                            {doc.file_url && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setPreviewDoc(doc);
+                                  setDiditData(null);
+                                  setDiditError('');
+                                  if (doc.file_url.startsWith('didit://')) {
+                                    const sid = doc.file_url.replace('didit://', '');
+                                    setDiditLoading(true);
+                                    try {
+                                      const { data: fnData, error: fnError } = await supabase.functions.invoke(
+                                        'didit-lookup',
+                                        { body: { session_id: sid } }
+                                      );
+                                      if (fnError) throw fnError;
+                                      if (fnData?.error)
+                                        throw new Error(fnData.error + (fnData.details ? ': ' + fnData.details : ''));
+                                      setDiditData(fnData);
+                                    } catch (err: any) {
+                                      setDiditError(JSON.stringify(err));
+                                    } finally {
+                                      setDiditLoading(false);
+                                    }
+                                  }
+                                }}
+                                className="admin-btn admin-btn-outline"
+                                style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', gap: '0.35rem' }}
+                                title="Inspect document"
+                              >
+                                <Eye size={14} /> View
+                              </button>
+                            )}
+
+                            {doc.status === 'pending' && (
+                              <div className="doc-action-btns">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleApprove(doc.id);
+                                  }}
+                                  disabled={actionLoading}
+                                  className="doc-approve-btn"
+                                  title="Approve Document"
+                                >
+                                  <CheckCircle size={14} /> Approve
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReject(doc.id);
+                                  }}
+                                  disabled={actionLoading}
+                                  className="doc-reject-btn"
+                                  title="Reject Document"
+                                >
+                                  <XCircle size={14} /> Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
+      {/* ── Document Inspection Modal ── */}
       {previewDoc && (
         <div
           className="admin-modal-overlay"
-          onClick={() => { setPreviewDoc(null); setDiditData(null); setDiditError(''); }}
+          onClick={() => {
+            setPreviewDoc(null);
+            setDiditData(null);
+            setDiditError('');
+          }}
           style={{ zIndex: 200 }}
         >
           <div
-            className="admin-modal"
+            className="admin-modal doc-preview-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '90vw',
-              maxWidth: '800px',
-              padding: '1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-            }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <div className="doc-preview-header">
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{typeLabel(previewDoc.type)}</h2>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>
-                  {formatDate(previewDoc.created_at)}
+                <h2>{typeLabel(previewDoc.type)}</h2>
+                <p className="doc-preview-subtitle">
+                  Submitted {formatDate(previewDoc.created_at)}
                   {previewDoc.expires_at && ` · Expires ${formatDate(previewDoc.expires_at)}`}
                 </p>
               </div>
               <button
-                onClick={() => setPreviewDoc(null)}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#a1a1aa',
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.1rem',
+                className="vip-modal-close"
+                onClick={() => {
+                  setPreviewDoc(null);
+                  setDiditData(null);
+                  setDiditError('');
                 }}
               >
                 ✕
               </button>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#000',
-                borderRadius: 12,
-                overflow: 'hidden',
-                minHeight: 120,
-                maxHeight: '65vh',
-                padding: '2rem',
-              }}
-            >
+
+            <div className="doc-preview-viewer">
               {previewDoc.file_url.startsWith('didit://') ? (
                 diditLoading ? (
-                  <Loader2 size={32} style={{ color: '#a1a1aa', animation: 'spin 1s linear infinite' }} />
+                  <div className="pricing-loading">
+                    <Loader2 size={32} style={{ color: '#F4C522', animation: 'spin 1s linear infinite' }} />
+                    <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Fetching Didit verification details…</p>
+                  </div>
                 ) : diditError ? (
                   <div style={{ color: '#fca5a5', fontSize: '0.85rem', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 0.5rem' }}>Failed to load verification data</p>
-                    <code style={{ fontSize: '0.7rem', color: '#71717a', wordBreak: 'break-all' }}>
+                    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Failed to load verification session</p>
+                    <code style={{ fontSize: '0.75rem', color: '#71717a', wordBreak: 'break-all' }}>
                       {previewDoc.file_url}
                     </code>
                   </div>
                 ) : diditData ? (
-                  <div style={{ width: '100%', maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="didit-data-container">
                     {diditData.session?.documents?.map((doc: any, i: number) => (
-                      <div key={i}>
-                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{doc.type}</p>
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div key={i} className="didit-doc-block">
+                        <p className="didit-block-title">{doc.type}</p>
+                        <div className="didit-images-grid">
                           {doc.front_image && (
-                            <img src={`data:image/png;base64,${doc.front_image}`} alt={`${doc.type} front`} style={{ maxWidth: '100%', maxHeight: '40vh', borderRadius: 8, objectFit: 'contain' }} />
+                            <img src={`data:image/png;base64,${doc.front_image}`} alt={`${doc.type} front`} />
                           )}
                           {doc.back_image && (
-                            <img src={`data:image/png;base64,${doc.back_image}`} alt={`${doc.type} back`} style={{ maxWidth: '100%', maxHeight: '40vh', borderRadius: 8, objectFit: 'contain' }} />
+                            <img src={`data:image/png;base64,${doc.back_image}`} alt={`${doc.type} back`} />
                           )}
                           {doc.face_image && (
-                            <img src={`data:image/png;base64,${doc.face_image}`} alt="face" style={{ maxWidth: '100%', maxHeight: '40vh', borderRadius: 8, objectFit: 'contain' }} />
+                            <img src={`data:image/png;base64,${doc.face_image}`} alt="face" />
                           )}
-                          {doc.images?.map((img: any, j: number) => (
-                            img.image && (
-                              <img key={j} src={img.image.startsWith('data:') ? img.image : `data:image/png;base64,${img.image}`} alt={`${doc.type} ${img.type}`} style={{ maxWidth: '100%', maxHeight: '40vh', borderRadius: 8, objectFit: 'contain' }} />
-                            )
-                          ))}
+                          {doc.images?.map(
+                            (img: any, j: number) =>
+                              img.image && (
+                                <img
+                                  key={j}
+                                  src={img.image.startsWith('data:') ? img.image : `data:image/png;base64,${img.image}`}
+                                  alt={`${doc.type} ${img.type}`}
+                                />
+                              )
+                          )}
                         </div>
                       </div>
                     ))}
                     {diditData.session?.selfie?.image && (
-                      <div>
-                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selfie</p>
-                        <img src={`data:image/png;base64,${diditData.session.selfie.image}`} alt="selfie" style={{ maxWidth: '100%', maxHeight: '40vh', borderRadius: 8, objectFit: 'contain' }} />
+                      <div className="didit-doc-block">
+                        <p className="didit-block-title">Verification Selfie</p>
+                        <img
+                          src={`data:image/png;base64,${diditData.session.selfie.image}`}
+                          alt="selfie"
+                          style={{ maxWidth: 280, borderRadius: 12 }}
+                        />
                       </div>
                     )}
-                    {(!diditData.session?.documents?.length && !diditData.session?.selfie) && (
-                      <div style={{ color: '#a1a1aa', fontSize: '0.85rem', textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 0.25rem' }}>No images available for this session</p>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Status: {diditData.session?.status || 'unknown'}</p>
+                    {!diditData.session?.documents?.length && !diditData.session?.selfie && (
+                      <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 0.25rem' }}>No verification images stored for this session</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--admin-text-faint)' }}>
+                          Status: {diditData.session?.status || 'unknown'}
+                        </p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div style={{ color: '#a1a1aa', fontSize: '0.9rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🪪</div>
-                    <p style={{ margin: '0 0 0.25rem' }}>Identity verification reference</p>
-                    <code style={{ fontSize: '0.75rem', color: '#71717a', wordBreak: 'break-all' }}>
+                  <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🪪</div>
+                    <p style={{ margin: '0 0 0.25rem', fontWeight: 600 }}>Didit Identity Reference</p>
+                    <code style={{ fontSize: '0.75rem', color: 'var(--admin-text-faint)', wordBreak: 'break-all' }}>
                       {previewDoc.file_url}
                     </code>
                   </div>
@@ -608,27 +669,23 @@ export default function DocumentsPage() {
                 <img
                   src={previewDoc.file_url}
                   alt={typeLabel(previewDoc.type)}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '65vh',
-                    objectFit: 'contain',
-                    borderRadius: 8,
-                  }}
+                  className="doc-preview-img"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                     const parent = (e.target as HTMLImageElement).parentElement;
                     if (parent) {
                       const fallback = document.createElement('div');
-                      fallback.style.cssText = 'color: #a1a1aa; font-size: 0.9rem; text-align: center;';
-                      fallback.innerHTML = '<p>Failed to load document.</p>';
+                      fallback.style.cssText = 'color: var(--admin-text-muted); font-size: 0.9rem; text-align: center; padding: 2rem;';
+                      fallback.innerHTML = '<p>Unable to render preview for this file URL.</p>';
                       parent.appendChild(fallback);
                     }
                   }}
                 />
               )}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              {previewDoc.status === 'pending' && (
+
+            <div className="doc-preview-footer">
+              {previewDoc.status === 'pending' ? (
                 <>
                   <button
                     onClick={() => {
@@ -636,22 +693,9 @@ export default function DocumentsPage() {
                       setPreviewDoc(null);
                     }}
                     disabled={actionLoading}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      background: 'rgba(16,185,129,0.1)',
-                      color: '#10b981',
-                      border: '1px solid rgba(16,185,129,0.2)',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                    }}
+                    className="doc-approve-btn"
                   >
-                    <CheckCircle size={14} />
-                    Approve
+                    <CheckCircle size={15} /> Approve Document
                   </button>
                   <button
                     onClick={() => {
@@ -659,75 +703,73 @@ export default function DocumentsPage() {
                       setPreviewDoc(null);
                     }}
                     disabled={actionLoading}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      background: 'rgba(239,68,68,0.1)',
-                      color: '#ef4444',
-                      border: '1px solid rgba(239,68,68,0.2)',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                    }}
+                    className="doc-reject-btn"
                   >
-                    <XCircle size={14} />
-                    Reject
+                    <XCircle size={15} /> Reject Document
                   </button>
                 </>
-              )}
-              {previewDoc.status !== 'pending' && (
-                <span className="admin-badge" style={{ fontSize: '0.85rem' }}>
+              ) : (
+                <div style={{ marginLeft: 'auto' }}>
                   {statusBadge(previewDoc.status)}
-                </span>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
+      {/* ── Reject Reason Modal ── */}
       {rejectModal.open && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }} onClick={() => setRejectModal({ open: false, docId: null })}>
-          <div style={{
-            background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px',
-            padding: '24px', width: '400px', maxWidth: '90vw',
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', color: '#fff', fontSize: '1.1rem' }}>Rejection Reason</h3>
+        <div
+          className="admin-modal-overlay"
+          style={{ zIndex: 1000 }}
+          onClick={() => setRejectModal({ open: false, docId: null })}
+        >
+          <div className="admin-modal vip-modal" onClick={(e) => e.stopPropagation()} style={{ width: 440 }}>
+            <div className="vip-modal-header">
+              <h2>Reject Document</h2>
+              <button
+                className="vip-modal-close"
+                onClick={() => setRejectModal({ open: false, docId: null })}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-muted)', marginBottom: '1rem' }}>
+              Please provide a clear reason for rejecting this document so the chauffeur knows what to resubmit.
+            </p>
+
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Enter reason for rejection (optional)"
-              rows={3}
+              placeholder="e.g. Image blurry, license expired, name mismatch…"
+              rows={4}
+              className="admin-search-input"
               style={{
-                width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #333',
-                background: '#0a0a0a', color: '#e0e0e0', fontSize: '0.9rem', resize: 'vertical',
-                fontFamily: 'inherit', boxSizing: 'border-box',
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: '12px',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                marginBottom: '1.25rem',
               }}
             />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setRejectModal({ open: false, docId: null })}
-                style={{
-                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #333',
-                  background: 'transparent', color: '#999', cursor: 'pointer', fontSize: '0.9rem',
-                }}
+                className="admin-btn admin-btn-outline"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmReject}
                 disabled={actionLoading}
-                style={{
-                  padding: '8px 16px', borderRadius: '8px', border: 'none',
-                  background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
-                }}
+                className="admin-btn"
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
               >
-                Reject Document
+                Confirm Rejection
               </button>
             </div>
           </div>

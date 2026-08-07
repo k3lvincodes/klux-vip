@@ -71,12 +71,13 @@ export default function AdminLogin() {
 
   return (
     <div className="al-page">
+      {/* Logo at top left */}
+      <div className="al-top-logo">
+        <img src="/Kenick-logo-favicon.png" alt="Kenick VIP" />
+      </div>
+
       {/* LEFT PANEL — Brand Visual */}
       <div className="al-brand-panel">
-        {/* Logo at top left */}
-        <div className="al-top-logo">
-          <img src="/Kenick-logo-favicon.png" alt="Kenick" />
-        </div>
         {/* Noise texture */}
         <div className="al-noise"></div>
 

@@ -169,7 +169,7 @@ export default function Overview() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* Stat Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+      <div className="admin-stats-grid">
         
         <div className="admin-card admin-card-interactive admin-stat-card">
           <div>
@@ -225,10 +225,10 @@ export default function Overview() {
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div className="admin-charts-grid">
         
         {/* Revenue Chart */}
-        <div className="admin-card" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
+        <div className="admin-card admin-chart-card">
           <div className="admin-card-title">
             <TrendingUp size={18} color="var(--admin-primary)" />
             Revenue Flow
@@ -253,7 +253,7 @@ export default function Overview() {
         </div>
 
         {/* Rides Chart */}
-        <div className="admin-card" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
+        <div className="admin-card admin-chart-card">
           <div className="admin-card-title">
             <Map size={18} color="var(--admin-info)" />
             Rides Completed
@@ -273,7 +273,7 @@ export default function Overview() {
       </div>
 
       {/* Actionable Insights Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+      <div className="admin-insights-grid">
         
         <div className="admin-card">
           <div className="admin-card-title">

@@ -99,7 +99,7 @@ export default function VehiclesPage() {
           <h1>Fleet Management</h1>
           <p>Manage vehicle details, classes, and inspections</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="admin-page-header-actions">
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
             Export CSV
@@ -108,15 +108,15 @@ export default function VehiclesPage() {
       </div>
 
       <div className="admin-table-wrapper">
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+        <div className="admin-table-filter-bar">
+          <div className="admin-search-wrapper">
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
             <input
               type="text"
               placeholder="Search vehicles by plate or model..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              className="admin-search-input"
             />
           </div>
         </div>
@@ -148,13 +148,13 @@ export default function VehiclesPage() {
               ) : (
                 filtered.map((v) => (
                   <tr key={v.id}>
-                    <td>
+                    <td data-label="Vehicle Model">
                       <div style={{ fontWeight: 500 }}>{v.make} {v.model}</div>
                       <span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>{v.year} {v.color}</span>
                     </td>
-                    <td><div style={{ fontFamily: 'monospace' }}>{v.license_plate}</div></td>
-                    <td>{v.driver_name || '--'}</td>
-                    <td>
+                    <td data-label="License Plate"><div style={{ fontFamily: 'monospace' }}>{v.license_plate}</div></td>
+                    <td data-label="Assigned Chauffeur">{v.driver_name || '--'}</td>
+                    <td data-label="Status">
                       {v.is_active ? (
                         <span className="admin-badge admin-badge-success">Active</span>
                       ) : (

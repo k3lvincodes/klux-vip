@@ -163,7 +163,7 @@ export default function UserDetail() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div className="admin-user-details-grid">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
             <Mail size={16} style={{ color: '#a1a1aa' }} />
             <div>
@@ -259,8 +259,8 @@ export default function UserDetail() {
               <tbody>
                 {rides.map((ride) => (
                   <tr key={ride.id}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(ride.created_at)}</td>
-                    <td>
+                    <td data-label="Date" style={{ whiteSpace: 'nowrap' }}>{formatDate(ride.created_at)}</td>
+                    <td data-label="Route">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
                         <MapPin size={12} style={{ color: '#22c55e', flexShrink: 0 }} />
                         <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ride.pickup_address || '—'}</span>
@@ -269,8 +269,8 @@ export default function UserDetail() {
                         <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ride.dropoff_address || '—'}</span>
                       </div>
                     </td>
-                    <td style={{ fontWeight: 600 }}>{formatCurrency(ride.fare_amount)}</td>
-                    <td>{statusBadge(ride.status)}</td>
+                    <td data-label="Fare" style={{ fontWeight: 600 }}>{formatCurrency(ride.fare_amount)}</td>
+                    <td data-label="Status">{statusBadge(ride.status)}</td>
                   </tr>
                 ))}
               </tbody>

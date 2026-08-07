@@ -134,7 +134,7 @@ export default function SupportPage() {
           <h1>Support Desk</h1>
           <p>Customer and chauffeur support tickets</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="admin-page-header-actions">
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
             Export CSV
@@ -143,15 +143,15 @@ export default function SupportPage() {
       </div>
 
       <div className="admin-table-wrapper">
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+        <div className="admin-table-filter-bar">
+          <div className="admin-search-wrapper">
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
             <input
               type="text"
               placeholder="Search tickets..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              className="admin-search-input"
             />
           </div>
         </div>
@@ -185,12 +185,12 @@ export default function SupportPage() {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id}>
-                    <td><div style={{ fontFamily: 'monospace', color: '#a1a1aa' }}>#{t.id.slice(0, 8)}</div></td>
-                    <td><div style={{ fontWeight: 500 }}>{t.subject}</div></td>
-                    <td>{t.user_name}</td>
-                    <td>{timeAgo(t.updated_at)}</td>
-                    <td>{statusBadge(t.status)}</td>
-                    <td>
+                    <td data-label="Ticket ID"><div style={{ fontFamily: 'monospace', color: '#a1a1aa' }}>#{t.id.slice(0, 8)}</div></td>
+                    <td data-label="Subject"><div style={{ fontWeight: 500 }}>{t.subject}</div></td>
+                    <td data-label="User">{t.user_name}</td>
+                    <td data-label="Last Updated">{timeAgo(t.updated_at)}</td>
+                    <td data-label="Status">{statusBadge(t.status)}</td>
+                    <td data-label="Action">
                       <button
                         className="admin-btn admin-btn-outline"
                         style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', cursor: 'pointer' }}
@@ -209,10 +209,11 @@ export default function SupportPage() {
 
       {detailTicket && (
         <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
+          className="admin-modal-overlay"
+          style={{ zIndex: 9999 }}
           onClick={(e) => { if (e.target === e.currentTarget) setDetailTicket(null); }}
         >
-          <div style={{ background: '#18181b', borderRadius: '16px', padding: '2rem', maxWidth: '500px', width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="admin-modal" style={{ maxWidth: '500px', width: '90%', maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: 0 }}>{detailTicket.subject}</h3>
               <button onClick={() => setDetailTicket(null)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '20px', padding: '4px' }}>&times;</button>

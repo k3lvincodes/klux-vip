@@ -160,6 +160,10 @@
 }
 
 /* ---- Header ---- */
+.al-mobile-logo {
+  display: none;
+}
+
 .al-form-header {
   margin-bottom: 2rem;
 }
@@ -416,47 +420,55 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .al-brand-panel {
-    min-height: 200px;
-    padding: 4rem 1.25rem 1.5rem;
-  }
-
-  .al-brand-title {
-    font-size: 1.75rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .al-brand-stats {
-    gap: 0.85rem;
-  }
-
-  .al-stat-value {
-    font-size: 0.9rem;
-  }
-
-  .al-stat-label {
-    font-size: 0.65rem;
+    display: none;
   }
 
   .al-form-panel {
-    padding: 2.5rem 1rem 1.5rem;
+    width: 100%;
+    min-width: unset;
+    border-left: none;
+    border-top: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--al-bg);
   }
 
   .al-form-container {
     max-width: 100%;
+    width: 100%;
+    padding: 2.5rem 1.5rem;
   }
 
   .al-form-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .al-top-logo {
+    display: block;
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 100;
+  }
+
+  .al-top-logo img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    border-radius: 10px;
   }
 
   .al-form-header h2 {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
   }
 
   .al-form-header p {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
   }
 
   .al-form {
@@ -482,53 +494,15 @@
   .al-footer {
     margin-top: 1.75rem;
   }
-
-  .al-top-logo {
-    top: 1.25rem;
-    left: 1.5rem;
-  }
-
-  .al-top-logo img {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-  }
 }
 
 @media (max-width: 480px) {
-  .al-brand-panel {
-    min-height: 160px;
-    padding: 4rem 1rem 1.25rem;
-  }
-
-  .al-brand-title {
-    font-size: 1.35rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .al-brand-stats {
-    flex-wrap: wrap;
-    gap: 0.65rem;
-  }
-
-  .al-stat-value {
-    font-size: 0.8rem;
-  }
-
-  .al-stat-divider {
-    display: none;
-  }
-
-  .al-form-panel {
-    padding: 2rem 0.85rem 1.25rem;
-  }
-
-  .al-form-header {
-    margin-bottom: 1.25rem;
+  .al-form-container {
+    padding: 2rem 1.25rem;
   }
 
   .al-form-header h2 {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 
   .al-form {

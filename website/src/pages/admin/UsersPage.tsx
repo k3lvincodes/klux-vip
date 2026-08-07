@@ -112,7 +112,7 @@ export default function UsersPage() {
           <h1>User Management</h1>
           <p>View and manage all registered clients</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="admin-page-header-actions">
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
             Export CSV
@@ -121,15 +121,15 @@ export default function UsersPage() {
       </div>
 
       <div className="admin-table-wrapper">
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+        <div className="admin-table-filter-bar">
+          <div className="admin-search-wrapper">
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
             <input
               type="text"
               placeholder="Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              className="admin-search-input"
             />
           </div>
         </div>
@@ -162,11 +162,11 @@ export default function UsersPage() {
               ) : (
                 filtered.map((p) => (
                   <tr key={p.id}>
-                    <td><div style={{ fontWeight: 500 }}>{fullName(p)}</div></td>
-                    <td>{p.email}</td>
-                    <td>{formatDate(p.created_at)}</td>
-                    <td>{p.total_rides}</td>
-                    <td>
+                    <td data-label="Name"><div style={{ fontWeight: 500 }}>{fullName(p)}</div></td>
+                    <td data-label="Email">{p.email}</td>
+                    <td data-label="Joined Date">{formatDate(p.created_at)}</td>
+                    <td data-label="Total Rides">{p.total_rides}</td>
+                    <td data-label="Status">
                       {p.total_rides > 0 ? (
                         <span className="admin-badge admin-badge-success">Active</span>
                       ) : (
