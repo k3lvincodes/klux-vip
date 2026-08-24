@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { Search, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
+type UserStatus = 'online' | 'active' | 'inactive' | 'dormant' | 'unverified';
+
 interface Passenger {
   id: string;
   email: string;
@@ -9,7 +11,29 @@ interface Passenger {
   last_name: string | null;
   created_at: string;
   total_rides: number;
+  last_seen_at: string | null;
+  email_verified_at: string | null;
 }
+
+function computeStatus(p: Pick<Passenger, 'last_seen_at' | 'email_verified_at'>): UserStatus {
+  if (!p.email_verified_at) return 'unverified';
+  if (!p.last_seen_at) return 'dormant';
+  const diff = Date.now() - new Date(p.last_seen_at).getTime();
+  const seconds = diff / 1000;
+  if (seconds <= 30) return 'online';
+  const days = seconds / 86400;
+  if (days <= 21) return 'active';
+  if (days <= 90) return 'inactive';
+  return 'dormant';
+}
+
+const statusConfig: Record<UserStatus, { label: string; className: string }> = {
+  online: { label: 'Online', className: 'admin-badge-success' },
+  active: { label: 'Active', className: 'admin-badge-success' },
+  inactive: { label: 'Inactive', className: 'admin-badge-info' },
+  dormant: { label: 'Dormant', className: 'admin-badge-danger' },
+  unverified: { label: 'Unverified', className: 'admin-badge-warning' },
+};
 
 export default function UsersPage() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
@@ -25,7 +49,7 @@ export default function UsersPage() {
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, created_at')
+        .select('id, email, first_name, last_name, created_at, last_seen_at, email_verified_at')
         .eq('role', 'client')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
@@ -49,6 +73,8 @@ export default function UsersPage() {
         (profiles || []).map((p) => ({
           ...p,
           total_rides: rideMap.get(p.id) || 0,
+          last_seen_at: (p as Record<string, unknown>).last_seen_at as string | null ?? null,
+          email_verified_at: (p as Record<string, unknown>).email_verified_at as string | null ?? null,
         }))
       );
     } catch (err) {
@@ -78,8 +104,8 @@ export default function UsersPage() {
         month: 'short',
         day: 'numeric',
       });
-      const status = p.total_rides > 0 ? 'Active' : 'Unverified';
-      return [name, p.email, joined, p.total_rides, status];
+      const status = computeStatus({ email_verified_at: p.email_verified_at, last_seen_at: p.last_seen_at });
+      return [name, p.email, joined, p.total_rides, statusConfig[status].label];
     });
 
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
@@ -167,11 +193,10 @@ export default function UsersPage() {
                     <td data-label="Joined Date">{formatDate(p.created_at)}</td>
                     <td data-label="Total Rides">{p.total_rides}</td>
                     <td data-label="Status">
-                      {p.total_rides > 0 ? (
-                        <span className="admin-badge admin-badge-success">Active</span>
-                      ) : (
-                        <span className="admin-badge admin-badge-warning">Unverified</span>
-                      )}
+                      {(() => {
+                        const s = computeStatus({ email_verified_at: p.email_verified_at, last_seen_at: p.last_seen_at });
+                        return <span className={`admin-badge ${statusConfig[s].className}`}>{statusConfig[s].label}</span>;
+                      })()}
                     </td>
                   </tr>
                 ))

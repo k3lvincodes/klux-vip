@@ -11,7 +11,7 @@ import Overview from './pages/admin/Overview';
 import UsersPage from './pages/admin/UsersPage';
 import DriversPage from './pages/admin/DriversPage';
 import RidesPage from './pages/admin/RidesPage';
-import VehiclesPage from './pages/admin/VehiclesPage';
+import FleetPage from './pages/admin/FleetPage';
 import SupportPage from './pages/admin/SupportPage';
 import TransactionsPage from './pages/admin/TransactionsPage';
 import DocumentsPage from './pages/admin/DocumentsPage';
@@ -44,7 +44,7 @@ function App() {
           <Route path="users/:id" element={<UserDetail />} />
           <Route path="drivers" element={<DriversPage />} />
           <Route path="rides" element={<RidesPage />} />
-          <Route path="vehicles" element={<VehiclesPage />} />
+          <Route path="fleet" element={<FleetPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
           <Route path="documents" element={<DocumentsPage />} />

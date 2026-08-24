@@ -29,6 +29,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         checkSuperAdmin(session.user.id);
+        supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', session.user.id)
+          .then();
       } else {
         setIsSuperAdmin(false);
         setLoading(false);

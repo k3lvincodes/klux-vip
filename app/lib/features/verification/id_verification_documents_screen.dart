@@ -17,6 +17,7 @@ class IdVerificationDocumentsScreen extends StatefulWidget {
 class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsScreen> {
   bool _isLoading = true;
   UserProfile? _profile;
+  String? _overallStatus;
 
   @override
   void initState() {
@@ -29,9 +30,33 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
     if (user != null) {
       try {
         final profile = await ProfileRepository().getDriverProfile(user.id);
+        // Fetch actual document statuses from driver_documents
+        final docs = await Supabase.instance.client
+            .from('driver_documents')
+            .select('type, status')
+            .eq('driver_id', user.id)
+            .filter('deleted_at', 'is', null);
+
+        final requiredTypes = ['driver_license', 'insurance', 'registration'];
+        final approvedTypes = (docs as List)
+            .where((d) => d['status'] == 'approved')
+            .map((d) => d['type'] as String)
+            .toSet();
+        final allRequiredApproved = requiredTypes.every((t) => approvedTypes.contains(t));
+
+        String? computedStatus;
+        if (allRequiredApproved) {
+          computedStatus = 'approved';
+        } else if (approvedTypes.isNotEmpty) {
+          computedStatus = 'pending';
+        } else {
+          computedStatus = profile?.driverDetails?['verification_status'] as String?;
+        }
+
         if (mounted) {
           setState(() {
             _profile = profile;
+            _overallStatus = computedStatus;
             _isLoading = false;
           });
         }
@@ -88,7 +113,7 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String? status = _profile?.driverDetails?['verification_status'] as String?;
+    final String? status = _overallStatus ?? _profile?.driverDetails?['verification_status'] as String?;
     final List<dynamic>? verificationUrls = _profile?.driverDetails?['verification_urls'] as List<dynamic>?;
 
     return Scaffold(

@@ -51,7 +51,7 @@ class _DriverIdVerificationScreenState
         switch (session.status) {
           case VerificationStatus.approved:
             try {
-              await _saveDocuments(session.sessionId);
+              await _saveDocuments(session.sessionId, 'approved');
               await _updateVerificationStatus('approved');
               _sendResultEmail(isSuccess: true);
               if (mounted) {
@@ -65,7 +65,7 @@ class _DriverIdVerificationScreenState
             }
           case VerificationStatus.pending:
             try {
-              await _saveDocuments(session.sessionId);
+              await _saveDocuments(session.sessionId, 'pending');
               await _updateVerificationStatus('pending');
               if (mounted) {
                 CustomToast.showSuccess(
@@ -113,19 +113,22 @@ class _DriverIdVerificationScreenState
     }
   }
 
-  Future<void> _saveDocuments(String sessionId) async {
+  Future<void> _saveDocuments(String sessionId, String diditStatus) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
+        final docStatus = diditStatus == 'approved' ? 'approved' : 'pending';
         await _documentRepo.uploadDocument(
           driverId: user.id,
           type: 'driver_license',
           fileUrl: 'didit://$sessionId',
+          status: docStatus,
         );
         await _documentRepo.uploadDocument(
           driverId: user.id,
           type: 'background_check',
           fileUrl: 'didit://$sessionId',
+          status: docStatus,
         );
       }
     } catch (e) {

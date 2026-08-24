@@ -41,6 +41,7 @@ import 'package:kenick_vip/features/ride/ride_payment_received_screen.dart';
 import 'package:kenick_vip/features/ride/start_ride_screen.dart';
 import 'package:kenick_vip/features/settings/settings_screen.dart';
 import 'package:kenick_vip/features/support/support_screen.dart';
+import 'package:kenick_vip/features/support/ticket_detail_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_info_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_management_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_registration_screen.dart';
@@ -220,6 +221,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/support',
       builder: (context, state) => const SupportScreen(),
+    ),
+    GoRoute(
+      path: '/support/ticket/:id',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return TicketDetailScreen(
+          ticketId: state.pathParameters['id']!,
+          subject: extra['subject'] as String? ?? '',
+          status: extra['status'] as String? ?? 'open',
+        );
+      },
     ),
     GoRoute(
       path: '/driver-home',

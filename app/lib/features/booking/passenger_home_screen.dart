@@ -47,6 +47,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   List<LatLng>? _routePoints;
   bool _isRouteLoading = false;
   double? _distanceKm;
+  double? _durationSeconds;
   double _sheetExtent = 0;
   late AnimationController _routeAnimController;
   late Animation<double> _routeAnimation;
@@ -81,8 +82,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
     return '${km.toStringAsFixed(1)} km';
   }
 
-  String _formatDuration(double km) {
-    final minutes = (km / 30 * 60).round();
+  String _formatDuration() {
+    if (_durationSeconds == null) return '';
+    final minutes = (_durationSeconds! / 60).round();
     if (minutes < 60) return '$minutes min';
     final hrs = minutes ~/ 60;
     final mins = minutes % 60;
@@ -246,7 +248,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
 
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * _sheetExtent + 10,
+              bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -260,7 +262,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     Icon(Icons.directions_car, size: 16, color: cs.primary),
                     const SizedBox(width: 8),
                     Text(
-                      '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',
+                      '${_formatDistance(_distanceKm!)} · ${_formatDuration()}',
                       style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -405,13 +407,15 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: () {
-                            context.read<RideProvider>().setPickupDropoff(
-                              _pickupLocation,
-                              _dropoffLocation,
-                            );
-                            context.push('/booking-selection');
-                          },
+                          onPressed: (_pickupLocation != null && _dropoffLocation != null)
+                              ? () {
+                                  context.read<RideProvider>().setPickupDropoff(
+                                    _pickupLocation,
+                                    _dropoffLocation,
+                                  );
+                                  context.push('/booking-selection');
+                                }
+                              : null,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -536,8 +540,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   void _showLocationDialog() {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    _dialogFromController.clear();
-    _dialogToController.clear();
+    _dialogFromController.text = _pickupLocation?.placeName ?? '';
+    _dialogToController.text = _dropoffLocation?.placeName ?? '';
     showDialog(
       context: context,
       builder: (context) {
@@ -637,20 +641,22 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     if (pickup != null && dropoff != null) {
                       final pickupLatLng = LatLng(pickup.latitude, pickup.longitude);
                       final dropoffLatLng = LatLng(dropoff.latitude, dropoff.longitude);
-                      final km = const Distance().as(LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
                       Navigator.pop(context);
                       _routeAnimController.reset();
                       setState(() {
                         _routePoints = null;
-                        _distanceKm = km;
+                        _distanceKm = null;
+                        _durationSeconds = null;
                         _sheetExtent = 0.42;
                         _isRouteLoading = true;
                       });
-                      final route = await LocationSearchService.getRoute(pickupLatLng, dropoffLatLng);
+                      final routeResult = await LocationSearchService.getRoute(pickupLatLng, dropoffLatLng);
                       if (!mounted) return;
-                      if (route != null && route.length >= 2) {
+                      if (routeResult != null && routeResult.points.length >= 2) {
                         setState(() {
-                          _routePoints = route;
+                          _routePoints = routeResult.points;
+                          _distanceKm = routeResult.distanceKm;
+                          _durationSeconds = routeResult.durationSeconds;
                           _isRouteLoading = false;
                         });
                         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -674,13 +680,14 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                       } else {
                         setState(() {
                           _routePoints = [pickupLatLng, dropoffLatLng];
+                          _distanceKm = const Distance().as(LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
+                          _durationSeconds = null;
                           _isRouteLoading = false;
                         });
                         _routeAnimController.forward();
                       }
                     } else {
                       Navigator.pop(context);
-                      setState(() {});
                     }
                   },
                 ),

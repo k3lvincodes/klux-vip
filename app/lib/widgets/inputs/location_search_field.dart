@@ -26,12 +26,16 @@ class LocationSearchField extends StatefulWidget {
   State<LocationSearchField> createState() => _LocationSearchFieldState();
 }
 
-class _LocationSearchFieldState extends State<LocationSearchField> {
+class _LocationSearchFieldState extends State<LocationSearchField>
+    with WidgetsBindingObserver {
   List<LocationSearchResult> _suggestions = [];
   Timer? _debounce;
   bool _isSearching = false;
+  bool _isFetchingLocation = false;
   bool _dropdownVisible = false;
   bool _suppressDropdownHide = false;
+  bool _waitingForResume = false;
+  Completer<void>? _resumeCompleter;
   final _focusNode = FocusNode();
   final _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
@@ -40,10 +44,11 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         _showDropdown();
-      } else if (_dropdownVisible && !_suppressDropdownHide) {
+      } else if (_dropdownVisible && !_suppressDropdownHide && !_waitingForResume) {
         _hideDropdown();
       }
     });
@@ -52,11 +57,34 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
+    _resumeCompleter?.complete();
     _focusNode.dispose();
     _removeOverlay();
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    _removeOverlay();
+    super.deactivate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _waitingForResume) {
+      _waitingForResume = false;
+      _resumeCompleter?.complete();
+      _resumeCompleter = null;
+    }
+  }
+
+  Future<void> _waitForResume() async {
+    _waitingForResume = true;
+    _resumeCompleter = Completer<void>();
+    await _resumeCompleter!.future;
   }
 
   void _removeOverlay() {
@@ -103,76 +131,28 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
     if (query.isEmpty) {
       if (_suggestions.isNotEmpty) {
         setState(() => _suggestions = []);
+        _overlayEntry?.markNeedsBuild();
       }
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 200), () async {
+    _debounce = Timer(const Duration(milliseconds: 150), () async {
       if (!mounted) return;
       setState(() => _isSearching = true);
-      _showDropdown();
+      _overlayEntry?.markNeedsBuild();
 
-      final results = await LocationSearchService.search(query);
+      final results = await LocationSearchService.search(query, countryCode: widget.countryCode);
       if (!mounted) return;
 
       setState(() {
         _suggestions = results;
         _isSearching = false;
       });
-
-      if (_focusNode.hasFocus) {
-        _showDropdown();
-      } else {
-        _hideDropdown();
-      }
+      _overlayEntry?.markNeedsBuild();
     });
   }
 
-  Future<void> _onSelectCurrentLocation() async {
-    _hideDropdown();
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied && mounted) return;
-    }
-    if (permission == LocationPermission.deniedForever && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location permissions are permanently denied. Please enable them in app settings.')),
-      );
-      return;
-    }
-
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (!mounted) return;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: widget.isDark ? AppColors.darkSurface : AppColors.white,
-          title: Text('Enable Location', style: TextStyle(color: widget.isDark ? AppColors.white : AppColors.black)),
-          content: Text('Location services are disabled. Please enable them to use your current location.', style: TextStyle(color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Settings', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm != true) return;
-      await Geolocator.openLocationSettings();
-      // Wait briefly for the user to return
-      await Future.delayed(const Duration(seconds: 1));
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
-    }
-
+  Future<void> _fetchAndSetCurrentLocation() async {
     if (!mounted) return;
 
     try {
@@ -218,7 +198,71 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
           const SnackBar(content: Text('Failed to get current location')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isFetchingLocation = false);
     }
+  }
+
+  Future<void> _onSelectCurrentLocation() async {
+    _hideDropdown();
+    setState(() => _isFetchingLocation = true);
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) setState(() => _isFetchingLocation = false);
+        return;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        setState(() => _isFetchingLocation = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permissions are permanently denied. Please enable them in app settings.')),
+        );
+      }
+      return;
+    }
+
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: widget.isDark ? AppColors.darkSurface : AppColors.white,
+          title: Text('Enable Location', style: TextStyle(color: widget.isDark ? AppColors.white : AppColors.black)),
+          content: Text('Location services are disabled. Please enable them to use your current location.', style: TextStyle(color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Settings', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) {
+        if (mounted) setState(() => _isFetchingLocation = false);
+        return;
+      }
+
+      await Geolocator.openLocationSettings();
+      await _waitForResume();
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled || !mounted) {
+        if (mounted) setState(() => _isFetchingLocation = false);
+        return;
+      }
+    }
+
+    await _fetchAndSetCurrentLocation();
   }
 
   void _onSelectResult(LocationSearchResult result) {
@@ -269,7 +313,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
               fillColor: Colors.transparent,
               isDense: true,
               contentPadding: EdgeInsets.zero,
-              suffixIcon: _isSearching
+              suffixIcon: _isSearching || _isFetchingLocation
                   ? Padding(
                       padding: const EdgeInsets.all(14),
                       child: SizedBox(
@@ -292,14 +336,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
             ),
             onChanged: _onSearchChanged,
             onTap: () {
-              if (widget.controller.text.isNotEmpty) {
-                _suppressDropdownHide = true;
-                _focusNode.unfocus();
-                _showDropdown();
-                _suppressDropdownHide = false;
-              } else {
-                _showDropdown();
-              }
+              _showDropdown();
             },
           ),
         ),
@@ -312,7 +349,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
 
     items.add(_buildCurrentLocationTile());
 
-    if (_isSearching) {
+    if (_isSearching || _isFetchingLocation) {
       items.add(const Divider(height: 1, thickness: 1));
       items.add(_buildLoadingTile());
     } else if (_suggestions.isNotEmpty) {
@@ -346,7 +383,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
 
   Widget _buildCurrentLocationTile() {
     return InkWell(
-      onTap: _onSelectCurrentLocation,
+      onTap: _isFetchingLocation ? null : _onSelectCurrentLocation,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -368,7 +405,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Current Location',
+                _isFetchingLocation ? 'Getting location...' : 'Current Location',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -376,13 +413,25 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
                 ),
               ),
             ),
-            Icon(
-              Icons.near_me,
-              size: 16,
-              color: widget.isDark
-                  ? Colors.grey.shade500
-                  : Colors.grey.shade400,
-            ),
+            if (_isFetchingLocation)
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: widget.isDark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade600,
+                ),
+              )
+            else
+              Icon(
+                Icons.near_me,
+                size: 16,
+                color: widget.isDark
+                    ? Colors.grey.shade500
+                    : Colors.grey.shade400,
+              ),
           ],
         ),
       ),
@@ -404,7 +453,7 @@ class _LocationSearchFieldState extends State<LocationSearchField> {
           ),
           const SizedBox(width: 12),
           Text(
-            'Searching addresses...',
+            _isFetchingLocation ? 'Fetching your location...' : 'Searching addresses...',
             style: TextStyle(
               fontSize: 13,
               color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade600,

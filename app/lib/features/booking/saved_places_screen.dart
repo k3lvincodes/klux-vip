@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
+import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SavedPlacesScreen extends StatefulWidget {
@@ -72,85 +74,96 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     final nameController = TextEditingController();
     final addressController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    LocationSearchResult? selectedLocation;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Padding(
           padding: EdgeInsets.fromLTRB(
             24, 0, 24, MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Add Saved Place',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: nameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    hintText: 'Place name (e.g. Home, Office)',
-                    prefixIcon: Icon(Icons.label_outline),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Enter a name' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Enter an address' : null,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () async {
-                      if (!formKey.currentState!.validate()) return;
-                      final user = Supabase.instance.client.auth.currentUser;
-                      if (user == null) return;
-                      try {
-                        final response = await Supabase.instance.client
-                            .from('saved_places')
-                            .insert({
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) {
+              return Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Add Saved Place',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        hintText: 'Place name (e.g. Home, Office)',
+                        prefixIcon: Icon(Icons.label_outline),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter a name' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    LocationSearchField(
+                      hint: 'Search address',
+                      controller: addressController,
+                      isDark: isDark,
+                      onSelected: (r) {
+                        setSheetState(() => selectedLocation = r);
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          if (addressController.text.trim().isEmpty) return;
+                          final user = Supabase.instance.client.auth.currentUser;
+                          if (user == null) return;
+                          try {
+                            final insertData = <String, dynamic>{
                               'user_id': user.id,
                               'name': nameController.text.trim(),
                               'address': addressController.text.trim(),
-                            })
-                            .select()
-                            .single();
-                        if (mounted) {
-                          setState(() => _places.insert(0, response));
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
+                            };
+                            if (selectedLocation != null) {
+                              insertData['latitude'] = selectedLocation!.latitude;
+                              insertData['longitude'] = selectedLocation!.longitude;
+                            }
+                            final response = await Supabase.instance.client
+                                .from('saved_places')
+                                .insert(insertData)
+                                .select()
+                                .single();
+                            if (mounted) {
+                              setState(() => _places.insert(0, response));
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Place saved')),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Failed to save place')),
+                              );
+                            }
                           }
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Place saved')),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Failed to save place')),
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('Save Place'),
-                  ),
+                        },
+                        child: const Text('Save Place'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         );
       },

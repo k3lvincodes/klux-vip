@@ -12,6 +12,7 @@ interface SelectedCountry {
   code: string;
   name: string;
   flag: string;
+  currencySymbol: string;
   vipAmount: number;
   perKmRate: number;
   baseFare: number;
@@ -30,9 +31,7 @@ interface FareRate {
   per_minute_rate: number | null;
 }
 
-const DEFAULT_PER_KM_RATE = 1.85;
-const DEFAULT_BASE_FARE = 3.5;
-const DEFAULT_PER_MINUTE_RATE = 0.45;
+
 
 const COUNTRIES: { code: string; name: string; flag: string; states: string[] }[] = [
   { code: 'US', name: 'United States', flag: '🇺🇸', states: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'] },
@@ -104,6 +103,151 @@ const COUNTRIES: { code: string; name: string; flag: string; states: string[] }[
   { code: 'KZ', name: 'Kazakhstan', flag: '🇰🇿', states: ['Almaty', 'Astana', 'Shymkent', 'Karaganda', 'Aktobe', 'Pavlodar', 'East Kazakhstan', 'Atyrau', 'Kostanay', 'West Kazakhstan', 'Kyzylorda', 'Mangystau', 'Turkistan', 'North Kazakhstan', 'Abai', 'Zhetysu', 'Ulytau'] },
 ];
 
+const COUNTRY_CURRENCY: Record<string, { symbol: string; code: string }> = {
+  US: { symbol: '$', code: 'USD' },
+  GB: { symbol: '£', code: 'GBP' },
+  CA: { symbol: 'CA$', code: 'CAD' },
+  AU: { symbol: 'A$', code: 'AUD' },
+  NG: { symbol: '₦', code: 'NGN' },
+  BR: { symbol: 'R$', code: 'BRL' },
+  DE: { symbol: '€', code: 'EUR' },
+  FR: { symbol: '€', code: 'EUR' },
+  ES: { symbol: '€', code: 'EUR' },
+  IT: { symbol: '€', code: 'EUR' },
+  NL: { symbol: '€', code: 'EUR' },
+  PT: { symbol: '€', code: 'EUR' },
+  IE: { symbol: '€', code: 'EUR' },
+  BE: { symbol: '€', code: 'EUR' },
+  AT: { symbol: '€', code: 'EUR' },
+  GR: { symbol: '€', code: 'EUR' },
+  FI: { symbol: '€', code: 'EUR' },
+  EE: { symbol: '€', code: 'EUR' },
+  LV: { symbol: '€', code: 'EUR' },
+  LT: { symbol: '€', code: 'EUR' },
+  SK: { symbol: '€', code: 'EUR' },
+  SI: { symbol: '€', code: 'EUR' },
+  MT: { symbol: '€', code: 'EUR' },
+  CY: { symbol: '€', code: 'EUR' },
+  AE: { symbol: 'د.إ', code: 'AED' },
+  SA: { symbol: '﷼', code: 'SAR' },
+  QA: { symbol: '﷼', code: 'QAR' },
+  KW: { symbol: 'د.ك', code: 'KWD' },
+  OM: { symbol: '﷼', code: 'OMR' },
+  JO: { symbol: 'د.ا', code: 'JOD' },
+  IL: { symbol: '₪', code: 'ILS' },
+  ZA: { symbol: 'R', code: 'ZAR' },
+  EG: { symbol: 'E£', code: 'EGP' },
+  KE: { symbol: 'KSh', code: 'KES' },
+  GH: { symbol: 'GH₵', code: 'GHS' },
+  TZ: { symbol: 'TSh', code: 'TZS' },
+  UG: { symbol: 'USh', code: 'UGX' },
+  ET: { symbol: 'Br', code: 'ETB' },
+  CM: { symbol: 'FCFA', code: 'XAF' },
+  CI: { symbol: 'FCFA', code: 'XOF' },
+  SN: { symbol: 'FCFA', code: 'XOF' },
+  MA: { symbol: 'د.م.', code: 'MAD' },
+  DZ: { symbol: 'د.ج', code: 'DZD' },
+  IN: { symbol: '₹', code: 'INR' },
+  PK: { symbol: 'Rs', code: 'PKR' },
+  BD: { symbol: '৳', code: 'BDT' },
+  LK: { symbol: 'Rs', code: 'LKR' },
+  CN: { symbol: '¥', code: 'CNY' },
+  JP: { symbol: '¥', code: 'JPY' },
+  KR: { symbol: '₩', code: 'KRW' },
+  SG: { symbol: 'S$', code: 'SGD' },
+  MY: { symbol: 'RM', code: 'MYR' },
+  TH: { symbol: '฿', code: 'THB' },
+  VN: { symbol: '₫', code: 'VND' },
+  PH: { symbol: '₱', code: 'PHP' },
+  ID: { symbol: 'Rp', code: 'IDR' },
+  TR: { symbol: '₺', code: 'TRY' },
+  RU: { symbol: '₽', code: 'RUB' },
+  MX: { symbol: 'MX$', code: 'MXN' },
+  AR: { symbol: 'AR$', code: 'ARS' },
+  CL: { symbol: 'CL$', code: 'CLP' },
+  CO: { symbol: 'CO$', code: 'COP' },
+  PE: { symbol: 'S/.', code: 'PEN' },
+  NZ: { symbol: 'NZ$', code: 'NZD' },
+  PL: { symbol: 'zł', code: 'PLN' },
+  CZ: { symbol: 'Kč', code: 'CZK' },
+  HU: { symbol: 'Ft', code: 'HUF' },
+  RO: { symbol: 'lei', code: 'RON' },
+  SE: { symbol: 'kr', code: 'SEK' },
+  NO: { symbol: 'kr', code: 'NOK' },
+  DK: { symbol: 'kr', code: 'DKK' },
+  CH: { symbol: 'CHF', code: 'CHF' },
+  UA: { symbol: '₴', code: 'UAH' },
+  KZ: { symbol: '₸', code: 'KZT' },
+};
+
+const CURRENCY_DEFAULTS: Record<string, { perKmRate: number; baseFare: number; perMinuteRate: number }> = {
+  USD: { perKmRate: 1.85, baseFare: 3.5, perMinuteRate: 0.45 },
+  GBP: { perKmRate: 1.45, baseFare: 2.8, perMinuteRate: 0.35 },
+  CAD: { perKmRate: 2.45, baseFare: 4.5, perMinuteRate: 0.6 },
+  AUD: { perKmRate: 2.75, baseFare: 5.0, perMinuteRate: 0.65 },
+  NGN: { perKmRate: 250, baseFare: 500, perMinuteRate: 80 },
+  BRL: { perKmRate: 3.5, baseFare: 7.0, perMinuteRate: 0.9 },
+  EUR: { perKmRate: 1.7, baseFare: 3.2, perMinuteRate: 0.42 },
+  AED: { perKmRate: 3.0, baseFare: 12.0, perMinuteRate: 0.5 },
+  SAR: { perKmRate: 3.0, baseFare: 12.0, perMinuteRate: 0.5 },
+  QAR: { perKmRate: 3.0, baseFare: 12.0, perMinuteRate: 0.5 },
+  KWD: { perKmRate: 0.6, baseFare: 1.2, perMinuteRate: 0.15 },
+  OMR: { perKmRate: 0.5, baseFare: 1.0, perMinuteRate: 0.12 },
+  JOD: { perKmRate: 0.6, baseFare: 1.2, perMinuteRate: 0.15 },
+  ILS: { perKmRate: 6.5, baseFare: 12.0, perMinuteRate: 1.6 },
+  ZAR: { perKmRate: 12.0, baseFare: 25.0, perMinuteRate: 3.0 },
+  EGP: { perKmRate: 25.0, baseFare: 50.0, perMinuteRate: 8.0 },
+  KES: { perKmRate: 80.0, baseFare: 150.0, perMinuteRate: 25.0 },
+  GHS: { perKmRate: 8.0, baseFare: 15.0, perMinuteRate: 2.5 },
+  TZS: { perKmRate: 1200, baseFare: 2500, perMinuteRate: 400 },
+  UGX: { perKmRate: 2500, baseFare: 5000, perMinuteRate: 800 },
+  ETB: { perKmRate: 55.0, baseFare: 100.0, perMinuteRate: 18.0 },
+  XAF: { perKmRate: 750, baseFare: 1500, perMinuteRate: 250 },
+  XOF: { perKmRate: 750, baseFare: 1500, perMinuteRate: 250 },
+  MAD: { perKmRate: 10.0, baseFare: 20.0, perMinuteRate: 3.0 },
+  DZD: { perKmRate: 65.0, baseFare: 120.0, perMinuteRate: 20.0 },
+  INR: { perKmRate: 45.0, baseFare: 80.0, perMinuteRate: 12.0 },
+  PKR: { perKmRate: 180, baseFare: 350, perMinuteRate: 55 },
+  BDT: { perKmRate: 80.0, baseFare: 150.0, perMinuteRate: 25.0 },
+  LKR: { perKmRate: 300, baseFare: 600, perMinuteRate: 90 },
+  CNY: { perKmRate: 8.0, baseFare: 15.0, perMinuteRate: 2.5 },
+  JPY: { perKmRate: 200, baseFare: 400, perMinuteRate: 60 },
+  KRW: { perKmRate: 2500, baseFare: 5000, perMinuteRate: 800 },
+  SGD: { perKmRate: 2.5, baseFare: 4.5, perMinuteRate: 0.6 },
+  MYR: { perKmRate: 4.5, baseFare: 8.0, perMinuteRate: 1.2 },
+  THB: { perKmRate: 35.0, baseFare: 65.0, perMinuteRate: 10.0 },
+  VND: { perKmRate: 15000, baseFare: 30000, perMinuteRate: 4500 },
+  PHP: { perKmRate: 55.0, baseFare: 100.0, perMinuteRate: 16.0 },
+  IDR: { perKmRate: 8000, baseFare: 15000, perMinuteRate: 2500 },
+  TRY: { perKmRate: 35.0, baseFare: 65.0, perMinuteRate: 10.0 },
+  RUB: { perKmRate: 80.0, baseFare: 150.0, perMinuteRate: 25.0 },
+  MXN: { perKmRate: 25.0, baseFare: 45.0, perMinuteRate: 7.0 },
+  ARS: { perKmRate: 800, baseFare: 1500, perMinuteRate: 250 },
+  CLP: { perKmRate: 1000, baseFare: 2000, perMinuteRate: 300 },
+  COP: { perKmRate: 3500, baseFare: 7000, perMinuteRate: 1100 },
+  PEN: { perKmRate: 4.5, baseFare: 8.0, perMinuteRate: 1.2 },
+  NZD: { perKmRate: 2.9, baseFare: 5.5, perMinuteRate: 0.7 },
+  PLN: { perKmRate: 7.5, baseFare: 14.0, perMinuteRate: 2.0 },
+  CZK: { perKmRate: 45.0, baseFare: 85.0, perMinuteRate: 13.0 },
+  HUF: { perKmRate: 700, baseFare: 1300, perMinuteRate: 200 },
+  RON: { perKmRate: 8.5, baseFare: 16.0, perMinuteRate: 2.5 },
+  SEK: { perKmRate: 12.0, baseFare: 22.0, perMinuteRate: 3.5 },
+  NOK: { perKmRate: 13.0, baseFare: 24.0, perMinuteRate: 3.8 },
+  DKK: { perKmRate: 9.0, baseFare: 17.0, perMinuteRate: 2.7 },
+  CHF: { perKmRate: 2.0, baseFare: 3.8, perMinuteRate: 0.5 },
+  UAH: { perKmRate: 35.0, baseFare: 65.0, perMinuteRate: 10.0 },
+  KZT: { perKmRate: 500, baseFare: 1000, perMinuteRate: 150 },
+};
+
+function getCurrency(countryCode: string) {
+  return COUNTRY_CURRENCY[countryCode] || { symbol: '$', code: 'USD' };
+}
+
+function getDefaultRates(countryCode: string) {
+  const currency = getCurrency(countryCode);
+  return CURRENCY_DEFAULTS[currency.code] || CURRENCY_DEFAULTS.USD;
+}
+
 const SELECTED_COUNTRY_CODES = ['US', 'GB', 'CA', 'AU', 'NG', 'BR'];
 
 export default function PricingPage() {
@@ -138,7 +282,11 @@ export default function PricingPage() {
       const result: SelectedCountry[] = [];
       const processed = new Set<string>();
 
-      for (const code of [...SELECTED_COUNTRY_CODES, ...grouped.keys()]) {
+      const countryCodes = grouped.size > 0
+        ? [...grouped.keys()]
+        : SELECTED_COUNTRY_CODES;
+
+      for (const code of countryCodes) {
         if (processed.has(code)) continue;
         const info = countryMap.get(code);
         if (!info) continue;
@@ -148,14 +296,17 @@ export default function PricingPage() {
         const countryDefault = existing?.find(r => !r.state_or_region);
         const stateRates = existing?.filter(r => r.state_or_region) || [];
 
+        const defaults = getDefaultRates(code);
+
         result.push({
           code,
           name: info.name,
           flag: info.flag,
+          currencySymbol: getCurrency(code).symbol,
           vipAmount: countryDefault?.vip_amount ?? 0,
-          perKmRate: countryDefault?.per_km_rate ?? DEFAULT_PER_KM_RATE,
-          baseFare: countryDefault?.base_fare ?? DEFAULT_BASE_FARE,
-          perMinuteRate: countryDefault?.per_minute_rate ?? DEFAULT_PER_MINUTE_RATE,
+          perKmRate: countryDefault?.per_km_rate ?? defaults.perKmRate,
+          baseFare: countryDefault?.base_fare ?? defaults.baseFare,
+          perMinuteRate: countryDefault?.per_minute_rate ?? defaults.perMinuteRate,
           states: info.states.map(s => {
             const match = stateRates.find(r => r.state_or_region === s);
             return {
@@ -184,14 +335,17 @@ export default function PricingPage() {
     setAdding(true);
     setModalError('');
 
+    const defaults = getDefaultRates(code);
+
     const newCountry: SelectedCountry = {
       code,
       name: info.name,
       flag: info.flag,
+      currencySymbol: getCurrency(code).symbol,
       vipAmount: 0,
-      perKmRate: DEFAULT_PER_KM_RATE,
-      baseFare: DEFAULT_BASE_FARE,
-      perMinuteRate: DEFAULT_PER_MINUTE_RATE,
+      perKmRate: defaults.perKmRate,
+      baseFare: defaults.baseFare,
+      perMinuteRate: defaults.perMinuteRate,
       states: info.states.map(s => ({ name: s, vipAmount: 0, inherited: true })),
       expanded: false,
     };
@@ -199,9 +353,9 @@ export default function PricingPage() {
     const { error } = await supabase.from('fare_rates').insert({
       country_code: code.toLowerCase(),
       state_or_region: null,
-      per_km_rate: DEFAULT_PER_KM_RATE,
-      base_fare: DEFAULT_BASE_FARE,
-      per_minute_rate: DEFAULT_PER_MINUTE_RATE,
+      per_km_rate: defaults.perKmRate,
+      base_fare: defaults.baseFare,
+      per_minute_rate: defaults.perMinuteRate,
       vip_amount: 0,
     });
 
@@ -223,32 +377,6 @@ export default function PricingPage() {
     setSelectedCountries(prev => prev.filter(c => c.code !== code));
   }
 
-  async function updateCountryVip(code: string, amount: number) {
-    const { data: existing } = await supabase
-      .from('fare_rates')
-      .select('id')
-      .eq('country_code', code.toLowerCase())
-      .is('state_or_region', null)
-      .maybeSingle();
-
-    let error;
-    if (existing) {
-      ({ error } = await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id));
-    } else {
-      ({ error } = await supabase.from('fare_rates').insert({ country_code: code.toLowerCase(), state_or_region: null, per_km_rate: DEFAULT_PER_KM_RATE, base_fare: DEFAULT_BASE_FARE, per_minute_rate: DEFAULT_PER_MINUTE_RATE, vip_amount: amount }));
-    }
-
-    if (error) return;
-
-    setSelectedCountries(prev =>
-      prev.map(c =>
-        c.code === code
-          ? { ...c, vipAmount: amount, states: c.states.map(s => s.inherited ? { ...s, vipAmount: amount } : s) }
-          : c
-      )
-    );
-  }
-
   async function updateCountryRates(code: string, patch: { perKmRate?: number; baseFare?: number; perMinuteRate?: number }) {
     const { data: existing } = await supabase
       .from('fare_rates')
@@ -266,13 +394,14 @@ export default function PricingPage() {
     if (existing) {
       ({ error } = await supabase.from('fare_rates').update(dbPatch).eq('id', existing.id));
     } else {
+      const defaults = getDefaultRates(code);
       ({ error } = await supabase.from('fare_rates').insert({
         country_code: code.toLowerCase(),
         state_or_region: null,
         vip_amount: 0,
-        per_km_rate: patch.perKmRate ?? DEFAULT_PER_KM_RATE,
-        base_fare: patch.baseFare ?? DEFAULT_BASE_FARE,
-        per_minute_rate: patch.perMinuteRate ?? DEFAULT_PER_MINUTE_RATE,
+        per_km_rate: patch.perKmRate ?? defaults.perKmRate,
+        base_fare: patch.baseFare ?? defaults.baseFare,
+        per_minute_rate: patch.perMinuteRate ?? defaults.perMinuteRate,
       }));
     }
 
@@ -292,13 +421,14 @@ export default function PricingPage() {
     if (existing) {
       ({ error } = await supabase.from('fare_rates').update({ vip_amount: amount }).eq('id', existing.id));
     } else {
+      const defaults = getDefaultRates(code);
       ({ error } = await supabase.from('fare_rates').insert({
         country_code: code.toLowerCase(),
         state_or_region: stateName,
         vip_amount: amount,
-        per_km_rate: DEFAULT_PER_KM_RATE,
-        base_fare: DEFAULT_BASE_FARE,
-        per_minute_rate: DEFAULT_PER_MINUTE_RATE,
+        per_km_rate: defaults.perKmRate,
+        base_fare: defaults.baseFare,
+        per_minute_rate: defaults.perMinuteRate,
       }));
     }
 
@@ -349,9 +479,6 @@ export default function PricingPage() {
 
   // Computed stats
   const totalRegions = selectedCountries.reduce((sum, c) => sum + c.states.length, 0);
-  const avgVip = selectedCountries.length
-    ? (selectedCountries.reduce((sum, c) => sum + c.vipAmount, 0) / selectedCountries.length).toFixed(2)
-    : '0.00';
   const customRegions = selectedCountries.reduce(
     (sum, c) => sum + c.states.filter(s => !s.inherited).length,
     0
@@ -422,8 +549,8 @@ export default function PricingPage() {
             <DollarSign size={18} />
           </div>
           <div>
-            <div className="pricing-stat-value">${avgVip}</div>
-            <div className="pricing-stat-label">Avg. VIP Rate</div>
+            <div className="pricing-stat-value">{selectedCountries.filter(c => c.vipAmount > 0).length}</div>
+            <div className="pricing-stat-label">Countries with VIP Rate</div>
           </div>
         </div>
         <div className="pricing-stat-card">
@@ -464,18 +591,10 @@ export default function PricingPage() {
 
                 <div className="pricing-header-right">
                   {/* VIP Amount pill */}
-                  <div className="pricing-vip-pill" onClick={e => e.stopPropagation()}>
-                    <span className="pricing-vip-label">VIP</span>
-                    <span className="vip-currency">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={country.vipAmount}
-                      onChange={e => updateCountryVip(country.code, parseFloat(e.target.value) || 0)}
-                      className="vip-amount-input"
-                      onClick={e => e.stopPropagation()}
-                    />
+                  <div className="pricing-vip-pill">
+                    <span className="pricing-vip-label">Base</span>
+                    <span className="vip-currency">{country.currencySymbol}</span>
+                    <span className="vip-amount-display">{country.baseFare.toFixed(2)}</span>
                   </div>
 
                   <button
@@ -511,7 +630,7 @@ export default function PricingPage() {
                         <div key={f.key} className="pricing-rate-card">
                           <div className="pricing-rate-label">{f.label}</div>
                           <div className="pricing-rate-input-wrap">
-                            <span className="pricing-rate-prefix">$</span>
+                            <span className="pricing-rate-prefix">{country.currencySymbol}</span>
                             <input
                               type="number"
                               step="0.01"
@@ -539,7 +658,7 @@ export default function PricingPage() {
                           <span className="vip-state-name">{state.name}</span>
                           <div className="pricing-state-right">
                             {state.inherited ? (
-                              <span className="pricing-inherited-badge">auto · ${state.vipAmount.toFixed(2)}</span>
+                              <span className="pricing-inherited-badge">auto · {country.currencySymbol}{state.vipAmount.toFixed(2)}</span>
                             ) : (
                               <button
                                 className="pricing-reset-btn"
@@ -550,7 +669,7 @@ export default function PricingPage() {
                               </button>
                             )}
                             <div className="pricing-state-input-wrap">
-                              <span className="pricing-rate-prefix">$</span>
+                            <span className="pricing-rate-prefix">{country.currencySymbol}</span>
                               <input
                                 type="number"
                                 step="0.01"

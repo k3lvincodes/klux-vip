@@ -92,9 +92,9 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
     if (pickupLat == null || pickupLng == null) return;
 
     final pickup = LatLng(pickupLat, pickupLng);
-    final route = await LocationSearchService.getRoute(_currentPosition, pickup);
-    if (route != null && mounted) {
-      setState(() => _routePoints = route);
+    final routeResult = await LocationSearchService.getRoute(_currentPosition, pickup);
+    if (routeResult != null && mounted) {
+      setState(() => _routePoints = routeResult.points);
     }
   }
 

@@ -99,9 +99,9 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     if (lat == null || lng == null) return;
 
     final dropoff = LatLng(lat, lng);
-    final route = await LocationSearchService.getRoute(_currentPosition, dropoff);
-    if (route != null && mounted) {
-      setState(() => _routePoints = route);
+    final routeResult = await LocationSearchService.getRoute(_currentPosition, dropoff);
+    if (routeResult != null && mounted) {
+      setState(() => _routePoints = routeResult.points);
     }
   }
 

@@ -42,6 +42,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
   double _baseFare = 3.50;
   double? _calculatedFare;
   double? _distanceKm;
+  double? _durationSeconds;
   double _sheetExtent = 0;
 
   final TextEditingController _fromController = TextEditingController();
@@ -168,8 +169,9 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     return '${km.toStringAsFixed(1)} km';
   }
 
-  String _formatDuration(double km) {
-    final minutes = (km / 30 * 60).round();
+  String _formatDuration() {
+    if (_durationSeconds == null) return '';
+    final minutes = (_durationSeconds! / 60).round();
     if (minutes < 60) return '$minutes min';
     final hrs = minutes ~/ 60;
     final mins = minutes % 60;
@@ -178,16 +180,22 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
   Future<void> _handleLocationSelected() async {
     if (_pickupLocation != null && _dropoffLocation != null) {
-      final km = const Distance().as(
-        LengthUnit.Kilometer,
-        LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude),
-        LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude),
-      );
-      _distanceKm = km;
+      final pickupLatLng = LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude);
+      final dropoffLatLng = LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude);
+
+      final routeResult = await LocationSearchService.getRoute(pickupLatLng, dropoffLatLng);
+      if (routeResult != null) {
+        _distanceKm = routeResult.distanceKm;
+        _durationSeconds = routeResult.durationSeconds;
+      } else {
+        _distanceKm = const Distance().as(LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
+        _durationSeconds = null;
+      }
+
       final rate = await FareRateService.getRate(_countryCode ?? 'US');
       _perKmRate = rate.perKmRate;
       _baseFare = rate.baseFare;
-      _calculatedFare = _baseFare + (km * _perKmRate);
+      _calculatedFare = _baseFare + (_distanceKm! * _perKmRate);
       if (mounted) {
         _sheetExtent = _initialChildSize(context);
         setState(() {});
@@ -312,7 +320,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * _sheetExtent + 10,
+              bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -326,7 +334,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                     const Icon(Icons.directions_car, size: 16, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
-                      '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',
+                      '${_formatDistance(_distanceKm!)} · ${_formatDuration()}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

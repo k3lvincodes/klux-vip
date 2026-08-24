@@ -36,6 +36,7 @@ class DocumentRepository {
     required String driverId,
     required String type,
     required String fileUrl,
+    String status = 'pending',
     DateTime? expiresAt,
   }) async {
     try {
@@ -45,7 +46,7 @@ class DocumentRepository {
         'driver_id': driverId,
         'type': type,
         'file_url': fileUrl,
-        'status': 'pending',
+        'status': status,
         if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
       };
 

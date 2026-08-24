@@ -118,8 +118,9 @@ export default function RidesPage() {
       case 'requested':
         return <span className="admin-badge admin-badge-warning">Looking for Chauffeur</span>;
       case 'accepted':
-      case 'arriving':
         return <span className="admin-badge admin-badge-info">Chauffeur Assigned</span>;
+      case 'arriving':
+        return <span className="admin-badge admin-badge-info">En Route to Pickup</span>;
       case 'cancelled':
         return <span className="admin-badge admin-badge-danger">Cancelled</span>;
       default:
@@ -132,7 +133,8 @@ export default function RidesPage() {
       case 'completed': return 'Completed';
       case 'in_progress': return 'In Progress';
       case 'requested': return 'Looking for Chauffeur';
-      case 'accepted': case 'arriving': return 'Chauffeur Assigned';
+      case 'accepted': return 'Chauffeur Assigned';
+      case 'arriving': return 'En Route to Pickup';
       case 'cancelled': return 'Cancelled';
       default: return status;
     }

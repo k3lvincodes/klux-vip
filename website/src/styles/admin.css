@@ -84,7 +84,7 @@
 }
 
 .admin-sidebar-header h2 {
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 700;
   margin: 0;
   color: var(--admin-text);
@@ -224,6 +224,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.3rem 0.5rem 0.3rem 0.3rem;
   border-radius: 12px;
+}
+
+@media (max-width: 1024px) {
+  .admin-topbar-profile {
+    display: none;
+  }
 }
 
 .admin-topbar-profile-info {
@@ -535,7 +541,7 @@
 }
 
 .admin-modal .form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
 }
 
 .admin-modal .form-group label {
@@ -1000,6 +1006,14 @@
   font-weight: 700;
   outline: none;
   text-align: right;
+}
+
+.vip-amount-display {
+  min-width: 75px;
+  text-align: right;
+  color: #fafafa;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .vip-remove-btn {

@@ -74,6 +74,7 @@ class AuthProvider extends ChangeNotifier {
         _cachedUser = _supabase.auth.currentUser;
         _userRole = _cachedUser?.userMetadata?['role'] as String?;
         _setSessionState(SessionState.authenticated);
+        if (_cachedUser != null) _updateLastSeen(_cachedUser!.id);
       } else {
         const storage = FlutterSecureStorage();
         final sessionJson = await storage.read(key: 'bio_session');
@@ -91,6 +92,7 @@ class AuthProvider extends ChangeNotifier {
               if (_cachedUser != null) {
                 _userRole = _cachedUser?.userMetadata?['role'] as String?;
                 _setSessionState(SessionState.authenticated);
+                _updateLastSeen(_cachedUser!.id);
                 _isInitialized = true;
                 return;
               }
@@ -152,6 +154,15 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  void _updateLastSeen(String userId) {
+    _supabase
+        .from('profiles')
+        .update({'last_seen_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', userId)
+        .then((_) {})
+        .catchError((_) {});
+  }
+
   Future<bool> signUp(String email, String password, String name, String role) async {
     try {
       _setLoading(true);
@@ -197,6 +208,7 @@ class AuthProvider extends ChangeNotifier {
         _userRole = response.user!.userMetadata?['role'] as String?;
         _setSessionState(SessionState.authenticated);
         FirebaseService().registerDevice(response.user!.id).ignore();
+        _updateLastSeen(response.user!.id);
       }
 
       if (response.session?.refreshToken != null) {
@@ -240,6 +252,7 @@ class AuthProvider extends ChangeNotifier {
         _userRole = response.user!.userMetadata?['role'] as String?;
         _setSessionState(SessionState.authenticated);
         FirebaseService().registerDevice(response.user!.id).ignore();
+        _updateLastSeen(response.user!.id);
       }
 
       return true;

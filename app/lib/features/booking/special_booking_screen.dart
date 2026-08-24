@@ -33,6 +33,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
   final MapController _mapController = MapController();
   final bool _isSearching = false;
   String? _countryCode;
+  List<LatLng>? _routePoints;
 
   @override
   void initState() {
@@ -101,6 +102,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
   ];
   double? _calculatedFare;
   double? _distanceKm;
+  double? _durationSeconds;
   double _sheetExtent = 0;
   LocationSearchResult? _pickupLocation;
   LocationSearchResult? _dropoffLocation;
@@ -199,8 +201,9 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
     return '${km.toStringAsFixed(1)} km';
   }
 
-  String _formatDuration(double km) {
-    final minutes = (km / 30 * 60).round();
+  String _formatDuration() {
+    if (_durationSeconds == null) return '';
+    final minutes = (_durationSeconds! / 60).round();
     if (minutes < 60) return '$minutes min';
     final hrs = minutes ~/ 60;
     final mins = minutes % 60;
@@ -209,17 +212,33 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
 
   Future<void> _handleLocationSelected() async {
     if (_pickupLocation != null && _dropoffLocation != null) {
-      final km = const Distance().as(
-        LengthUnit.Kilometer,
-        LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude),
-        LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude),
-      );
-      _distanceKm = km;
+      final pickupLatLng = LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude);
+      final dropoffLatLng = LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude);
+
+      final routeResult = await LocationSearchService.getRoute(pickupLatLng, dropoffLatLng);
+      if (routeResult != null) {
+        _distanceKm = routeResult.distanceKm;
+        _durationSeconds = routeResult.durationSeconds;
+        _routePoints = routeResult.points;
+      } else {
+        _distanceKm = const Distance().as(LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
+        _durationSeconds = null;
+        _routePoints = [pickupLatLng, dropoffLatLng];
+      }
+
       final rate = await FareRateService.getRate(_countryCode ?? 'US');
-      _calculatedFare = rate.baseFare + (km * rate.perKmRate);
+      _calculatedFare = rate.baseFare + (_distanceKm! * rate.perKmRate);
       if (mounted) {
         _sheetExtent = _initialChildSize(context);
         setState(() {});
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _mapController.fitCamera(
+            CameraFit.bounds(
+              bounds: LatLngBounds(pickupLatLng, dropoffLatLng),
+              padding: const EdgeInsets.all(60),
+            ),
+          );
+        });
       }
     }
   }
@@ -368,8 +387,22 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
               MarkerLayer(
                 markers: [
                   AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
+                  if (_pickupLocation != null)
+                    AnimatedMarker.pickupPin(point: LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude)),
+                  if (_dropoffLocation != null)
+                    AnimatedMarker.dropoffPin(point: LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude)),
                 ],
               ),
+              if (_routePoints != null && _routePoints!.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints!,
+                      color: AppColors.primary,
+                      strokeWidth: 6,
+                    ),
+                  ],
+                ),
             ],
           ),
 
@@ -403,7 +436,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
 
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * _sheetExtent + 10,
+              bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -417,7 +450,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
                     const Icon(Icons.directions_car, size: 16, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
-                      '${_formatDistance(_distanceKm!)} · ${_formatDuration(_distanceKm!)}',
+                      '${_formatDistance(_distanceKm!)} · ${_formatDuration()}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

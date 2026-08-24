@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Users,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -153,12 +154,11 @@ export default function DocumentsPage() {
     );
   };
 
-  const expandAll = () => {
-    setGroups((prev) => prev.map((g) => ({ ...g, expanded: true })));
-  };
+  const allExpanded = filtered.every((g) => g.expanded);
 
-  const collapseAll = () => {
-    setGroups((prev) => prev.map((g) => ({ ...g, expanded: false })));
+  const toggleAll = () => {
+    const newState = !allExpanded;
+    setGroups((prev) => prev.map((g) => ({ ...g, expanded: newState })));
   };
 
   const handleApprove = async (docId: string) => {
@@ -177,6 +177,22 @@ export default function DocumentsPage() {
           docs: g.docs.map((d) => (d.id === docId ? { ...d, status: 'approved' } : d)),
         }))
       );
+
+      // Find the driver_id for this doc and check if all required docs are now approved
+      const group = groups.find((g) => g.docs.some((d) => d.id === docId));
+      if (group) {
+        const updatedDocs = group.docs.map((d) => (d.id === docId ? { ...d, status: 'approved' } : d));
+        const requiredTypes = ['driver_license', 'insurance', 'registration'];
+        const allApproved = requiredTypes.every((t) =>
+          updatedDocs.some((d) => d.type === t && d.status === 'approved')
+        );
+        if (allApproved) {
+          await supabase
+            .from('driver_details')
+            .update({ verification_status: 'approved' })
+            .eq('profile_id', group.driver_id);
+        }
+      }
     } finally {
       setActionLoading(false);
     }
@@ -300,11 +316,13 @@ export default function DocumentsPage() {
           <p>Review and verify chauffeur credentials, licenses, insurance policies, and background checks.</p>
         </div>
         <div className="admin-page-header-actions">
-          <button className="admin-btn admin-btn-outline" onClick={expandAll} style={{ fontSize: '0.8rem' }}>
-            Expand All
-          </button>
-          <button className="admin-btn admin-btn-outline" onClick={collapseAll} style={{ fontSize: '0.8rem' }}>
-            Collapse All
+          <button
+            className="admin-btn admin-btn-outline"
+            onClick={toggleAll}
+            title={allExpanded ? 'Collapse all' : 'Expand all'}
+            style={{ padding: '0.5rem' }}
+          >
+            <ChevronsUpDown size={16} />
           </button>
           <button className="admin-btn" onClick={exportCSV}>
             <Download size={16} />
