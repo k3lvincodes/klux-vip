@@ -1394,6 +1394,500 @@ ul { list-style: none; }
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* Review Badge & Action */
+.testimonials-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(244, 197, 34, 0.14);
+  border: 1px solid rgba(244, 197, 34, 0.38);
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8a6a05;
+  margin-bottom: 1.25rem;
+}
+
+.testimonials-action-wrap {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.leave-review-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #000;
+  color: #fff;
+  padding: 0.85rem 2rem;
+  border-radius: 40px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1.5px solid #F4C522;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.leave-review-btn:hover {
+  background: #F4C522;
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(244, 197, 34, 0.35);
+}
+
+/* Enhanced Testimonial Cards */
+.test-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.test-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.12);
+}
+
+.test-card--user {
+  border: 1.5px solid rgba(244, 197, 34, 0.6);
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+}
+
+.test-card-service-badge {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f2f2f2;
+  color: #555;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+}
+
+.test-avatar-initials {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #000;
+  background: linear-gradient(135deg, #F4C522, #dfa806);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.test-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a6a05;
+  background: rgba(244, 197, 34, 0.15);
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+}
+
+/* Nav & Indicator */
+.testimonials-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2.75rem;
+}
+
+.testimonials-page-indicator {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #444;
+  background: #fff;
+  padding: 0.4rem 1.1rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Bottom Invite Banner */
+.testimonials-invite-banner {
+  margin-top: 4rem;
+  background: #fff;
+  border-radius: 24px;
+  padding: 2.25rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(244, 197, 34, 0.25);
+}
+
+.invite-banner-text h4 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 0.35rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.invite-banner-text p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.invite-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #F4C522;
+  color: #000;
+  padding: 0.85rem 1.8rem;
+  border-radius: 30px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(244, 197, 34, 0.3);
+}
+.invite-banner-btn:hover {
+  background: #e5b30d;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(244, 197, 34, 0.4);
+}
+
+/* ========================================
+   REVIEW MODAL
+   ======================================== */
+.review-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.review-modal-container {
+  background: #ffffff;
+  border-radius: 28px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(244, 197, 34, 0.4);
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.review-modal-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid #eaeaea;
+  background: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+}
+.review-modal-close-btn:hover {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.review-modal-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.review-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(244, 197, 34, 0.15);
+  color: #8a6a05;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+}
+
+.review-modal-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 0.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.review-modal-subtitle {
+  font-size: 0.92rem;
+  color: #666;
+  margin: 0 auto;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.review-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.review-form-error {
+  background: #ffebee;
+  color: #c62828;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border-left: 4px solid #c62828;
+}
+
+.review-rating-group {
+  text-align: center;
+  padding: 1rem;
+  background: #fbfbfb;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+}
+
+.review-star-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.4rem;
+}
+
+.star-select-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: transform 0.15s ease;
+}
+.star-select-btn:hover {
+  transform: scale(1.22);
+}
+
+.rating-descriptor {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #b58d07;
+}
+
+.review-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.review-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.review-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.review-field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.review-field-label .req {
+  color: #d32f2f;
+}
+
+.review-input,
+.review-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  color: #111;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+.review-input:focus,
+.review-textarea:focus {
+  outline: none;
+  border-color: #F4C522;
+  box-shadow: 0 0 0 3px rgba(244, 197, 34, 0.2);
+}
+
+.review-service-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.service-chip {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.service-chip:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+.service-chip--active {
+  background: #000;
+  color: #F4C522;
+  border-color: #000;
+  font-weight: 600;
+}
+
+.review-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.review-btn-cancel {
+  flex: 1;
+  padding: 0.85rem 1.25rem;
+  background: #f0f0f0;
+  color: #333;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.review-btn-cancel:hover {
+  background: #e4e4e4;
+}
+
+.review-btn-submit {
+  flex: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #F4C522;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(244, 197, 34, 0.3);
+}
+.review-btn-submit:hover:not(:disabled) {
+  background: #e5b30d;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(244, 197, 34, 0.4);
+}
+.review-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.review-success-state {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.success-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.success-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 0.5rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.success-text {
+  font-size: 0.95rem;
+  color: #555;
+  max-width: 420px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.success-btn {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.spinner-inline {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ========================================
    SECTION 7: DOWNLOAD APP
    ======================================== */
@@ -2044,6 +2538,18 @@ ul { list-style: none; }
   .test-card-text { font-size: 0.85rem; }
   .testimonials-nav { margin-top: 2.5rem; }
   .test-nav-btn { width: 46px; height: 46px; }
+  .testimonials-invite-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.75rem 1.25rem;
+    gap: 1.25rem;
+    margin-top: 2.5rem;
+  }
+  .invite-banner-btn { width: 100%; justify-content: center; }
+  .review-form-row { grid-template-columns: 1fr; gap: 0.75rem; }
+  .review-modal-container { padding: 2rem 1.25rem; border-radius: 20px; }
+  .review-modal-title { font-size: 1.4rem; }
+  .leave-review-btn { width: 100%; max-width: 280px; justify-content: center; }
 
   /* About Us */
   .about-us-section { padding: 2.5rem 0; }

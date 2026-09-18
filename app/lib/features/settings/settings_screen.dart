@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/theme_provider.dart';
@@ -186,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
-                'This action is irreversible. All your data will be permanently deleted.',
+                'This action will permanently deactivate your account and revoke access to Kenick VIP. Your account will be closed and cannot be reopened.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
@@ -223,12 +224,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _performDeleteAccount() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     try {
-      await Supabase.instance.client.rpc('delete_my_account');
-      if (mounted) await context.read<AuthProvider>().signOut();
-      if (mounted) context.go('/onboarding');
+      await Supabase.instance.client.rpc('delete_my_account', params: {
+        'p_reason': 'User requested deletion via mobile app settings',
+      });
+
+      try {
+        const storage = FlutterSecureStorage();
+        await storage.deleteAll();
+      } catch (_) {}
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        CustomToast.showSuccess(context, 'Your account has been deleted.');
+        await context.read<AuthProvider>().signOut();
+        if (mounted) context.go('/onboarding');
+      }
     } catch (e) {
-      if (mounted) CustomToast.showError(context, 'Failed to delete account. Please contact support.');
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        CustomToast.showError(context, 'Failed to delete account. Please contact support.');
+      }
     }
   }
 

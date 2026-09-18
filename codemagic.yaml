@@ -1,0 +1,125 @@
+# =============================================================================
+# Codemagic Configuration for Kenick VIP (klux-vip)
+# =============================================================================
+# Tailored for:
+# - Monorepo structure with Flutter in ./app
+# - Automated iOS build, code signing, and TestFlight deployment
+# - Automated Android App Bundle (AAB) release for Google Play
+# =============================================================================
+
+workflows:
+  # ---------------------------------------------------------------------------
+  # 1. iOS TestFlight Release Workflow
+  # ---------------------------------------------------------------------------
+  ios-release:
+    name: Kenick VIP - iOS TestFlight Release
+    working_directory: app
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    # Links the App Store Connect API Key added in Codemagic
+    integrations:
+      app_store_connect: kenick_api_key
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - app_secrets
+      vars:
+        BUNDLE_ID: "com.kenick.vip.kenickVip"
+        APP_ID: "kenick_vip"
+
+    scripts:
+      - name: Create .env Configuration File
+        script: |
+          if [ -n "$ENV_FILE" ]; then
+            echo "$ENV_FILE" > .env
+            echo "Created app/.env from Codemagic ENV_FILE variable"
+          elif [ -f ".env.example" ]; then
+            echo "Warning: ENV_FILE variable not found, falling back to .env.example"
+            cp .env.example .env
+          fi
+
+      - name: Set Up iOS Keychain and Signing Certificates
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Get Flutter Packages
+        script: |
+          flutter packages pub get
+
+      - name: Install CocoaPods Dependencies
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - fehkelvink@gmail.com
+        notify:
+          on_build_failure: true
+          on_success: true
+
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        expire_in_days: 90
+
+  # ---------------------------------------------------------------------------
+  # 2. Android Google Play Release Workflow
+  # ---------------------------------------------------------------------------
+  android-release:
+    name: Kenick VIP - Android Google Play Bundle (AAB)
+    working_directory: app
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: stable
+      groups:
+        - app_secrets
+
+    scripts:
+      - name: Create .env Configuration File
+        script: |
+          if [ -n "$ENV_FILE" ]; then
+            echo "$ENV_FILE" > .env
+            echo "Created app/.env from Codemagic ENV_FILE variable"
+          fi
+
+      - name: Get Flutter Packages
+        script: |
+          flutter packages pub get
+
+      - name: Build Android App Bundle (.aab)
+        script: |
+          flutter build appbundle --release
+
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - fehkelvink@gmail.com
+        notify:
+          on_build_failure: true
+          on_success: true
