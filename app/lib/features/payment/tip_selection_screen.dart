@@ -80,7 +80,7 @@ class _TipSelectionScreenState extends State<TipSelectionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back_ios_new, size: 20, color: isDark ? AppColors.white : AppColors.black),
           onPressed: () => context.pop(),
         ),
         title: Text(

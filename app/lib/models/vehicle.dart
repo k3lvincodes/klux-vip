@@ -8,6 +8,7 @@ class Vehicle {
     required this.year,
     required this.color,
     required this.licensePlate,
+    this.fleetCarId,
     this.images = const [],
     this.isActive = true,
     required this.createdAt,
@@ -24,6 +25,7 @@ class Vehicle {
       year: json['year'] as int? ?? 0,
       color: json['color'] as String? ?? '',
       licensePlate: json['license_plate'] as String? ?? '',
+      fleetCarId: json['fleet_car_id'] as String?,
       images: (json['images'] as List<dynamic>?)?.cast<String>() ?? [],
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
@@ -44,6 +46,7 @@ class Vehicle {
   final int year;
   final String color;
   final String licensePlate;
+  final String? fleetCarId;
   final List<String> images;
   final bool isActive;
   final DateTime createdAt;
@@ -59,6 +62,7 @@ class Vehicle {
       'year': year,
       'color': color,
       'license_plate': licensePlate,
+      'fleet_car_id': fleetCarId,
       'images': images,
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),

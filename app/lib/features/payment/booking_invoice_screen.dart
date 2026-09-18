@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 
 class BookingInvoiceScreen extends StatelessWidget {
@@ -54,9 +55,9 @@ class BookingInvoiceScreen extends StatelessWidget {
                         ),
                       ),
                       child: Icon(
-                        Icons.arrow_back,
+                        Icons.arrow_back_ios_new,
                         color: isDark ? AppColors.white : AppColors.black,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                   ),
@@ -168,7 +169,7 @@ class BookingInvoiceScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             CustomButton(
-                              title: 'Track Chauffeur',
+                              title: 'Return to Home',
                               onPress: () => context.go('/passenger-home'),
                               variant: ButtonVariant.primary,
                             ),
@@ -176,16 +177,9 @@ class BookingInvoiceScreen extends StatelessWidget {
                             CustomButton(
                               title: 'Download Receipt',
                               onPress: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                        'Receipt saved to downloads'),
-                                    backgroundColor: AppColors.primary,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
+                                CustomToast.showSuccess(
+                                  context,
+                                  'Receipt saved to downloads',
                                 );
                               },
                               variant: ButtonVariant.outline,
@@ -194,7 +188,7 @@ class BookingInvoiceScreen extends StatelessWidget {
                             CustomButton(
                               title: 'Book Another Ride',
                               onPress: () =>
-                                  context.go('/booking-selection'),
+                                  context.go('/passenger-home'),
                             ),
                           ],
                         ),

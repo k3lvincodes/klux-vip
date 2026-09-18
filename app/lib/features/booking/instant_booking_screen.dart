@@ -16,6 +16,7 @@ import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InstantBookingScreen extends StatefulWidget {
   const InstantBookingScreen({super.key});
@@ -146,7 +147,15 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
       return;
     }
 
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      CustomToast.showError(context, 'Please log in to book a ride');
+      return;
+    }
+
     final bookingProv = context.read<BookingProvider>();
+    final rideProv = context.read<RideProvider>();
+
     bookingProv.setTripDetails(
       pickupAddress: _fromController.text,
       dropoffAddress: _toController.text,
@@ -161,7 +170,34 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     bookingProv.setFare(_calculatedFare!, _distanceKm);
     bookingProv.setBookingType('instant');
 
-    context.push('/tip-selection', extra: {'fareAmount': _calculatedFare});
+    final success = await rideProv.requestInstantRide(
+      passengerId: user.id,
+      pickupAddress: _fromController.text,
+      dropoffAddress: _toController.text,
+      pickupLat: _pickupLocation?.latitude,
+      pickupLng: _pickupLocation?.longitude,
+      dropoffLat: _dropoffLocation?.latitude,
+      dropoffLng: _dropoffLocation?.longitude,
+      fareAmount: _calculatedFare,
+      passengerNote: _commentController.text.trim().isNotEmpty
+          ? _commentController.text.trim()
+          : null,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      if (rideProv.currentRideId != null) {
+        bookingProv.setRideId(rideProv.currentRideId!);
+      }
+      CustomToast.showSuccess(context, 'Searching for your VIP chauffeur...');
+      context.push('/trip-summary');
+    } else {
+      CustomToast.showError(
+        context,
+        rideProv.errorMessage ?? 'Failed to request chauffeur',
+      );
+    }
   }
 
   String _formatDistance(double km) {
@@ -310,7 +346,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                   ],
                 ),
                 child: Icon(
-                  Icons.arrow_back,
+                  Icons.arrow_back_ios_new,
                   size: 18,
                   color: isDark ? AppColors.white : AppColors.black,
                 ),

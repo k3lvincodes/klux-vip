@@ -54,15 +54,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _markAsRead(String id) async {
+    // Optimistically update UI immediately
+    if (mounted) {
+      setState(() {
+        final index = _notifications.indexWhere((n) => n['id'] == id);
+        if (index != -1) {
+          _notifications[index] = Map<String, dynamic>.from(_notifications[index])
+            ..['is_read'] = true;
+        }
+      });
+    }
+
     try {
       await _repo.markAsRead(id);
-      if (mounted) {
-        setState(() {
-          final index = _notifications.indexWhere((n) => n['id'] == id);
-          if (index != -1) _notifications[index]['is_read'] = true;
-        });
-      }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to mark notification as read: $e');
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    if (mounted) {
+      setState(() {
+        _notifications = _notifications.map((n) {
+          return Map<String, dynamic>.from(n)..['is_read'] = true;
+        }).toList();
+      });
+    }
+
+    try {
+      await _repo.markAllAsRead(user.id);
+    } catch (e) {
+      debugPrint('Failed to mark all notifications as read: $e');
+    }
   }
 
   String _formatDate(String iso) {
@@ -115,10 +141,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => context.pop(),
         ),
         title: const Text('Notifications'),
+        actions: [
+          if (_notifications.any((n) => n['is_read'] != true))
+            IconButton(
+              icon: const Icon(Icons.done_all_rounded),
+              tooltip: 'Mark all as read',
+              onPressed: _markAllAsRead,
+            ),
+        ],
       ),
       body: _buildBody(cs),
     );

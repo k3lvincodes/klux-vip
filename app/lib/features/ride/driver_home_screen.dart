@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:kenick_vip/models/ride.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
@@ -28,8 +29,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   late TabController _tabController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _userName = 'Loading...';
+  String _userName = 'CHAUFFEUR';
   String? _profileImageUrl;
+  bool _isOnline = true;
+  double _todayEarnings = 0.0;
+  int _totalTrips = 0;
+  double _rating = 5.0;
+
   final Map<String, String> _passengerNames = {};
   final Set<String> _fetchedPassengerIds = {};
   final Set<String> _declinedRideIds = {};
@@ -49,7 +55,25 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   void _initCompletedRidesFuture() {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
-      _completedRidesFuture = RideRepository().getDriverCompletedRides(user.id);
+      _completedRidesFuture = RideRepository().getDriverCompletedRides(user.id).then((rides) {
+        if (mounted) {
+          final now = DateTime.now();
+          double todayTotal = 0;
+          for (final r in rides) {
+            final isToday = r.createdAt.year == now.year &&
+                r.createdAt.month == now.month &&
+                r.createdAt.day == now.day;
+            if (isToday) {
+              todayTotal += r.fareAmount;
+            }
+          }
+          setState(() {
+            _todayEarnings = todayTotal;
+            _totalTrips = rides.length;
+          });
+        }
+        return rides;
+      });
     }
   }
 
@@ -74,10 +98,47 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             _userName = profile.displayName.trim().toUpperCase();
             if (_userName.isEmpty) _userName = 'CHAUFFEUR';
             _profileImageUrl = profile.avatarUrl;
+            if (profile.driverDetails != null) {
+              _isOnline = profile.driverDetails!['is_online'] as bool? ?? true;
+              final rawRating = profile.driverDetails!['rating'];
+              if (rawRating != null) {
+                _rating = (rawRating as num).toDouble();
+              }
+            }
           });
         }
       } catch (e) {
-        // Profile fetch is best-effort; defaults are used on failure.
+        // Best effort
+      }
+    }
+  }
+
+  Future<void> _toggleOnlineStatus() async {
+    final nextStatus = !_isOnline;
+    setState(() => _isOnline = nextStatus);
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('driver_details')
+          .update({
+            'is_online': nextStatus,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('profile_id', user.id);
+
+      if (mounted) {
+        CustomToast.showSuccess(
+          context,
+          nextStatus ? 'Status: Online Standby (Receiving dispatches)' : 'Status: Offline (Standby paused)',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isOnline = !nextStatus);
+        CustomToast.showError(context, 'Failed to update standby status');
       }
     }
   }
@@ -138,49 +199,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.menu, color: cs.onSurface, size: 28),
-                      onPressed: () {
-                        _fetchProfile().ignore();
-                        if (mounted) _scaffoldKey.currentState?.openDrawer();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: cs.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          indicator: BoxDecoration(
-                            color: cs.primary,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          labelColor: cs.onPrimary,
-                          unselectedLabelColor: cs.onSurface,
-                          labelStyle: tt.labelSmall?.copyWith(fontWeight: FontWeight.bold),
-                          unselectedLabelStyle: tt.labelSmall,
-                          dividerHeight: 0,
-                          tabs: const [
-                            Tab(text: 'Completed'),
-                            Tab(text: 'Available'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+              // 1. Executive Top Bar
+              _buildTopBar(cs, tt),
+
+              // 2. Chauffeur Telemetry Card
+              _buildTelemetryCard(cs, tt),
+
+              const SizedBox(height: 10),
+
+              // 3. Segmented Tab Selector
+              _buildSegmentedTabSelector(cs, tt),
+
+              const SizedBox(height: 8),
+
+              // 4. Tab Views
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -197,6 +229,287 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
+  Widget _buildTopBar(ColorScheme cs, TextTheme tt) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
+        children: [
+          // Drawer menu icon button
+          GestureDetector(
+            onTap: () {
+              _fetchProfile().ignore();
+              if (mounted) _scaffoldKey.currentState?.openDrawer();
+            },
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHigh.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Icon(Icons.menu_rounded, color: cs.onSurface, size: 22),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Chauffeur Identity
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'VIP CHAUFFEUR',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: cs.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _userName,
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+
+          // Online / Offline Toggle Pill
+          GestureDetector(
+            onTap: _toggleOnlineStatus,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _isOnline
+                    ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+                    : cs.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _isOnline
+                      ? const Color(0xFF22C55E).withValues(alpha: 0.4)
+                      : cs.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: _isOnline ? const Color(0xFF22C55E) : Colors.grey,
+                      shape: BoxShape.circle,
+                      boxShadow: _isOnline
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF22C55E).withValues(alpha: 0.6),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _isOnline ? 'ONLINE' : 'OFFLINE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _isOnline ? const Color(0xFF22C55E) : cs.onSurfaceVariant,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Notifications Button
+          GestureDetector(
+            onTap: () => context.push('/notifications'),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHigh.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Icon(Icons.notifications_outlined, color: cs.onSurface, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetryCard(ColorScheme cs, TextTheme tt) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          // 1. Today's Revenue
+          Expanded(
+            child: _buildTelemetryItem(
+              icon: Icons.account_balance_wallet_outlined,
+              iconColor: cs.primary,
+              label: "Today's Fare",
+              value: '\$${_todayEarnings.toStringAsFixed(2)}',
+              cs: cs,
+              tt: tt,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 32,
+            color: cs.outlineVariant.withValues(alpha: 0.25),
+          ),
+          // 2. Completed Trips
+          Expanded(
+            child: _buildTelemetryItem(
+              icon: Icons.directions_car_filled_outlined,
+              iconColor: const Color(0xFF3B82F6),
+              label: 'Trips Logged',
+              value: '$_totalTrips',
+              cs: cs,
+              tt: tt,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 32,
+            color: cs.outlineVariant.withValues(alpha: 0.25),
+          ),
+          // 3. Rating
+          Expanded(
+            child: _buildTelemetryItem(
+              icon: Icons.star_rounded,
+              iconColor: const Color(0xFFF59E0B),
+              label: 'Rating',
+              value: '${_rating.toStringAsFixed(1)} ★',
+              cs: cs,
+              tt: tt,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetryItem({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required ColorScheme cs,
+    required TextTheme tt,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 13, color: iconColor),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: tt.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSegmentedTabSelector(ColorScheme cs, TextTheme tt) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 44,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: cs.primary,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: cs.onPrimary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        dividerHeight: 0,
+        tabs: const [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history_rounded, size: 16),
+                SizedBox(width: 6),
+                Text('Completed'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.radar_rounded, size: 16),
+                SizedBox(width: 6),
+                Text('Available Dispatches'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompletedTab() {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
@@ -207,7 +520,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       future: _completedRidesFuture!,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
+          );
         }
         if (snapshot.hasError || (snapshot.data ?? []).isEmpty) {
           return Center(
@@ -216,9 +531,23 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.history, size: 64, color: cs.outline),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: cs.surfaceContainerHigh,
+                    ),
+                    child: Icon(Icons.history_rounded, size: 36, color: cs.onSurfaceVariant),
+                  ),
                   const SizedBox(height: 16),
-                  Text('No completed rides yet', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                  Text('No Completed Trips Yet', style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Your finished itineraries will be logged here with complete revenue details.',
+                    textAlign: TextAlign.center,
+                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  ),
                 ],
               ),
             ),
@@ -226,37 +555,132 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         }
 
         final rides = snapshot.data!;
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
           itemCount: rides.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final ride = rides[index];
-            final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Unknown location';
-            final dropoff = ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Unknown location';
+            final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Pickup Location';
+            final dropoff = ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Dropoff Location';
             final fare = '\$${ride.fareAmount.toStringAsFixed(2)}';
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Completed Ride', style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        Text(fare, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: cs.primary)),
-                      ],
+            final dateStr = DateFormat('MMM d, h:mm a').format(ride.createdAt);
+
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF22C55E).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF22C55E)),
+                            SizedBox(width: 4),
+                            Text(
+                              'Completed',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF22C55E),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        fare,
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Pickup
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(Icons.my_location_rounded, color: cs.primary, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          pickup,
+                          style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 7),
+                    child: SizedBox(
+                      height: 10,
+                      child: VerticalDivider(
+                        width: 2,
+                        thickness: 1.5,
+                        color: cs.outlineVariant.withValues(alpha: 0.4),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildLocationDetail(Icons.my_location, cs.tertiary, pickup),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 9),
-                      child: SizedBox(height: 8, child: VerticalDivider(width: 2, thickness: 2, color: cs.outline)),
-                    ),
-                    _buildLocationDetail(Icons.location_on, cs.error, dropoff),
-                  ],
-                ),
+                  ),
+                  // Dropoff
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Icon(Icons.location_on_rounded, color: Color(0xFFEF4444), size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          dropoff,
+                          style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        dateStr,
+                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                      ),
+                      Text(
+                        'VIP Ride #${ride.id.substring(0, 6).toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           },
@@ -278,11 +702,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 32, height: 32,
+                  width: 32,
+                  height: 32,
                   child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
                 ),
                 const SizedBox(height: 12),
-                Text('Finding available rides...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                Text('Connecting to dispatch radar...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
               ],
             ),
           );
@@ -352,18 +777,33 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.notifications_active, size: 48, color: cs.primary),
-              const SizedBox(height: 16),
-              Text('New Booking Request!', style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              _buildNotifRow(Icons.my_location, 'Pickup', ride['pickup_address'] ?? 'Unknown', cs),
-              const SizedBox(height: 6),
-              _buildNotifRow(Icons.location_on, 'Dropoff', ride['dropoff_address'] ?? 'Unknown', cs),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.notifications_active_rounded, size: 28, color: cs.primary),
+              ),
+              const SizedBox(height: 14),
+              Text('New Executive Dispatch!', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(
+                'A VIP booking has been matched to your vehicle',
+                textAlign: TextAlign.center,
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              _buildNotifRow(Icons.my_location_rounded, 'Pickup', ride['pickup_address'] ?? 'Unknown location', cs),
               const SizedBox(height: 8),
+              _buildNotifRow(Icons.location_on_rounded, 'Dropoff', ride['dropoff_address'] ?? 'Unknown location', cs),
+              const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -373,22 +813,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attach_money, size: 18, color: cs.onPrimaryContainer),
-                    const SizedBox(width: 4),
+                    Icon(Icons.attach_money_rounded, size: 20, color: cs.onPrimaryContainer),
                     Text(
-                      '\$${ride['fare_amount'] ?? '0.00'}',
+                      '${ride['fare_amount'] ?? '0.00'}',
                       style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: cs.onPrimaryContainer),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
                       height: 44,
                       child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           setState(() => _declinedRideIds.add(ride['id']));
@@ -403,6 +845,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     child: SizedBox(
                       height: 44,
                       child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: cs.primary,
+                          foregroundColor: cs.onPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           final auth = context.read<AuthProvider>();
@@ -416,7 +863,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                             }
                           });
                         },
-                        child: const Text('Accept'),
+                        child: const Text('Accept Trip', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ),
@@ -433,7 +880,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     final tt = Theme.of(context).textTheme;
     return Row(
       children: [
-        Icon(icon, size: 16, color: label == 'Pickup' ? cs.tertiary : cs.error),
+        Icon(icon, size: 16, color: label == 'Pickup' ? cs.primary : const Color(0xFFEF4444)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -458,11 +905,56 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.airline_seat_recline_normal, size: 64, color: cs.outline),
-            const SizedBox(height: 16),
-            Text('No available rides right now', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Text('New ride requests will appear here', style: tt.bodySmall?.copyWith(color: cs.outline)),
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: cs.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: cs.primary.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: cs.primary.withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: cs.primary.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.sensors_rounded,
+                      size: 28,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Dispatch Radar Active',
+              style: tt.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Scanning for luxury bookings and VIP client itineraries in your zone...',
+              textAlign: TextAlign.center,
+              style: tt.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
           ],
         ),
       ),
@@ -472,9 +964,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Widget _buildRidesList(List<Map<String, dynamic>> rides) {
     return RefreshIndicator(
       key: const ValueKey('rides'),
-      onRefresh: () async {},
+      onRefresh: () async {
+        _initCompletedRidesFuture();
+      },
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         itemCount: rides.length,
         itemBuilder: (context, index) {
           final ride = rides[index];
@@ -511,19 +1005,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildLocationDetail(IconData icon, Color iconColor, String address) {
-    final tt = Theme.of(context).textTheme;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(padding: const EdgeInsets.only(top: 2), child: Icon(icon, color: iconColor, size: 18)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(address, style: tt.bodySmall)),
-      ],
-    );
-  }
-
   Widget _buildDrawer(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
@@ -543,7 +1024,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         child: Row(
           children: [
             Container(
-              width: 50, height: 50,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: cs.surfaceContainerHigh,
                 shape: BoxShape.circle,
@@ -552,7 +1034,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   ? ClipOval(
                       child: CachedNetworkImage(
                         imageUrl: _profileImageUrl!,
-                        width: 50, height: 50, fit: BoxFit.cover,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
                         placeholder: (context, url) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
                         errorWidget: (context, url, error) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
                       ),

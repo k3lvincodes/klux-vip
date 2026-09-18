@@ -1,12 +1,11 @@
-import 'dart:io';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:kenick_vip/models/fleet_car.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
-import 'package:kenick_vip/services/cloudinary_service.dart';
+import 'package:kenick_vip/services/ai_vehicle_service.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VehicleRegistrationScreen extends StatefulWidget {
@@ -18,128 +17,245 @@ class VehicleRegistrationScreen extends StatefulWidget {
 }
 
 class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
-  final _makeController = TextEditingController();
-  final _modelController = TextEditingController();
-  final _licensePlateController = TextEditingController();
-  final _yearController = TextEditingController();
-  String _selectedColor = '';
-  bool _isLoading = false;
-  final VehicleRepository _vehicleRepo = VehicleRepository();
-  final List<File> _pickedImages = [];
-  bool _isUploadingImages = false;
+  final VehicleRepository _repo = VehicleRepository();
+  List<FleetCar> _fleetCars = [];
+  FleetCar? _selectedFleetCar;
+  final TextEditingController _plateController = TextEditingController();
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  // Custom proposal fields
+  bool _isCustomMode = false;
+  final _makeCtrl = TextEditingController();
+  final _modelCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController(text: DateTime.now().year.toString());
+  final _customPlateCtrl = TextEditingController();
+  String _selectedColor = 'Black';
+  bool _isEvaluatingAi = false;
 
   final List<String> _colors = [
     'Black',
     'White',
     'Silver',
     'Gray',
+    'Midnight Blue',
     'Red',
-    'Blue',
-    'Green',
-    'Yellow',
-    'Orange',
-    'Brown',
-    'Beige',
-    'Gold',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fetchFleet();
+  }
+
+  @override
   void dispose() {
-    _makeController.dispose();
-    _modelController.dispose();
-    _licensePlateController.dispose();
-    _yearController.dispose();
+    _plateController.dispose();
+    _makeCtrl.dispose();
+    _modelCtrl.dispose();
+    _yearCtrl.dispose();
+    _customPlateCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImages() async {
-    final remaining = 5 - _pickedImages.length;
-    if (remaining <= 0) {
-      CustomToast.showError(context, 'Maximum 5 images allowed');
-      return;
-    }
-
-    final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(imageQuality: 95);
-    if (picked.isEmpty) return;
-
-    final toAdd = picked.take(remaining).map((f) => File(f.path)).toList();
-    setState(() => _pickedImages.addAll(toAdd));
-
-    if (toAdd.length < picked.length && mounted) {
-      CustomToast.showInfo(context, 'Only $remaining images added (max 5)');
-    }
-  }
-
-  void _removeImage(int index) {
-    setState(() => _pickedImages.removeAt(index));
-  }
-
-  Future<List<String>> _uploadImages() async {
-    final urls = <String>[];
-    setState(() => _isUploadingImages = true);
-    for (final image in _pickedImages) {
-      final url = await CloudinaryService.uploadImage(image);
-      if (url != null) urls.add(url);
-    }
-    setState(() => _isUploadingImages = false);
-    return urls;
-  }
-
-  Future<void> _handleSubmit() async {
-    if (_makeController.text.trim().isEmpty ||
-        _modelController.text.trim().isEmpty ||
-        _licensePlateController.text.trim().isEmpty ||
-        _yearController.text.trim().isEmpty ||
-        _selectedColor.isEmpty) {
-      CustomToast.showError(context, 'Please fill all fields');
-      return;
-    }
-
-    if (_pickedImages.isEmpty) {
-      CustomToast.showError(context, 'Please upload at least one car image');
-      return;
-    }
-
-    final year = int.tryParse(_yearController.text.trim());
-    if (year == null || year < 2000 || year > DateTime.now().year + 1) {
-      CustomToast.showError(context, 'Please enter a valid year');
-      return;
-    }
-
+  Future<void> _fetchFleet() async {
     setState(() => _isLoading = true);
-
     try {
-      final imageUrls = await _uploadImages();
+      final raw = await _repo.getFleetCars();
+      final fleet = raw.map((e) => FleetCar.fromJson(e)).toList();
 
-      if (imageUrls.isEmpty) {
-        if (mounted) {
-          CustomToast.showError(context, 'Failed to upload images');
-        }
-        return;
-      }
-
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        await _vehicleRepo.registerVehicle(
-          driverId: user.id,
-          make: _makeController.text.trim(),
-          model: _modelController.text.trim(),
-          year: year,
-          color: _selectedColor,
-          licensePlate: _licensePlateController.text.trim(),
-          images: imageUrls,
-        );
+      if (fleet.isEmpty) {
+        fleet.addAll([
+          FleetCar(
+            id: 'fc-cadillac-1',
+            make: 'Cadillac',
+            model: 'Escalade Platinum',
+            year: 2024,
+            features: 'Massaging Seats, Panoramic Glass, Luxury Sound',
+            isFeatured: true,
+            createdAt: DateTime.now(),
+          ),
+          FleetCar(
+            id: 'fc-gmc-1',
+            make: 'GMC',
+            model: 'Yukon Denali XL',
+            year: 2024,
+            features: 'Executive Captain Chairs, Chilled Console',
+            isFeatured: true,
+            createdAt: DateTime.now(),
+          ),
+          FleetCar(
+            id: 'fc-ford-1',
+            make: 'Ford',
+            model: 'Expedition Max Stealth',
+            year: 2023,
+            features: 'Executive Seating, High-Performance Audio',
+            createdAt: DateTime.now(),
+          ),
+        ]);
       }
 
       if (mounted) {
-        CustomToast.showSuccess(context, 'Vehicle registered successfully!');
+        setState(() {
+          _fleetCars = fleet;
+          if (fleet.isNotEmpty) _selectedFleetCar = fleet.first;
+        });
+      }
+    } catch (_) {
+      // Fallback already handled
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleFleetCarSubmit() async {
+    if (_selectedFleetCar == null) {
+      CustomToast.showError(context, 'Please select an authorized fleet vehicle');
+      return;
+    }
+
+    final plate = _plateController.text.trim();
+    if (plate.isEmpty || plate.length < 3) {
+      CustomToast.showError(context, 'Please enter a valid license plate number');
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _repo.selectFleetCarForDriver(
+        driverId: user.id,
+        fleetCarId: _selectedFleetCar!.id,
+        make: _selectedFleetCar!.make,
+        model: _selectedFleetCar!.model,
+        year: _selectedFleetCar!.year,
+        licensePlate: plate.toUpperCase(),
+        imageUrl: _selectedFleetCar!.imageUrl,
+      );
+
+      if (mounted) {
+        CustomToast.showSuccess(
+          context,
+          '${_selectedFleetCar!.make} ${_selectedFleetCar!.model} activated for duty!',
+        );
         context.go('/driver-home');
       }
     } catch (e) {
-      if (mounted) CustomToast.showError(context, 'Failed to register vehicle');
+      if (mounted) CustomToast.showError(context, 'Failed to assign vehicle: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _handleCustomProposalSubmit() async {
+    final make = _makeCtrl.text.trim();
+    final model = _modelCtrl.text.trim();
+    final year = int.tryParse(_yearCtrl.text.trim());
+    final plate = _customPlateCtrl.text.trim();
+
+    if (make.isEmpty || model.isEmpty || year == null || plate.isEmpty) {
+      CustomToast.showError(context, 'Please fill out all custom vehicle details');
+      return;
+    }
+
+    setState(() => _isEvaluatingAi = true);
+
+    // AI inspection
+    final result = await AiVehicleService.evaluateVehicle(
+      make: make,
+      model: model,
+      year: year,
+      color: _selectedColor,
+    );
+
+    setState(() => _isEvaluatingAi = false);
+
+    if (!mounted) return;
+
+    if (!result.isApproved) {
+      // Declined by AI
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 10),
+              const Text('Declined by Fleet AI'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$_selectedColor $make $model', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(result.reason),
+              const SizedBox(height: 10),
+              const Text(
+                'Discarded: Non-compliant requests are discarded and not forwarded to admin.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Understood'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Approved by AI -> Submit to DB
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await _repo.submitVehicleRequest(
+          chauffeurId: user.id,
+          make: make,
+          model: model,
+          year: year,
+          color: _selectedColor,
+          licensePlate: plate.toUpperCase(),
+        );
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFFD4AF37)),
+                  SizedBox(width: 10),
+                  Text('AI Inspection Passed'),
+                ],
+              ),
+              content: Text(
+                'Your proposal for $year $make $model in Obsidian Black has been submitted to the Fleet Admin for final review.',
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    context.go('/driver-home');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('Continue to Dashboard'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -151,425 +267,373 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Register Your Vehicle',
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          'Vehicle Assignment',
+          style: textTheme.titleMedium?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              _buildImagePicker(context),
-              const SizedBox(height: 24),
-              _buildInput(
-                controller: _makeController,
-                hintText: 'Make (e.g., Toyota, Honda, Ford)',
-                icon: Icons.directions_car_outlined,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const SizedBox(height: 20),
-              _buildInput(
-                controller: _modelController,
-                hintText: 'Model (e.g., Camry, Civic, F-150)',
-                icon: Icons.directions_car_outlined,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const SizedBox(height: 20),
-              _buildInput(
-                controller: _yearController,
-                hintText: 'Year',
-                icon: Icons.calendar_today_outlined,
-                keyboardType: TextInputType.number,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const SizedBox(height: 20),
-              _buildColorSelector(context),
-              const SizedBox(height: 20),
-              _buildInput(
-                controller: _licensePlateController,
-                hintText: 'License Plate',
-                icon: Icons.tag,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const SizedBox(height: 40),
-              CustomButton(
-                title: _isLoading || _isUploadingImages
-                    ? 'Uploading...'
-                    : 'Register Vehicle',
-                onPress:
-                    _isLoading || _isUploadingImages ? () {} : _handleSubmit,
-                variant: ButtonVariant.primary,
-                height: 48,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: GestureDetector(
-                  onTap: () => context.go('/driver-home'),
-                  child: Text(
-                    'Skip',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePicker(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Car Images',
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurfaceVariant,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colorScheme.outlineVariant),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              if (_pickedImages.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _pickedImages.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      return Stack(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Mode Selector
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                      ),
+                      child: Row(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              _pickedImages[index],
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isCustomMode = false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !_isCustomMode
+                                      ? colorScheme.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Admin Fleet',
+                                    style: textTheme.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: !_isCustomMode
+                                          ? colorScheme.onPrimary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
+                          Expanded(
                             child: GestureDetector(
-                              onTap: () => _removeImage(index),
+                              onTap: () => setState(() => _isCustomMode = true),
                               child: Container(
-                                width: 24,
-                                height: 24,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.inverseSurface.withValues(alpha: 0.7),
-                                  shape: BoxShape.circle,
+                                  color: _isCustomMode
+                                      ? const Color(0xFFD4AF37)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: colorScheme.onInverseSurface,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.auto_awesome,
+                                        size: 14,
+                                        color: _isCustomMode ? Colors.black : const Color(0xFFD4AF37),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Propose Custom',
+                                        style: textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: _isCustomMode
+                                              ? Colors.black
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
-              if (_pickedImages.isNotEmpty)
-                const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _pickedImages.length >= 5 ? null : _pickImages,
-                child: Container(
-                  width: double.infinity,
-                  height: _pickedImages.isEmpty ? 140 : 56,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: colorScheme.outlineVariant,
-                      width: 1.5,
+                      ),
                     ),
-                  ),
-                  child: _pickedImages.isEmpty
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate_outlined,
-                              size: 40,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap to upload car images',
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_pickedImages.length}/5',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate_outlined,
-                              size: 22,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Add more (${_pickedImages.length}/5)',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+                    const SizedBox(height: 20),
 
-  Widget _buildInput({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-  }) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Icon(icon, color: colorScheme.onSurfaceVariant, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              scrollPadding: const EdgeInsets.only(bottom: 10),
-              controller: controller,
-              keyboardType: keyboardType,
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: true,
-                fillColor: Colors.transparent,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildColorSelector(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Icon(Icons.palette_outlined, color: colorScheme.onSurfaceVariant, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _selectedColor.isEmpty ? 'Color' : _selectedColor,
-              style: textTheme.bodyMedium?.copyWith(
-                color: _selectedColor.isEmpty
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.onSurface,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _showColorPicker(context),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: _getColorFromName(_selectedColor),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.outline),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showColorPicker(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colorScheme.surfaceContainerLow,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Select Color',
-                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _colors
-                    .map(
-                      (color) => GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedColor = color);
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          width: 60,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: _getColorFromName(color),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _selectedColor == color
-                                  ? colorScheme.primary
-                                  : colorScheme.outline,
-                              width: _selectedColor == color ? 2 : 1,
-                            ),
-                          ),
-                          child: _selectedColor == color
-                              ? Icon(
-                                  Icons.check,
-                                  color: colorScheme.onPrimary,
-                                  size: 20,
-                                )
-                              : null,
+                    if (!_isCustomMode) ...[
+                      // Admin Fleet Mode
+                      Text(
+                        'Select Your Fleet Vehicle',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                    )
-                    .toList(),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                      const SizedBox(height: 4),
+                      Text(
+                        'Select an authorized executive VIP car from the Kenick fleet.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
 
-  Color _getColorFromName(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'black':
-        return Colors.black;
-      case 'white':
-        return Colors.white;
-      case 'silver':
-        return Colors.grey.shade300;
-      case 'gray':
-        return Colors.grey;
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'orange':
-        return Colors.orange;
-      case 'brown':
-        return Colors.brown;
-      case 'beige':
-        return const Color(0xFFF5F5DC);
-      case 'gold':
-        return const Color(0xFFFFD700);
-      default:
-        return Colors.grey;
-    }
+                      // Fleet list cards
+                      ..._fleetCars.map((car) {
+                        final isSelected = _selectedFleetCar?.id == car.id;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedFleetCar = car),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : colorScheme.outlineVariant,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  // Vehicle Photo
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      width: 100,
+                                      height: 70,
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      child: car.imageUrl != null && car.imageUrl!.startsWith('http')
+                                          ? CachedNetworkImage(
+                                              imageUrl: car.imageUrl!,
+                                              fit: BoxFit.contain,
+                                              errorWidget: (context, url, error) => Image.asset(car.assetFallback, fit: BoxFit.contain),
+                                            )
+                                          : Image.asset(car.assetFallback, fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          car.displayName,
+                                          style: textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${car.passengerCapacity} Passengers · ${car.luggageCapacity} Luggage',
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Obsidian Black',
+                                          style: textTheme.labelSmall?.copyWith(
+                                            color: const Color(0xFFD4AF37),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    isSelected
+                                        ? Icons.check_circle
+                                        : Icons.radio_button_unchecked,
+                                    color: isSelected
+                                        ? colorScheme.primary
+                                        : colorScheme.outlineVariant,
+                                    size: 24,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 12),
+                      Text(
+                        'Assigned License Plate',
+                        style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _plateController,
+                        textCapitalization: TextCapitalization.characters,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. VIP-1029',
+                          prefixIcon: Icon(Icons.tag, color: colorScheme.primary),
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerLowest,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _handleFleetCarSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('Confirm & Start Driving', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ] else ...[
+                      // Custom Proposal Mode (AI Vetted)
+                      Text(
+                        'Propose Your Own Vehicle',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Vehicle must have an Obsidian Black exterior and meet executive luxury standards.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _makeCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Make (e.g. Cadillac, Mercedes-Benz, GMC)',
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerLowest,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _modelCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Model (e.g. Escalade, S-Class, Yukon Denali)',
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerLowest,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _yearCtrl,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Year (Min 2018)',
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerLowest,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _customPlateCtrl,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: InputDecoration(
+                                labelText: 'License Plate',
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerLowest,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text('Exterior Color (Black Only)', style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: _colors.map((c) {
+                          final isSelected = _selectedColor == c;
+                          return ChoiceChip(
+                            label: Text(c),
+                            selected: isSelected,
+                            onSelected: (val) {
+                              if (val) setState(() => _selectedColor = c);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: _isEvaluatingAi ? null : _handleCustomProposalSubmit,
+                          icon: _isEvaluatingAi
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                                )
+                              : const Icon(Icons.auto_awesome, color: Colors.black),
+                          label: Text(
+                            _isEvaluatingAi ? 'AI Evaluating...' : 'Submit for AI Inspection',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => context.go('/driver-home'),
+                        child: Text(
+                          'Skip for now',
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+      ),
+    );
   }
 }

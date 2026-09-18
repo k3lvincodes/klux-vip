@@ -1,5 +1,24 @@
-export const STEPS = { TRIP: 1, FARE: 2, PAYMENT: 3, CONFIRMATION: 4 } as const;
+export const STEPS = {
+  TRIP: 1,
+  FARE: 2,
+  CHAUFFEUR: 3,
+  PAYMENT: 4,
+  CONFIRMATION: 5,
+} as const;
 export type Step = typeof STEPS[keyof typeof STEPS];
+
+export interface AssignedChauffeur {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  phone: string;
+  rating: number;
+  tripsCount: number;
+  yearsExperience: number;
+  vehicleName: string;
+  licensePlate: string;
+  color: string;
+}
 
 export interface BookingFormData {
   pickup: string;
@@ -11,6 +30,8 @@ export interface BookingFormData {
   name: string;
   email: string;
   phone: string;
+  pickupCoords?: { lat: number; lng: number };
+  dropoffCoords?: { lat: number; lng: number };
 }
 
 export interface FareBreakdown {
@@ -33,4 +54,5 @@ export interface BookingConfirmation {
   tip: number;
   tax: number;
   total: number;
+  chauffeur?: AssignedChauffeur;
 }

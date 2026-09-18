@@ -58,12 +58,38 @@ class NotificationRepository {
 
   Future<void> markAsRead(String notificationId) async {
     try {
-      await _supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId);
-    } catch (e) {
-      throw Exception('Failed to mark notification as read: $e');
+      // 1. Try dedicated RPC function first
+      await _supabase.rpc('mark_notification_read', params: {
+        'p_notification_id': notificationId,
+      });
+    } catch (_) {
+      // 2. Direct table update fallback
+      try {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .eq('id', notificationId);
+      } catch (e) {
+        throw Exception('Failed to mark notification as read: $e');
+      }
+    }
+  }
+
+  Future<void> markAllAsRead(String userId) async {
+    try {
+      // 1. Try dedicated RPC function first
+      await _supabase.rpc('mark_all_notifications_read');
+    } catch (_) {
+      // 2. Direct table update fallback
+      try {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .eq('user_id', userId)
+            .eq('is_read', false);
+      } catch (e) {
+        throw Exception('Failed to mark all notifications as read: $e');
+      }
     }
   }
 

@@ -11,6 +11,7 @@ class AppColors {
   static const Color black = Colors.black;
   static const Color secondary = Color(0xFFF5F5F5);
   static const Color softYellow = Color(0xFFFEF08A);
+  static const Color error = Color(0xFFDC2626);
 
   static const Color darkBackground = Color(0xFF000000);
   static const Color darkSurface = Color(0xFF1E1E1E);

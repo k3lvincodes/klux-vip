@@ -20,6 +20,10 @@ class BookingProvider extends ChangeNotifier {
   DateTime? _scheduledTime;
   String? _eventType;
 
+  // Vehicle details
+  String _vehicleType = 'GMC Yukon';
+  String? _vehicleImage = 'assets/images/GMC.png';
+
   // Ride ID
   String? _rideId;
 
@@ -37,8 +41,16 @@ class BookingProvider extends ChangeNotifier {
   String get bookingType => _bookingType;
   DateTime? get scheduledTime => _scheduledTime;
   String? get eventType => _eventType;
+  String get vehicleType => _vehicleType;
+  String? get vehicleImage => _vehicleImage;
   String? get rideId => _rideId;
   double get totalAmount => (_fareAmount ?? 0) + (_tipAmount ?? 0);
+
+  void setVehicle(String type, [String? image]) {
+    _vehicleType = type;
+    if (image != null) _vehicleImage = image;
+    notifyListeners();
+  }
 
   void setTripDetails({
     required String pickupAddress,

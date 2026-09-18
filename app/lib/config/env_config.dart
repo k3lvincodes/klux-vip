@@ -43,6 +43,9 @@ class EnvConfig {
   // Stripe
   static String get stripePublishableKey => _get('STRIPE_PUBLISHABLE_KEY');
 
+  // Gemini AI
+  static String get geminiApiKey => _get('GEMINI_API_KEY');
+
   static String _get(String key, {String fallback = ''}) {
     final fromDefine = String.fromEnvironment(key);
     if (fromDefine.isNotEmpty) return fromDefine;

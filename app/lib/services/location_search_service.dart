@@ -6,71 +6,72 @@ import 'package:kenick_vip/config/env_config.dart';
 import 'package:latlong2/latlong.dart';
 
 class LocationSearchResult {
-
   LocationSearchResult({
     required this.placeName,
     required this.latitude,
     required this.longitude,
+    this.mainText,
+    this.secondaryText,
   });
+
   final String placeName;
   final double latitude;
   final double longitude;
+  final String? mainText;
+  final String? secondaryText;
 }
 
 class RouteResult {
-  final List<LatLng> points;
-  final double distanceKm;
-  final double durationSeconds;
-
   const RouteResult({
     required this.points,
     required this.distanceKm,
     required this.durationSeconds,
   });
+
+  final List<LatLng> points;
+  final double distanceKm;
+  final double durationSeconds;
 }
+
 
 class LocationSearchService {
   static final http.Client _client = http.Client();
-  static DateTime _lastRequest = DateTime(2000);
   static final Map<String, List<LocationSearchResult>> _searchCache = {};
   static final Map<String, LocationSearchResult?> _reverseCache = {};
   static final Map<String, Completer<List<LocationSearchResult>>> _inflight = {};
 
-  static Future<void> _throttle() async {
-    final now = DateTime.now();
-    final diff = now.difference(_lastRequest).inMilliseconds;
-    if (diff < 300) {
-      await Future.delayed(Duration(milliseconds: 300 - diff));
-    }
-    _lastRequest = DateTime.now();
-  }
-
   static Future<Map<String, String>> _headers() async {
     return {
-      'User-Agent': 'KluxVip/1.0 (passenger-app)',
+      'User-Agent': 'KenickChauffeur/1.0 (passenger-app)',
       'Accept': 'application/json',
     };
   }
 
+  /// Searches places starting from 1 character query with instant cache lookup.
   static Future<List<LocationSearchResult>> search(String query, {String? countryCode}) async {
-    if (query.trim().isEmpty) return [];
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
 
-    final key = '${query.trim().toLowerCase()}_${countryCode ?? ''}';
+    final key = '${trimmed.toLowerCase()}_${countryCode ?? ''}';
 
+    // 1. Direct cache match
     final cached = _searchCache[key];
     if (cached != null) return cached;
 
+    // 2. Inflight deduplication
     final inflight = _inflight[key];
     if (inflight != null) return inflight.future;
 
-    final prefixResults = _filterFromPrefixCache(query.trim().toLowerCase(), countryCode);
+    // 3. Instant prefix match while fresh query is inflight
+    final prefixResults = _filterFromPrefixCache(trimmed.toLowerCase(), countryCode);
 
     if (prefixResults.isNotEmpty) {
-      _fetchAndCacheAsync(query.trim(), countryCode);
+      // Return prefix results immediately for zero UI latency, fetch fresh in background
+      _fetchAndCache(trimmed, countryCode);
       return prefixResults;
     }
 
-    return await _fetchAndCache(query.trim(), countryCode);
+    return await _fetchAndCache(trimmed, countryCode);
   }
 
   static List<LocationSearchResult> _filterFromPrefixCache(String query, String? countryCode) {
@@ -91,16 +92,14 @@ class LocationSearchService {
 
     final parentResults = _searchCache[longestPrefixKey]!;
     return parentResults.where((r) {
-      return r.placeName.toLowerCase().contains(query);
+      final matchName = r.placeName.toLowerCase().contains(query);
+      final matchMain = r.mainText?.toLowerCase().contains(query) ?? false;
+      return matchName || matchMain;
     }).toList();
   }
 
-  static void _fetchAndCacheAsync(String query, String? countryCode) {
-    _fetchAndCache(query, countryCode);
-  }
-
   static Future<List<LocationSearchResult>> _fetchAndCache(String query, String? countryCode) async {
-    final key = '${query.trim().toLowerCase()}_${countryCode ?? ''}';
+    final key = '${query.toLowerCase()}_${countryCode ?? ''}';
 
     if (_searchCache.containsKey(key)) return _searchCache[key]!;
 
@@ -111,33 +110,93 @@ class LocationSearchService {
     _inflight[key] = completer;
 
     try {
-      await _throttle();
+      final token = EnvConfig.mapboxAccessToken;
 
+      // ── PRIMARY PROVIDER: Mapbox Places Geocoding API (Ultra-Fast 20-50ms worldwide) ──
+      if (token.isNotEmpty && token.startsWith('pk.')) {
+        try {
+          final countryParam = countryCode != null && countryCode.isNotEmpty
+              ? '&country=${Uri.encodeComponent(countryCode.toLowerCase())}'
+              : '';
+
+          final mapboxUrl = Uri.parse(
+            'https://api.mapbox.com/geocoding/v5/mapbox.places/${Uri.encodeComponent(query)}.json'
+            '?access_token=$token'
+            '&autocomplete=true'
+            '&types=address,poi,place,neighborhood'
+            '&limit=8$countryParam',
+          );
+
+          final response = await _client.get(mapboxUrl, headers: await _headers()).timeout(const Duration(seconds: 4));
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final features = data['features'] as List? ?? [];
+
+            if (features.isNotEmpty) {
+              final results = features.map<LocationSearchResult>((f) {
+                final center = f['center'] as List? ?? [0.0, 0.0];
+                final lng = (center[0] as num).toDouble();
+                final lat = (center[1] as num).toDouble();
+                final placeName = f['place_name'] as String? ?? '';
+                final text = f['text'] as String? ?? '';
+                final contextList = f['context'] as List? ?? [];
+                final secondary = contextList.map((c) => c['text'] ?? '').where((s) => s.toString().isNotEmpty).join(', ');
+
+                return LocationSearchResult(
+                  placeName: placeName,
+                  latitude: lat,
+                  longitude: lng,
+                  mainText: text.isNotEmpty ? text : placeName.split(',').first.trim(),
+                  secondaryText: secondary.isNotEmpty
+                      ? secondary
+                      : (placeName.contains(',') ? placeName.substring(placeName.indexOf(',') + 1).trim() : null),
+                );
+              }).toList();
+
+              _searchCache[key] = results;
+              completer.complete(results);
+              return results;
+            }
+          }
+        } catch (_) {
+          // Fall through to Nominatim fallback
+        }
+      }
+
+      // ── SECONDARY FALLBACK: OpenStreetMap Nominatim ──
       final codes = countryCode != null && countryCode.isNotEmpty
           ? countryCode.toLowerCase()
-          : 'ng,us,gb,ca,au,br';
+          : '';
+      final countryFilter = codes.isNotEmpty ? '&countrycodes=$codes' : '';
 
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/search'
         '?q=${Uri.encodeComponent(query)}'
         '&format=json'
         '&addressdetails=1'
-        '&limit=20'
-        '&countrycodes=$codes',
+        '&limit=8$countryFilter',
       );
 
-      final response = await _client.get(uri, headers: await _headers());
+      final response = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 4));
       if (response.statusCode != 200) {
         completer.complete([]);
         return [];
       }
 
       final data = jsonDecode(response.body) as List? ?? [];
-      final results = data.map((f) {
+      final results = data.map<LocationSearchResult>((f) {
+        final displayName = f['display_name'] as String? ?? '';
+        final parts = displayName.split(',').map((s) => s.trim()).toList();
+        final main = parts.isNotEmpty ? parts.first : displayName;
+        final secondary = parts.length > 1 ? parts.sublist(1, parts.length > 4 ? 4 : parts.length).join(', ') : null;
+
         return LocationSearchResult(
-          placeName: f['display_name'] ?? '',
+          placeName: displayName,
           latitude: double.parse(f['lat'] as String),
           longitude: double.parse(f['lon'] as String),
+          mainText: main,
+          secondaryText: secondary,
         );
       }).toList();
 
@@ -155,7 +214,7 @@ class LocationSearchService {
   static Future<String?> detectCountryCodeByIP() async {
     try {
       final url = Uri.parse('http://ip-api.com/json');
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 3));
       if (response.statusCode != 200) return null;
       final data = jsonDecode(response.body) as Map?;
       if (data == null || data['status'] != 'success') return null;
@@ -188,7 +247,7 @@ class LocationSearchService {
     );
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
       if (response.statusCode != 200) return null;
 
       final data = jsonDecode(response.body);
@@ -220,12 +279,46 @@ class LocationSearchService {
   }
 
   static Future<LocationSearchResult?> reverseGeocode(LatLng point) async {
-    final key = '${point.latitude},${point.longitude}';
+    final key = '${point.latitude.toStringAsFixed(5)},${point.longitude.toStringAsFixed(5)}';
     final cached = _reverseCache[key];
     if (cached != null) return cached;
 
-    await _throttle();
+    // ── Primary Reverse Geocode: Mapbox ──
+    final token = EnvConfig.mapboxAccessToken;
+    if (token.isNotEmpty && token.startsWith('pk.')) {
+      try {
+        final url = Uri.parse(
+          'https://api.mapbox.com/geocoding/v5/mapbox.places/${point.longitude},${point.latitude}.json'
+          '?access_token=$token'
+          '&types=address,poi,place'
+          '&limit=1',
+        );
 
+        final response = await _client.get(url, headers: await _headers()).timeout(const Duration(seconds: 3));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final features = data['features'] as List? ?? [];
+          if (features.isNotEmpty) {
+            final f = features.first;
+            final placeName = f['place_name'] as String? ?? '';
+            final text = f['text'] as String? ?? '';
+
+            final result = LocationSearchResult(
+              placeName: placeName,
+              latitude: point.latitude,
+              longitude: point.longitude,
+              mainText: text.isNotEmpty ? text : placeName.split(',').first.trim(),
+            );
+            _reverseCache[key] = result;
+            return result;
+          }
+        }
+      } catch (_) {
+        // Fall through to Nominatim
+      }
+    }
+
+    // ── Fallback Reverse Geocode: Nominatim ──
     final uri = Uri.parse(
       'https://nominatim.openstreetmap.org/reverse'
       '?lat=${point.latitude}'
@@ -235,7 +328,7 @@ class LocationSearchService {
     );
 
     try {
-      final response = await _client.get(uri, headers: await _headers());
+      final response = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 4));
       if (response.statusCode != 200) return null;
 
       final data = jsonDecode(response.body) as Map?;
@@ -243,8 +336,8 @@ class LocationSearchService {
 
       final result = LocationSearchResult(
         placeName: data['display_name'] ?? '',
-        latitude: double.parse(data['lat'] as String),
-        longitude: double.parse(data['lon'] as String),
+        latitude: point.latitude,
+        longitude: point.longitude,
       );
 
       _reverseCache[key] = result;
@@ -254,3 +347,4 @@ class LocationSearchService {
     }
   }
 }
+

@@ -1,5 +1,5 @@
 /* =============================================
-   ADMIN LOGIN — Premium Split-Screen Design
+   ADMIN LOGIN — Executive Split-Screen Design
    ============================================= */
 
 /* ---- Page Layout ---- */
@@ -9,6 +9,81 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #09090b;
   color: #fafafa;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---- Ambient Animated Glow Orbs (animatedbackgrounds.me style) ---- */
+.al-ambient-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.al-ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(85px);
+  opacity: 0.12;
+  mix-blend-mode: screen;
+}
+
+.al-orb-1 {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, #F4C522 0%, rgba(244, 197, 34, 0) 70%);
+  top: -120px;
+  left: -100px;
+  animation: floatOrb1 18s ease-in-out infinite alternate;
+}
+
+.al-orb-2 {
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, #f59e0b 0%, rgba(245, 158, 11, 0) 70%);
+  bottom: -100px;
+  right: 15%;
+  animation: floatOrb2 22s ease-in-out infinite alternate;
+}
+
+.al-orb-3 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255, 255, 255, 0) 70%);
+  top: 45%;
+  left: 35%;
+  opacity: 0.04;
+  animation: floatOrb3 26s ease-in-out infinite alternate;
+}
+
+@keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 80px) scale(1.15); }
+  100% { transform: translate(-40px, 120px) scale(0.95); }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-80px, -60px) scale(1.2); }
+  100% { transform: translate(50px, -100px) scale(0.9); }
+}
+
+@keyframes floatOrb3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.03; }
+  50% { transform: translate(40px, -50px) scale(1.1); opacity: 0.06; }
+  100% { transform: translate(-30px, 60px) scale(0.95); opacity: 0.03; }
+}
+
+/* ---- Canvas Background ---- */
+.al-canvas-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* =============================================
@@ -16,21 +91,22 @@
    ============================================= */
 .al-brand-panel {
   position: relative;
-  flex: 1;
+  flex: 1.2;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #09090b;
-  padding: 7rem 3rem 3rem;
+  background: radial-gradient(circle at 20% 30%, #15151a 0%, #09090b 70%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 7rem 4rem 4rem;
 }
 
 /* ---- Noise Texture ---- */
 .al-noise {
   position: absolute;
   inset: 0;
-  z-index: 2;
-  opacity: 0.03;
+  z-index: 1;
+  opacity: 0.025;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 128px 128px;
@@ -40,27 +116,29 @@
 /* ---- Top Left Logo ---- */
 .al-top-logo {
   position: absolute;
-  top: 2rem;
+  top: 2.25rem;
   left: 3rem;
   z-index: 10;
 }
 
 .al-top-logo img {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  border: 1px solid #27272a;
-  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #121215;
+  padding: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* ---- Brand Content ---- */
 .al-brand-content {
   position: relative;
   z-index: 3;
-  max-width: 440px;
+  max-width: 480px;
   opacity: 0;
-  transform: translateY(24px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+  transform: translateY(20px);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
 }
 
 .al-brand-content.al-visible {
@@ -68,90 +146,112 @@
   transform: translateY(0);
 }
 
+.al-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(244, 197, 34, 0.08);
+  border: 1px solid rgba(244, 197, 34, 0.22);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #F4C522;
+  margin-bottom: 1.5rem;
+}
+
+.al-brand-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #F4C522;
+}
+
 .al-brand-title {
-  font-size: 2.75rem;
+  font-size: 2.85rem;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.04em;
   margin: 0 0 1.25rem 0;
-  color: #fafafa;
+  color: #ffffff;
 }
 
 .al-brand-title span {
-  background: linear-gradient(135deg, #F4C522, #f59e0b, #F4C522);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 6s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  color: #F4C522;
 }
 
 .al-brand-desc {
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.94rem;
+  line-height: 1.65;
   color: #a1a1aa;
-  margin: 0 0 1.75rem 0;
-  max-width: 380px;
+  margin: 0 0 2rem 0;
 }
 
-/* ---- Stats Row ---- */
+/* ---- Stats Grid ---- */
 .al-brand-stats {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 2rem;
 }
 
-.al-stat {
+.al-stat-card {
+  background: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .al-stat-value {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #fafafa;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
 }
 
 .al-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #71717a;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
+  font-weight: 600;
 }
 
-.al-stat-divider {
-  width: 1px;
-  height: 28px;
-  background: #27272a;
+.al-brand-guarantee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #71717a;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1.25rem;
 }
 
 /* =============================================
    RIGHT PANEL — Form
    ============================================= */
 .al-form-panel {
-  width: 460px;
-  min-width: 380px;
+  width: 500px;
+  min-width: 420px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2.5rem 2.5rem;
-  background: #0a0a0a;
-  border-left: 1px solid #18181b;
+  padding: 4rem 3rem;
+  background: #0c0c0f;
   position: relative;
 }
 
 .al-form-container {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   opacity: 0;
-  transform: translateY(24px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+  transform: translateY(20px);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
 }
 
 .al-form-container.al-visible {
@@ -160,24 +260,20 @@
 }
 
 /* ---- Header ---- */
-.al-mobile-logo {
-  display: none;
-}
-
 .al-form-header {
   margin-bottom: 2rem;
 }
 
 .al-form-header h2 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  margin: 0 0 0.35rem 0;
-  color: #fafafa;
+  margin: 0 0 0.4rem 0;
+  color: #ffffff;
 }
 
 .al-form-header p {
-  font-size: 0.85rem;
+  font-size: 0.86rem;
   color: #71717a;
   margin: 0;
   line-height: 1.5;
@@ -191,67 +287,60 @@
   padding: 12px 14px;
   border-radius: 10px;
   background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.22);
   color: #fca5a5;
   font-size: 0.82rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
   line-height: 1.4;
-  animation: errorSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.al-error-dot {
-  width: 6px;
-  height: 6px;
-  min-width: 6px;
-  border-radius: 50%;
-  background: #ef4444;
-  animation: errorPulse 2s ease-in-out infinite;
-}
-
-@keyframes errorPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-@keyframes errorSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ---- Form ---- */
 .al-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.35rem;
 }
 
 /* ---- Field ---- */
 .al-field {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .al-field label {
-  font-size: 0.78rem;
-  font-weight: 500;
+  font-size: 0.74rem;
+  font-weight: 600;
   color: #a1a1aa;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
+.al-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.al-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #71717a;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
 .al-field input {
   width: 100%;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid #27272a;
+  padding: 12px 14px 12px 42px;
+  background: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   color: #fafafa;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-family: inherit;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .al-field input::placeholder {
@@ -260,36 +349,30 @@
 
 .al-field input:focus {
   border-color: #F4C522;
-  background: rgba(255, 255, 255, 0.05);
+  background: #151518;
 }
 
-/* Hide the old animated line since we are using boxed inputs now */
-.al-field-line {
-  display: none;
+.al-field input:focus ~ .al-input-icon,
+.al-input-wrap:focus-within .al-input-icon {
+  color: #F4C522;
 }
 
 /* ---- Password Wrapper ---- */
-.al-password-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
 .al-password-wrap input {
   padding-right: 44px;
 }
 
 .al-eye-btn {
   position: absolute;
-  right: 8px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #52525b;
+  color: #71717a;
   cursor: pointer;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,7 +380,7 @@
 }
 
 .al-eye-btn:hover {
-  color: #a1a1aa;
+  color: #ffffff;
 }
 
 /* ---- Submit Button ---- */
@@ -310,19 +393,18 @@
   gap: 8px;
   padding: 13px 24px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 0.92rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  overflow: hidden;
   background: #F4C522;
   color: #09090b;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
 
 .al-submit:hover:not(:disabled) {
-  background: #eab308;
+  background: #d9a70f;
   transform: translateY(-1px);
 }
 
@@ -332,39 +414,39 @@
 
 .al-submit:disabled {
   cursor: not-allowed;
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 /* ---- Loader inside button ---- */
 .al-loader {
   width: 100%;
   height: 3px;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .al-loader-bar {
-  width: 40%;
+  width: 45%;
   height: 100%;
   background: #09090b;
   border-radius: 4px;
-  animation: loaderSlide 1s ease-in-out infinite;
+  animation: loaderSlide 0.9s ease-in-out infinite;
 }
 
 @keyframes loaderSlide {
   0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
+  100% { transform: translateX(300%); }
 }
 
 /* ---- Footer Link ---- */
 .al-footer {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   text-align: center;
 }
 
 .al-footer a {
-  color: #52525b;
+  color: #71717a;
   text-decoration: none;
   font-size: 0.82rem;
   transition: color 0.2s;
@@ -377,7 +459,6 @@
 /* =============================================
    RESPONSIVE
    ============================================= */
-
 @media (max-width: 1024px) {
   .al-page {
     flex-direction: column;
@@ -385,8 +466,10 @@
 
   .al-brand-panel {
     flex: none;
-    min-height: 260px;
-    padding: 5rem 1.5rem 2rem;
+    min-height: auto;
+    padding: 6rem 2rem 2.5rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .al-brand-title {
@@ -394,15 +477,14 @@
   }
 
   .al-brand-desc {
-    display: none;
+    font-size: 0.88rem;
+    margin-bottom: 1.5rem;
   }
 
   .al-form-panel {
     width: 100%;
     min-width: unset;
-    border-left: none;
-    border-top: 1px solid #18181b;
-    padding: 3rem 1.5rem 2rem;
+    padding: 3rem 2rem;
   }
 
   .al-form-container {
@@ -413,14 +495,9 @@
     top: 1.5rem;
     left: 2rem;
   }
-
-  .al-top-logo img {
-    width: 36px;
-    height: 36px;
-  }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .al-brand-panel {
     display: none;
   }
@@ -428,105 +505,16 @@
   .al-form-panel {
     width: 100%;
     min-width: unset;
-    border-left: none;
-    border-top: none;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 6rem 1.5rem 2.5rem;
     min-height: 100vh;
-    background: var(--al-bg);
   }
 
   .al-form-container {
     max-width: 100%;
-    width: 100%;
-    padding: 2.5rem 1.5rem;
-  }
-
-  .al-form-header {
-    margin-bottom: 1.75rem;
   }
 
   .al-top-logo {
-    display: block;
-    position: absolute;
     top: 1.5rem;
     left: 1.5rem;
-    z-index: 100;
-  }
-
-  .al-top-logo img {
-    width: 38px;
-    height: 38px;
-    object-fit: contain;
-    border-radius: 10px;
-  }
-
-  .al-form-header h2 {
-    font-size: 1.35rem;
-  }
-
-  .al-form-header p {
-    font-size: 0.82rem;
-  }
-
-  .al-form {
-    gap: 1.25rem;
-  }
-
-  .al-field input {
-    padding: 11px 12px;
-    font-size: 0.88rem;
-  }
-
-  .al-submit {
-    margin-top: 0.5rem;
-    padding: 12px 20px;
-    font-size: 0.88rem;
-  }
-
-  .al-error {
-    padding: 10px 12px;
-    font-size: 0.8rem;
-  }
-
-  .al-footer {
-    margin-top: 1.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .al-form-container {
-    padding: 2rem 1.25rem;
-  }
-
-  .al-form-header h2 {
-    font-size: 1.2rem;
-  }
-
-  .al-form {
-    gap: 1rem;
-  }
-
-  .al-field input {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    border-radius: 8px;
-  }
-
-  .al-submit {
-    margin-top: 0.5rem;
-    padding: 11px 16px;
-    font-size: 0.85rem;
-    border-radius: 10px;
-  }
-
-  .al-footer {
-    margin-top: 1.25rem;
-  }
-
-  .al-footer a {
-    font-size: 0.78rem;
   }
 }

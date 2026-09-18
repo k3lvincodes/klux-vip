@@ -5,9 +5,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/services/fare_rate_service.dart';
+import 'package:kenick_vip/services/fleet_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
@@ -52,6 +56,12 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   late AnimationController _routeAnimController;
   late Animation<double> _routeAnimation;
 
+  List<FleetVehicleItem> _availableFleet = FleetService.fallbackFleet;
+  bool _isLoadingFleet = false;
+  String _bookingMode = 'instant'; // 'instant', 'schedule', 'special'
+  double? _estimatedFare;
+  bool _isDispatching = false;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +85,113 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
     }
     _fetchProfile();
     _getCurrentLocation();
+    _loadFleet();
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      context.read<RideProvider>().restoreActiveRide(user.id).ignore();
+    }
+  }
+
+  Future<void> _loadFleet() async {
+    setState(() => _isLoadingFleet = true);
+    final fleet = await FleetService.getAvailableFleet();
+    if (mounted) {
+      setState(() {
+        _availableFleet = fleet;
+        _isLoadingFleet = false;
+        if (_selectedRideIndex == null || _selectedRideIndex! >= fleet.length) {
+          _selectedRideIndex = 0;
+        }
+      });
+    }
+  }
+
+  Future<void> _recalculateFare() async {
+    if (_distanceKm == null) return;
+    try {
+      final country = _countryCode ?? 'US';
+      final rate = await FareRateService.getRate(country);
+      final minutes = (_durationSeconds ?? (_distanceKm! / 40.0 * 3600)) / 60.0;
+      double base = rate.baseFare + (_distanceKm! * rate.perKmRate) + (minutes * rate.perMinuteRate);
+      if (_bookingMode == 'special') {
+        base += 50.0;
+      }
+      if (mounted) {
+        setState(() {
+          _estimatedFare = base;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _estimatedFare = 25.0 + (_distanceKm! * 2.5);
+        });
+      }
+    }
+  }
+
+  Widget _buildModeTab(String mode, String label, ColorScheme cs) {
+    final isSelected = _bookingMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _bookingMode = mode);
+          _recalculateFare();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleInstantDispatch(FleetVehicleItem selectedVehicle) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      context.push('/login');
+      return;
+    }
+
+    setState(() => _isDispatching = true);
+    final rideProv = context.read<RideProvider>();
+    try {
+      final success = await rideProv.requestInstantRide(
+        passengerId: user.id,
+        pickupAddress: _pickupLocation!.placeName,
+        dropoffAddress: _dropoffLocation!.placeName,
+        pickupLat: _pickupLocation!.latitude,
+        pickupLng: _pickupLocation!.longitude,
+        dropoffLat: _dropoffLocation!.latitude,
+        dropoffLng: _dropoffLocation!.longitude,
+        fareAmount: _estimatedFare ?? 50.0,
+        passengerNote: 'Requested VIP vehicle: ${selectedVehicle.name}',
+      );
+
+      if (!mounted) return;
+      if (success) {
+        context.push('/trip-summary');
+      } else {
+        final err = rideProv.errorMessage ?? 'Failed to dispatch';
+        CustomToast.showError(context, err);
+      }
+    } catch (e) {
+      if (mounted) CustomToast.showError(context, 'Dispatch error: $e');
+    } finally {
+      if (mounted) setState(() => _isDispatching = false);
+    }
   }
 
   String _formatDistance(double km) {
@@ -246,6 +363,68 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 .slideX(begin: -0.5, end: 0, curve: Curves.easeOut),
           ),
 
+          Consumer<RideProvider>(
+            builder: (context, rp, child) {
+              final ride = rp.currentRide;
+              if (ride != null && ride.status != 'completed' && ride.status != 'cancelled') {
+                return Positioned(
+                  top: 104,
+                  left: 20,
+                  right: 20,
+                  child: GestureDetector(
+                    onTap: () => context.push('/trip-summary'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.primary, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.directions_car, color: cs.primary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Active VIP Trip in Progress',
+                                  style: tt.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Status: ${ride.status.toUpperCase()} · Tap to track',
+                                  style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: cs.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
               bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
@@ -276,12 +455,12 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               return false;
             },
             child: DraggableScrollableSheet(
-              initialChildSize: 0.42,
+              initialChildSize: 0.48,
               minChildSize: 0.08,
-              maxChildSize: 0.42,
+              maxChildSize: 0.48,
               snap: true,
-              snapSizes: const [0.08, 0.42],
-              builder: (context, scrollController) {
+              snapSizes: const [0.08, 0.48],
+              builder: (sheetContext, scrollController) {
                 return Container(
                   decoration: BoxDecoration(
                     color: cs.surface,
@@ -295,7 +474,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                         child: Container(
                           width: 40,
                           height: 4,
-                          margin: const EdgeInsets.only(bottom: 20),
+                          margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
                             color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(10),
@@ -340,89 +519,184 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Select ride',
-                        style: tt.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                      const SizedBox(height: 14),
+
+                      // Segmented Mode Selector
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildModeTab('instant', '⚡ Instant VIP', cs),
+                            _buildModeTab('schedule', '📅 Schedule', cs),
+                            _buildModeTab('special', '✨ Special Event', cs),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Chauffeur Vehicle',
+                            style: tt.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          if (_estimatedFare != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: cs.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Est. \$${_estimatedFare!.toStringAsFixed(2)}',
+                                style: tt.labelMedium?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 80,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 4,
-                          itemBuilder: (context, index) {
-                            final isSelected = _selectedRideIndex == index;
-                            final images = [
-                              'assets/images/GMC.png',
-                              'assets/images/cadillac.png',
-                              'assets/images/ford.png',
-                              'assets/images/GMC.png',
-                            ];
-                            final labels = [
-                              'GMC Yukon',
-                              'Cadillac',
-                              'Ford Expedition',
-                              'GMC Yukon VIP',
-                            ];
-                            return GestureDetector(
-                              onTap: () => setState(() => _selectedRideIndex = index),
-                              child: Container(
-                                width: 80,
-                                margin: const EdgeInsets.only(right: 12),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? cs.primary : cs.surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isSelected ? cs.primary : cs.outline,
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Expanded(child: Image.asset(images[index], fit: BoxFit.contain)),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        labels[index],
-                                        style: TextStyle(
-                                          fontSize: 7,
-                                          fontWeight: FontWeight.w600,
-                                          color: isSelected ? cs.onPrimary : cs.onSurface,
+                        height: 98,
+                        child: _isLoadingFleet
+                            ? Center(child: CircularProgressIndicator(color: cs.primary))
+                            : ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _availableFleet.length,
+                                itemBuilder: (context, index) {
+                                  final vehicle = _availableFleet[index];
+                                  final isSelected = (_selectedRideIndex ?? 0) == index;
+                                  return GestureDetector(
+                                    onTap: () => setState(() => _selectedRideIndex = index),
+                                    child: Container(
+                                      width: 114,
+                                      margin: const EdgeInsets.only(right: 12),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? cs.primary.withValues(alpha: 0.15) : cs.surfaceContainerLow,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: isSelected ? cs.primary : cs.outlineVariant,
+                                          width: isSelected ? 2 : 1,
                                         ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ],
-                                  ),
-                                ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Expanded(
+                                              child: vehicle.imageUrl != null
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: vehicle.imageUrl!,
+                                                      fit: BoxFit.contain,
+                                                      placeholder: (ctx, _) => Image.asset(vehicle.localAssetPath, fit: BoxFit.contain),
+                                                      errorWidget: (ctx, url, err) => Image.asset(vehicle.localAssetPath, fit: BoxFit.contain),
+                                                    )
+                                                  : Image.asset(vehicle.localAssetPath, fit: BoxFit.contain),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              vehicle.name,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isSelected ? cs.primary : cs.onSurface,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            if (vehicle.hasDriverAssigned)
+                                              Text(
+                                                'Driver Ready',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: cs.tertiary,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: (_pickupLocation != null && _dropoffLocation != null)
-                              ? () {
+                          onPressed: (_pickupLocation != null && _dropoffLocation != null && !_isDispatching)
+                              ? () async {
+                                  final selectedIndex = _selectedRideIndex ?? 0;
+                                  final selectedVehicle = _availableFleet.isNotEmpty
+                                      ? _availableFleet[selectedIndex.clamp(0, _availableFleet.length - 1)]
+                                      : FleetService.fallbackFleet[0];
+
+                                  context.read<BookingProvider>().setVehicle(
+                                    selectedVehicle.name,
+                                    selectedVehicle.localAssetPath,
+                                  );
+                                  context.read<BookingProvider>().setFare(
+                                    _estimatedFare ?? 50.0,
+                                    _distanceKm,
+                                  );
+                                  context.read<BookingProvider>().setTripDetails(
+                                    pickupAddress: _pickupLocation!.placeName,
+                                    dropoffAddress: _dropoffLocation!.placeName,
+                                    pickupLat: _pickupLocation!.latitude,
+                                    pickupLng: _pickupLocation!.longitude,
+                                    dropoffLat: _dropoffLocation!.latitude,
+                                    dropoffLng: _dropoffLocation!.longitude,
+                                  );
                                   context.read<RideProvider>().setPickupDropoff(
                                     _pickupLocation,
                                     _dropoffLocation,
                                   );
-                                  context.push('/booking-selection');
+
+                                  if (_bookingMode == 'schedule') {
+                                    context.push('/schedule-booking');
+                                    return;
+                                  }
+
+                                  if (_bookingMode == 'special') {
+                                    context.push('/special-booking');
+                                    return;
+                                  }
+
+                                  await _handleInstantDispatch(selectedVehicle);
                                 }
                               : null,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Book ride', style: tt.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
-                              Icon(Icons.arrow_forward_ios, size: 12, color: cs.onPrimary),
-                            ],
-                          ),
+                          child: _isDispatching
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _pickupLocation == null || _dropoffLocation == null
+                                          ? 'Select Route First'
+                                          : _bookingMode == 'instant'
+                                              ? 'Request Instant Chauffeur${_estimatedFare != null ? ' · \$${_estimatedFare!.toStringAsFixed(2)}' : ''}'
+                                              : _bookingMode == 'schedule'
+                                                  ? 'Configure Schedule Time'
+                                                  : 'Configure Special Event',
+                                      style: tt.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    Icon(Icons.arrow_forward_ios, size: 12, color: cs.onPrimary),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -507,13 +781,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
             }
           } catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Could not verify driver profile. Setting up new profile.'),
-                  backgroundColor: cs.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+              CustomToast.showError(
+                context,
+                'Could not verify driver profile. Setting up new profile.',
               );
               context.push('/driver-profile-setup');
             }
@@ -659,6 +929,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                           _durationSeconds = routeResult.durationSeconds;
                           _isRouteLoading = false;
                         });
+                        _recalculateFare();
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           _mapController.fitCamera(
                             CameraFit.bounds(
@@ -684,6 +955,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                           _durationSeconds = null;
                           _isRouteLoading = false;
                         });
+                        _recalculateFare();
                         _routeAnimController.forward();
                       }
                     } else {

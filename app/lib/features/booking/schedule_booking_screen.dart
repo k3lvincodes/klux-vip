@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/repositories/ride_repository.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
@@ -15,7 +16,10 @@ import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:provider/provider.dart';class ScheduleBookingScreen extends StatefulWidget {
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class ScheduleBookingScreen extends StatefulWidget {
   const ScheduleBookingScreen({super.key});
 
   @override
@@ -342,7 +346,7 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                   ],
                 ),
                 child: Icon(
-                  Icons.arrow_back,
+                  Icons.arrow_back_ios_new,
                   size: 18,
                   color: isDark ? AppColors.white : AppColors.black,
                 ),
@@ -754,8 +758,8 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                         builder: (context, rideProv, child) {
                           return CustomButton(
                             title: _isSearching || rideProv.isLoading
-                                ? 'Searching for chauffeur...'
-                                : 'Find a chauffeur',
+                                ? 'Scheduling chauffeur...'
+                                : 'Schedule Chauffeur',
                             isLoading: _isSearching || rideProv.isLoading,
                             onPress: _isSearching || rideProv.isLoading
                                 ? () {}
@@ -774,6 +778,20 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                                       return;
                                     }
 
+                                    final user = Supabase.instance.client.auth.currentUser;
+                                    if (user == null) {
+                                      CustomToast.showError(ctx, 'Please log in to schedule a ride');
+                                      return;
+                                    }
+
+                                    final scheduledDateTime = DateTime(
+                                      _selectedDate!.year,
+                                      _selectedDate!.month,
+                                      _selectedDate!.day,
+                                      _selectedTime!.hour,
+                                      _selectedTime!.minute,
+                                    );
+
                                     final bookingProv = ctx.read<BookingProvider>();
                                     bookingProv.setTripDetails(
                                       pickupAddress: _fromController.text,
@@ -789,12 +807,42 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
                                     bookingProv.setFare(_calculatedFare!, _distanceKm);
                                     bookingProv.setBookingType(
                                       'scheduled',
-                                      scheduledTime: _selectedDate != null && _selectedTime != null
-                                          ? DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, _selectedTime!.hour, _selectedTime!.minute)
-                                          : null,
+                                      scheduledTime: scheduledDateTime,
                                     );
 
-                                    ctx.push('/tip-selection', extra: {'fareAmount': _calculatedFare});
+                                    try {
+                                      final requestId = await RideRepository().requestRide(
+                                        passengerId: user.id,
+                                        pickupLat: _pickupLocation?.latitude ?? 0,
+                                        pickupLng: _pickupLocation?.longitude ?? 0,
+                                        pickupAddress: _fromController.text,
+                                        dropoffLat: _dropoffLocation?.latitude ?? 0,
+                                        dropoffLng: _dropoffLocation?.longitude ?? 0,
+                                        dropoffAddress: _toController.text,
+                                        fareAmount: _calculatedFare!,
+                                        type: 'scheduled',
+                                        scheduledTime: scheduledDateTime,
+                                        passengerNote: _commentController.text.trim().isNotEmpty
+                                            ? _commentController.text.trim()
+                                            : null,
+                                      );
+
+                                       bookingProv.setRideId(requestId);
+                                       if (!ctx.mounted) return;
+                                       final confirmationCode = 'BK-${requestId.substring(0, 8).toUpperCase()}';
+                                       _showBookingConfirmedDialog(
+                                         context: ctx,
+                                         confirmationCode: confirmationCode,
+                                         scheduledTime: scheduledDateTime,
+                                         vehicleName: bookingProv.vehicleType,
+                                         fare: _calculatedFare!,
+                                         pickup: _fromController.text,
+                                         dropoff: _toController.text,
+                                       );
+                                     } catch (e) {
+                                      if (!ctx.mounted) return;
+                                      CustomToast.showError(ctx, 'Failed to schedule ride: $e');
+                                    }
                                   },
                             variant: ButtonVariant.primary,
                           );
@@ -808,6 +856,109 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showBookingConfirmedDialog({
+    required BuildContext context,
+    required String confirmationCode,
+    required DateTime scheduledTime,
+    required String vehicleName,
+    required double fare,
+    required String pickup,
+    required String dropoff,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 38),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Chauffeur Reserved',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Confirmation #$confirmationCode',
+                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBackground : const Color(0xFFF7F5F4),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Service Time', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          DateFormat('MMM d, h:mm a').format(scheduledTime),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Vehicle', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(vehicleName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Estimated Fare', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('\$${fare.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              CustomButton(
+                title: 'View In My Rides',
+                onPress: () {
+                  Navigator.pop(ctx);
+                  context.go('/ride-history');
+                },
+                variant: ButtonVariant.primary,
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.go('/passenger-home');
+                },
+                child: const Text('Return to Map', style: TextStyle(color: Colors.grey)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

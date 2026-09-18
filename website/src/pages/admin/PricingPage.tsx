@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Search, ChevronDown, Plus, X, Globe, TrendingUp, MapPin, DollarSign, RotateCcw } from 'lucide-react';
+import { Search, ChevronDown, Plus, X, Globe, TrendingUp, MapPin, DollarSign, RotateCcw, RotateCw } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
+import { AdminDrawer } from '../../components/ui/AdminDrawer';
+import { InlineConfirmButton } from '../../components/ui/InlineConfirmButton';
 
 interface CountryState {
   name: string;
@@ -30,8 +33,6 @@ interface FareRate {
   base_fare: number | null;
   per_minute_rate: number | null;
 }
-
-
 
 const COUNTRIES: { code: string; name: string; flag: string; states: string[] }[] = [
   { code: 'US', name: 'United States', flag: '🇺🇸', states: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'] },
@@ -176,7 +177,7 @@ const COUNTRY_CURRENCY: Record<string, { symbol: string; code: string }> = {
   NO: { symbol: 'kr', code: 'NOK' },
   DK: { symbol: 'kr', code: 'DKK' },
   CH: { symbol: 'CHF', code: 'CHF' },
-  UA: { symbol: '₴', code: 'UAH' },
+  UAH: { symbol: '₴', code: 'UAH' },
   KZ: { symbol: '₸', code: 'KZT' },
 };
 
@@ -251,6 +252,7 @@ function getDefaultRates(countryCode: string) {
 const SELECTED_COUNTRY_CODES = ['US', 'GB', 'CA', 'AU', 'NG', 'BR'];
 
 export default function PricingPage() {
+  const toast = useToast();
   const [selectedCountries, setSelectedCountries] = useState<SelectedCountry[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -321,7 +323,7 @@ export default function PricingPage() {
 
       setSelectedCountries(result);
     } catch (err) {
-      setError('Failed to load pricing data');
+      setError('Failed to load tariff data');
     } finally {
       setLoading(false);
     }
@@ -360,7 +362,8 @@ export default function PricingPage() {
     });
 
     if (error) {
-      setModalError(error.message || 'Failed to add country. Please try again.');
+      setModalError(error.message || 'Failed to add jurisdiction. Please try again.');
+      toast.error(error.message || 'Failed to add jurisdiction');
       setAdding(false);
       return;
     }
@@ -369,12 +372,17 @@ export default function PricingPage() {
     setShowModal(false);
     setSearchQuery('');
     setAdding(false);
+    toast.success(`Jurisdiction added: ${info.name}`);
   }
 
   async function removeCountry(code: string) {
     const { error } = await supabase.from('fare_rates').delete().eq('country_code', code.toLowerCase());
-    if (error) return;
+    if (error) {
+      toast.error('Failed to remove jurisdiction');
+      return;
+    }
     setSelectedCountries(prev => prev.filter(c => c.code !== code));
+    toast.success('Operating jurisdiction removed');
   }
 
   async function updateCountryRates(code: string, patch: { perKmRate?: number; baseFare?: number; perMinuteRate?: number }) {
@@ -405,8 +413,12 @@ export default function PricingPage() {
       }));
     }
 
-    if (error) return;
+    if (error) {
+      toast.error('Failed to update rates');
+      return;
+    }
     setSelectedCountries(prev => prev.map(c => (c.code === code ? { ...c, ...patch } : c)));
+    toast.success('Fare rates updated');
   }
 
   async function updateStateVip(code: string, stateName: string, amount: number) {
@@ -455,7 +467,7 @@ export default function PricingPage() {
     setSelectedCountries(prev =>
       prev.map(c =>
         c.code === code
-          ? { ...c, states: c.states.map(s => s.name === stateName ? { ...s, vipAmount: c.vipAmount, inherited: true } : s) }
+          ? { ...c, states: c.states.map(s => s.name === stateName ? { ...s, vipAmount: c.baseFare, inherited: true } : s) }
           : c
       )
     );
@@ -477,206 +489,286 @@ export default function PricingPage() {
     );
   }, [searchQuery, selectedCountries]);
 
-  // Computed stats
   const totalRegions = selectedCountries.reduce((sum, c) => sum + c.states.length, 0);
   const customRegions = selectedCountries.reduce(
     (sum, c) => sum + c.states.filter(s => !s.inherited).length,
     0
   );
 
-  if (loading) {
-    return (
-      <div className="pricing-page">
-        <div className="admin-page-header">
-          <div>
-            <h1>VIP Country Pricing</h1>
-            <p>Manage VIP pricing by country and region.</p>
-          </div>
-        </div>
-        <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--admin-text-muted)' }}>
-          {error ? (
-            <div>
-              <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
-              <button className="admin-btn" onClick={loadCountries}>Try Again</button>
-            </div>
-          ) : (
-            <div className="pricing-loading">
-              <div className="pricing-loading-spinner" />
-              <p>Loading pricing data…</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="pricing-page">
-      {/* ── Page Header ── */}
-      <div className="admin-page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
+      {/* Page Header */}
+      <div className="admin-page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h1>VIP Country Pricing</h1>
-          <p>Configure fare rates per country and region worldwide.</p>
+          <h1>Tariffs & Regional Rates</h1>
+          <p>Global baseline fares, distance metering, and localized regional tariff overrides</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="admin-btn">
-          <Plus size={16} />
-          Add Country
-        </button>
+        <div className="admin-page-header-actions">
+          <button className="admin-btn admin-btn-outline" onClick={loadCountries} title="Refresh rates">
+            <RotateCw size={14} /> Refresh
+          </button>
+          <button onClick={() => setShowModal(true)} className="admin-btn">
+            <Plus size={15} /> Add Operating Jurisdiction
+          </button>
+        </div>
       </div>
 
-      {/* ── Stats Bar ── */}
-      <div className="pricing-stats-bar">
-        <div className="pricing-stat-card">
-          <div className="pricing-stat-icon" style={{ background: 'rgba(244, 197, 34, 0.12)', color: '#F4C522' }}>
+      {/* Summary KPI Cards */}
+      <div className="admin-kpi-summary-grid">
+        <div className="admin-kpi-card">
+          <div>
+            <span className="admin-kpi-label">Configured Jurisdictions</span>
+            <div className="admin-kpi-value">{selectedCountries.length}</div>
+          </div>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(244, 197, 34, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
             <Globe size={18} />
           </div>
-          <div>
-            <div className="pricing-stat-value">{selectedCountries.length}</div>
-            <div className="pricing-stat-label">Countries</div>
-          </div>
         </div>
-        <div className="pricing-stat-card">
-          <div className="pricing-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+
+        <div className="admin-kpi-card">
+          <div>
+            <span className="admin-kpi-label">Regions & States Covered</span>
+            <div className="admin-kpi-value">{totalRegions.toLocaleString()}</div>
+          </div>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(59, 130, 246, 0.08)', color: 'var(--admin-info)', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
             <MapPin size={18} />
           </div>
-          <div>
-            <div className="pricing-stat-value">{totalRegions.toLocaleString()}</div>
-            <div className="pricing-stat-label">Regions Covered</div>
-          </div>
         </div>
-        <div className="pricing-stat-card">
-          <div className="pricing-stat-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8' }}>
+
+        <div className="admin-kpi-card">
+          <div>
+            <span className="admin-kpi-label">Active Base Rates</span>
+            <div className="admin-kpi-value">{selectedCountries.filter(c => c.baseFare > 0).length}</div>
+          </div>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.08)', color: 'var(--admin-success)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
             <DollarSign size={18} />
           </div>
-          <div>
-            <div className="pricing-stat-value">{selectedCountries.filter(c => c.vipAmount > 0).length}</div>
-            <div className="pricing-stat-label">Countries with VIP Rate</div>
-          </div>
         </div>
-        <div className="pricing-stat-card">
-          <div className="pricing-stat-icon" style={{ background: 'rgba(249, 115, 22, 0.12)', color: '#fb923c' }}>
-            <TrendingUp size={18} />
-          </div>
+
+        <div className="admin-kpi-card">
           <div>
-            <div className="pricing-stat-value">{customRegions}</div>
-            <div className="pricing-stat-label">Custom Overrides</div>
+            <span className="admin-kpi-label">Regional Custom Overrides</span>
+            <div className="admin-kpi-value">{customRegions}</div>
+          </div>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.08)', color: 'var(--admin-warning)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+            <TrendingUp size={18} />
           </div>
         </div>
       </div>
 
-      {/* ── Country Cards ── */}
-      {selectedCountries.length === 0 ? (
-        <div className="pricing-empty">
-          <div className="pricing-empty-icon">🌍</div>
-          <h3>No countries configured</h3>
-          <p>Add your first country to start managing VIP pricing for your markets.</p>
+      {/* Main Content */}
+      {loading ? (
+        <div className="admin-card" style={{ padding: '3.5rem', textAlign: 'center', color: '#a1a1aa' }}>
+          <RotateCw size={24} className="admin-spin" style={{ margin: '0 auto 0.75rem', display: 'block', color: 'var(--admin-primary)' }} />
+          Loading regional rate tables...
+        </div>
+      ) : error ? (
+        <div className="admin-card" style={{ padding: '3.5rem', textAlign: 'center' }}>
+          <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</p>
+          <button className="admin-btn" onClick={loadCountries}>Try Again</button>
+        </div>
+      ) : selectedCountries.length === 0 ? (
+        <div className="admin-card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+          <Globe size={40} style={{ color: '#52525b', margin: '0 auto 1rem', display: 'block' }} />
+          <h3 style={{ margin: '0 0 0.5rem', color: '#fff' }}>No Jurisdictions Configured</h3>
+          <p style={{ color: '#a1a1aa', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>
+            Add your initial operating territory to set up base fares and kilometer metering rates.
+          </p>
           <button onClick={() => setShowModal(true)} className="admin-btn">
-            <Plus size={16} /> Add Country
+            <Plus size={15} /> Add Jurisdiction
           </button>
         </div>
       ) : (
-        <div className="vip-country-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {selectedCountries.map(country => (
-            <div key={country.code} className={`vip-country-card ${country.expanded ? 'expanded' : ''}`}>
-
-              {/* Card Header */}
-              <div className="vip-country-header" onClick={() => toggleExpand(country.code)}>
-                <div className="vip-country-info">
-                  <span className="vip-country-flag">{country.flag}</span>
+            <div 
+              key={country.code} 
+              className="admin-card"
+              style={{ padding: 0, overflow: 'hidden' }}
+            >
+              {/* Country Card Header */}
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  padding: '1.15rem 1.35rem', 
+                  cursor: 'pointer',
+                  borderBottom: country.expanded ? '1px solid rgba(255,255,255,0.06)' : 'none'
+                }}
+                onClick={() => toggleExpand(country.code)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <span style={{ fontSize: '1.75rem', lineHeight: 1 }}>{country.flag}</span>
                   <div>
-                    <span className="vip-country-name">{country.name}</span>
-                    <span className="vip-country-code">{country.code} · {country.states.length} regions</span>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>{country.name}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#71717a' }}>
+                      ISO Code: {country.code} · {country.states.length} Regional Territories
+                    </div>
                   </div>
                 </div>
 
-                <div className="pricing-header-right">
-                  {/* VIP Amount pill */}
-                  <div className="pricing-vip-pill">
-                    <span className="pricing-vip-label">Base</span>
-                    <span className="vip-currency">{country.currencySymbol}</span>
-                    <span className="vip-amount-display">{country.baseFare.toFixed(2)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  {/* Base Fare Pill */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    background: '#18181c', 
+                    border: '1px solid rgba(255,255,255,0.1)', 
+                    padding: '0.35rem 0.75rem', 
+                    borderRadius: 8 
+                  }}>
+                    <span style={{ fontSize: '0.68rem', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Base</span>
+                    <span style={{ fontWeight: 700, color: '#fff', fontSize: '0.88rem', fontVariantNumeric: 'tabular-nums' }}>
+                      {country.currencySymbol}{country.baseFare.toFixed(2)}
+                    </span>
                   </div>
 
-                  <button
-                    className="vip-remove-btn"
-                    onClick={e => { e.stopPropagation(); removeCountry(country.code); }}
-                    title="Remove country"
-                  >
-                    <X size={14} />
-                  </button>
+                  <InlineConfirmButton
+                    label={<X size={14} />}
+                    confirmLabel="Remove?"
+                    className="admin-icon-btn"
+                    confirmClassName="admin-btn admin-btn-danger"
+                    style={{ width: 30, height: 30, color: '#ef4444' }}
+                    title="Remove territory"
+                    onConfirm={() => removeCountry(country.code)}
+                  />
 
-                  <div className={`vip-chevron ${country.expanded ? 'open' : ''}`}>
+                  <div style={{ color: '#71717a', transition: 'transform 0.2s', transform: country.expanded ? 'rotate(180deg)' : 'none' }}>
                     <ChevronDown size={18} />
                   </div>
                 </div>
               </div>
 
-              {/* Accordion Body */}
-              <div className={`vip-accordion-wrapper ${country.expanded ? 'open' : ''}`}>
-                <div className="vip-accordion-inner">
-
-                  {/* Base Fare Rates */}
-                  <div className="pricing-rates-section">
-                    <div className="pricing-section-label">
-                      <DollarSign size={13} />
-                      Base Fare Rates
+              {/* Accordion Rates Body */}
+              {country.expanded && (
+                <div style={{ padding: '1.35rem', background: '#0e0e11' }}>
+                  
+                  {/* Base Rates Form Grid */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <DollarSign size={13} color="var(--admin-primary)" />
+                      Baseline Tariff Parameters ({country.currencySymbol} - {getCurrency(country.code).code})
                     </div>
-                    <div className="pricing-rates-grid">
-                      {[
-                        { label: 'Per km', key: 'perKmRate' as const, value: country.perKmRate },
-                        { label: 'Base fare', key: 'baseFare' as const, value: country.baseFare },
-                        { label: 'Per minute', key: 'perMinuteRate' as const, value: country.perMinuteRate },
-                      ].map(f => (
-                        <div key={f.key} className="pricing-rate-card">
-                          <div className="pricing-rate-label">{f.label}</div>
-                          <div className="pricing-rate-input-wrap">
-                            <span className="pricing-rate-prefix">{country.currencySymbol}</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={f.value}
-                              onChange={e => updateCountryRates(country.code, { [f.key]: parseFloat(e.target.value) || 0 })}
-                              className="pricing-rate-input"
-                            />
-                          </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                      
+                      {/* Base Fare */}
+                      <div style={{ background: '#121215', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                          Base Journey Fare
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#71717a', fontWeight: 600 }}>{country.currencySymbol}</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={country.baseFare}
+                            onChange={e => updateCountryRates(country.code, { baseFare: parseFloat(e.target.value) || 0 })}
+                            className="admin-input"
+                            style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                          />
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Per KM Rate */}
+                      <div style={{ background: '#121215', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                          Distance Rate (Per KM)
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#71717a', fontWeight: 600 }}>{country.currencySymbol}</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={country.perKmRate}
+                            onChange={e => updateCountryRates(country.code, { perKmRate: parseFloat(e.target.value) || 0 })}
+                            className="admin-input"
+                            style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Per Minute Rate */}
+                      <div style={{ background: '#121215', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                          Transit Time Rate (Per Min)
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#71717a', fontWeight: 600 }}>{country.currencySymbol}</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={country.perMinuteRate}
+                            onChange={e => updateCountryRates(country.code, { perMinuteRate: parseFloat(e.target.value) || 0 })}
+                            className="admin-input"
+                            style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                          />
+                        </div>
+                      </div>
+
                     </div>
                   </div>
 
-                  {/* Regional Overrides */}
-                  <div className="pricing-states-section">
-                    <div className="pricing-section-label" style={{ marginBottom: '0.65rem' }}>
-                      <MapPin size={13} />
-                      Regions / States
-                      <span className="pricing-section-hint">Blank regions inherit country default</span>
+                  {/* Regional State Overrides List */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <MapPin size={13} color="var(--admin-info)" />
+                        Regional Overrides ({country.states.length} Subdivisions)
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#52525b' }}>
+                        Unset regions inherit country base fare automatically
+                      </span>
                     </div>
-                    <div className="pricing-states-list">
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.6rem', maxHeight: '360px', overflowY: 'auto', paddingRight: 4 }}>
                       {[...country.states].sort((a, b) => a.name.localeCompare(b.name)).map(state => (
-                        <div key={state.name} className="pricing-state-row">
-                          <span className="vip-state-name">{state.name}</span>
-                          <div className="pricing-state-right">
+                        <div 
+                          key={state.name}
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '0.65rem 0.85rem', 
+                            background: '#121215', 
+                            border: '1px solid rgba(255,255,255,0.05)', 
+                            borderRadius: 8 
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#fff' }}>{state.name}</span>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {state.inherited ? (
-                              <span className="pricing-inherited-badge">auto · {country.currencySymbol}{state.vipAmount.toFixed(2)}</span>
+                              <span style={{ fontSize: '0.68rem', color: '#71717a', background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: 4 }}>
+                                auto · {country.currencySymbol}{state.vipAmount.toFixed(2)}
+                              </span>
                             ) : (
                               <button
-                                className="pricing-reset-btn"
+                                className="admin-icon-btn"
+                                style={{ width: 22, height: 22 }}
                                 onClick={() => resetStateToInherit(country.code, state.name)}
                                 title="Reset to country default"
                               >
                                 <RotateCcw size={11} />
                               </button>
                             )}
-                            <div className="pricing-state-input-wrap">
-                            <span className="pricing-rate-prefix">{country.currencySymbol}</span>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: 85 }}>
+                              <span style={{ fontSize: '0.75rem', color: '#71717a' }}>{country.currencySymbol}</span>
                               <input
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 value={state.vipAmount}
                                 onChange={e => updateStateVip(country.code, state.name, parseFloat(e.target.value) || 0)}
-                                className={`pricing-state-input ${state.inherited ? 'inherited' : 'custom'}`}
+                                className="admin-input"
+                                style={{ padding: '3px 6px', fontSize: '0.8rem', textAlign: 'right' }}
                               />
                             </div>
                           </div>
@@ -686,70 +778,83 @@ export default function PricingPage() {
                   </div>
 
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* ── Add Country Modal ── */}
-      {showModal && (
-        <div className="admin-modal-overlay" onClick={() => { setShowModal(false); setSearchQuery(''); }}>
-          <div className="admin-modal vip-modal" onClick={e => e.stopPropagation()}>
-            <div className="vip-modal-header">
-              <div>
-                <h2>Add Country</h2>
-                <p style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginTop: '0.15rem' }}>
-                  {filteredCountries.length} countries available
-                </p>
-              </div>
-              <button
-                className="vip-modal-close"
-                onClick={() => { setShowModal(false); setSearchQuery(''); }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="vip-modal-search">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search by name or code…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="vip-search-input"
-                autoFocus
-              />
-            </div>
-
-            {modalError && (
-              <div className="vip-modal-error">{modalError}</div>
-            )}
-
-            <div className="vip-country-list">
-              {filteredCountries.length === 0 ? (
-                <div className="vip-no-results">
-                  {searchQuery ? 'No countries match your search.' : 'All countries have been added.'}
-                </div>
-              ) : (
-                filteredCountries.map(country => (
-                  <button
-                    key={country.code}
-                    className="vip-country-option"
-                    onClick={() => addCountry(country.code)}
-                    disabled={adding}
-                  >
-                    <span className="vip-country-option-flag">{country.flag}</span>
-                    <span className="vip-country-option-name">{country.name}</span>
-                    <span className="vip-country-option-code">{country.code}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+      {/* Add Jurisdiction Slide-Over Drawer (Zero Modal) */}
+      <AdminDrawer
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setSearchQuery(''); }}
+        width={480}
+        title="Add Operating Jurisdiction"
+        subtitle={`${filteredCountries.length} countries available for platform provisioning`}
+        footer={
+          <button 
+            className="admin-btn admin-btn-outline" 
+            onClick={() => { setShowModal(false); setSearchQuery(''); }}
+          >
+            Close
+          </button>
+        }
+      >
+        {/* Search */}
+        <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#71717a' }} />
+          <input
+            type="text"
+            placeholder="Search jurisdiction by country name or code..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="admin-search-input"
+            style={{ paddingLeft: '2.4rem' }}
+            autoFocus
+          />
         </div>
-      )}
+
+        {modalError && (
+          <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.85rem' }}>{modalError}</div>
+        )}
+
+        {/* Country Picker List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {filteredCountries.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#71717a', fontSize: '0.85rem' }}>
+              {searchQuery ? 'No countries match your search.' : 'All supported territories are already configured.'}
+            </div>
+          ) : (
+            filteredCountries.map(c => (
+              <button
+                key={c.code}
+                onClick={() => addCountry(c.code)}
+                disabled={adding}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  padding: '0.75rem 1rem', 
+                  background: '#0e0e11', 
+                  border: '1px solid rgba(255,255,255,0.05)', 
+                  borderRadius: 8, 
+                  color: '#fff', 
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background-color 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '1.25rem' }}>{c.flag}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{c.name}</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#71717a', fontFamily: 'monospace' }}>{c.code}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </AdminDrawer>
+
     </div>
   );
 }

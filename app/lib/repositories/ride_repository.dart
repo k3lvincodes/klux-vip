@@ -135,12 +135,82 @@ class RideRepository {
         params: {
           'distance_meters': distanceMeters,
           'duration_seconds': durationSeconds,
-          'booking_type': bookingType,
         },
       );
       return (response as num).toDouble();
     } catch (e) {
       throw Exception('Failed to calculate fare: $e');
+    }
+  }
+
+  Future<void> cancelRide({
+    required String rideId,
+    String? reason,
+  }) async {
+    try {
+      try {
+        await _supabase.rpc('cancel_ride', params: {
+          'p_ride_id': rideId,
+          'p_reason': ?reason,
+        });
+        return;
+      } catch (_) {
+        // Fallback to direct table updates if RPC is not deployed yet
+      }
+
+      await _supabase
+          .from('ride_requests')
+          .update({
+            'status': 'cancelled',
+            'passenger_note': ?reason != null ? 'Cancelled: $reason' : null,
+          })
+          .eq('id', rideId);
+
+      try {
+        await _supabase
+            .from('rides')
+            .update({
+              'status': 'cancelled',
+              'cancelled_reason': ?reason,
+            })
+            .eq('id', rideId);
+      } catch (_) {}
+    } catch (e) {
+      throw Exception('Failed to cancel ride: $e');
+    }
+  }
+
+  Future<Ride?> getPassengerActiveRide(String passengerId) async {
+    try {
+      // 1. Check in active rides first
+      final activeRides = await _supabase
+          .from('rides')
+          .select()
+          .eq('passenger_id', passengerId)
+          .inFilter('status', ['accepted', 'arrived', 'in_progress'])
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (activeRides.isNotEmpty) {
+        return Ride.fromJson(activeRides.first);
+      }
+
+      // 2. Check in pending ride requests
+      final pendingReqs = await _supabase
+          .from('ride_requests')
+          .select()
+          .eq('passenger_id', passengerId)
+          .eq('status', 'pending')
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (pendingReqs.isNotEmpty) {
+        return Ride.fromJson(pendingReqs.first);
+      }
+
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 }

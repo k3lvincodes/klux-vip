@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/config/env_config.dart';
+import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
@@ -54,6 +56,12 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
 
   AnimationController? _simAnimationController;
 
+  Timer? _searchTimeoutTimer;
+  String _assignedDriverName = 'Chauffeur';
+  String _assignedDriverRating = '5.0';
+  String _assignedVehicleModel = 'Executive VIP Sedan';
+  double _selectedTip = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -68,10 +76,166 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
 
   @override
   void dispose() {
+    _searchTimeoutTimer?.cancel();
     _simAnimationController?.dispose();
     _commentController.dispose();
     MapMemory().save(_currentPosition, _mapController.camera.zoom);
     super.dispose();
+  }
+
+  void _startSearchTimer() {
+    _searchTimeoutTimer?.cancel();
+    _searchTimeoutTimer = Timer(const Duration(minutes: 2), () {
+      if (mounted) {
+        final rp = Provider.of<RideProvider>(context, listen: false);
+        final status = rp.currentRideDetails?['status'] ?? 'requested';
+        if (status == 'requested' || status == 'pending') {
+          _showSearchTimeoutDialog();
+        }
+      }
+    });
+  }
+
+  void _showSearchTimeoutDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.hourglass_empty_rounded, color: AppColors.primary),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Searching Chauffeur',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'All nearby VIP chauffeurs are currently engaged on active journeys. Would you like to continue searching, schedule your ride for later, or cancel?',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final rp = Provider.of<RideProvider>(context, listen: false);
+              await rp.cancelCurrentRide(reason: 'Cancelled due to timeout');
+              if (mounted) {
+                CustomToast.showSuccess(context, 'Ride cancelled');
+                context.go('/passenger-home');
+              }
+            },
+            child: const Text('Cancel Request', style: TextStyle(color: AppColors.error)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final rp = Provider.of<RideProvider>(context, listen: false);
+              await rp.cancelCurrentRide(reason: 'Switched to scheduled booking');
+              if (mounted) {
+                context.push('/schedule-booking');
+              }
+            },
+            child: const Text('Schedule for Later'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _startSearchTimer();
+            },
+            child: const Text('Keep Searching', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchDriverDetails(String driverId) async {
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', driverId)
+          .maybeSingle();
+
+      final details = await Supabase.instance.client
+          .from('driver_details')
+          .select('rating, total_rides')
+          .eq('profile_id', driverId)
+          .maybeSingle();
+
+      final vehicle = await Supabase.instance.client
+          .from('vehicles')
+          .select('make, model, year, color, license_plate')
+          .eq('driver_id', driverId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (mounted) {
+        setState(() {
+          if (profile != null) {
+            final first = (profile['first_name'] as String? ?? '').trim();
+            final last = (profile['last_name'] as String? ?? '').trim();
+            final fullName = '$first $last'.trim();
+            _assignedDriverName = fullName.isNotEmpty ? fullName : 'Chauffeur';
+            _driverName = _assignedDriverName;
+          }
+          if (details != null && details['rating'] != null) {
+            _assignedDriverRating = (details['rating'] as num).toStringAsFixed(1);
+          }
+          if (vehicle != null) {
+            final make = vehicle['make'] as String? ?? '';
+            final model = vehicle['model'] as String? ?? '';
+            final color = vehicle['color'] as String? ?? '';
+            final plate = vehicle['license_plate'] as String?;
+            _assignedVehicleModel = '$make $model${color.isNotEmpty ? ' · $color' : ''}${plate != null ? ' ($plate)' : ''}';
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleCancelRide() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Cancel Ride Request?'),
+        content: const Text('Are you sure you want to cancel your VIP chauffeur request?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Searching'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel Ride'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        final rp = Provider.of<RideProvider>(context, listen: false);
+        await rp.cancelCurrentRide(reason: 'Cancelled by passenger');
+        _searchTimeoutTimer?.cancel();
+        if (mounted) {
+          CustomToast.showSuccess(context, 'Ride request cancelled');
+          context.go('/passenger-home');
+        }
+      } catch (e) {
+        if (mounted) {
+          CustomToast.showError(context, 'Failed to cancel: $e');
+        }
+      }
+    }
   }
 
   double _fareFrom(dynamic details) {
@@ -147,7 +311,8 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
     final dropoff =
         _parsePoint(dropoffRaw) ?? const LatLng(37.43296265331129, -122.08832357078792);
 
-    if (status == 'requested') {
+    if (status == 'requested' || status == 'pending') {
+      _startSearchTimer();
       setState(() {
         _polylinePoints = [pickup, dropoff];
         _simulatedDriverPosition = null;
@@ -159,6 +324,11 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
         MapAnimator.smoothMove(_mapController, pickup, zoom: 14.5);
       });
     } else if (status == 'arriving') {
+      _searchTimeoutTimer?.cancel();
+      final driverId = rideProv.currentRideDetails?['driver_id'] as String?;
+      if (driverId != null) {
+        _fetchDriverDetails(driverId);
+      }
       final startPt =
           LatLng(pickup.latitude + 0.003, pickup.longitude - 0.003);
       _polylinePoints = _generatePath(startPt, pickup, 30);
@@ -198,6 +368,11 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
       _simAnimationController!.forward();
 
     } else if (status == 'in_progress') {
+      _searchTimeoutTimer?.cancel();
+      final driverId = rideProv.currentRideDetails?['driver_id'] as String?;
+      if (driverId != null) {
+        _fetchDriverDetails(driverId);
+      }
       _polylinePoints = _generatePath(pickup, dropoff, 40);
       _pickupPinRemoved = true;
       _showArrivalBanner = false;
@@ -238,6 +413,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
       _simAnimationController!.forward();
 
     } else if (status == 'completed') {
+      _searchTimeoutTimer?.cancel();
       setState(() {
         _isPaymentProcessing = true;
         _isPaymentSuccess = false;
@@ -406,13 +582,13 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                 foundText: status == 'arriving'
                     ? 'Chauffeur is arriving'
                     : 'Trip in progress',
-                driverName: 'Michael',
-                driverRating: '4.9',
-                carModel: 'Mercedes-Benz S-Class · Black VIP',
+                driverName: _assignedDriverName,
+                driverRating: _assignedDriverRating,
+                carModel: _assignedVehicleModel,
                 eta: _currentEta.ceil().toString(),
-                onCancelSearch: () => context.pop(),
+                onCancelSearch: _handleCancelRide,
                 onContactDriver: () {
-                  ActiveTripChatSheet.show(context, 'Michael');
+                  ActiveTripChatSheet.show(context, _assignedDriverName);
                 },
               ),
             ),
@@ -540,7 +716,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           }
         },
         onContact: () {
-          ActiveTripChatSheet.show(context, 'Michael');
+          ActiveTripChatSheet.show(context, _assignedDriverName);
         },
       ),
     );
@@ -702,12 +878,9 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                 ),
                 const SizedBox(height: 20),
                 CustomButton(
-                  title: 'Done',
-                  onPress: () {
-                    rp.clearRide();
-                    context.go('/passenger-home');
-                  },
-                  variant: ButtonVariant.primary,
+                  title: 'Cancel Request',
+                  onPress: _handleCancelRide,
+                  variant: ButtonVariant.outline,
                 ),
                 const SizedBox(height: 8),
               ],
@@ -1019,12 +1192,48 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          Text(
+            'Add Chauffeur Gratuity',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.white : AppColors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [0.0, 5.0, 10.0, 20.0].map((amount) {
+              final isSel = _selectedTip == amount;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(
+                    amount == 0.0 ? 'No Tip' : '\$${amount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isSel ? Colors.black : (isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                  selected: isSel,
+                  selectedColor: AppColors.primary,
+                  onSelected: (val) {
+                    if (val) setState(() => _selectedTip = amount);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
           const SizedBox(height: 24),
           CustomButton(
             title: 'Submit Review',
             onPress: () async {
               final ride = rideProv.currentRideDetails;
               final user = Supabase.instance.client.auth.currentUser;
+              final bookingProv = context.read<BookingProvider>();
+
               if (ride == null || user == null || _ratingStars == 0) {
                 if (mounted) CustomToast.showError(context, 'Please select a rating');
                 return;
@@ -1039,18 +1248,63 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                 );
                 if (mounted) CustomToast.showSuccess(context, 'Rating submitted!');
               } catch (e) {
-                if (mounted) CustomToast.showError(context, 'Failed to submit review. Please try again.');
+                if (mounted) CustomToast.showError(context, 'Failed to submit review: $e');
               }
+
+              bookingProv.setTip(_selectedTip);
+              final fare = _fareFrom(ride);
+              final rideId = ride['id'] as String? ?? 'RIDE';
+              final pickupAddr = ride['pickup_address'] as String? ?? bookingProv.pickupAddress ?? '';
+              final dropoffAddr = ride['dropoff_address'] as String? ?? bookingProv.dropoffAddress ?? '';
+              final vType = bookingProv.vehicleType;
+
               rideProv.clearRide();
-              if (mounted) context.go('/passenger-home');
+              if (mounted) {
+                context.push('/booking-invoice', extra: {
+                  'rideId': rideId,
+                  'fareAmount': fare,
+                  'tipAmount': _selectedTip,
+                  'taxAmount': 0.0,
+                  'totalAmount': fare + _selectedTip,
+                  'pickupAddress': pickupAddr,
+                  'dropoffAddress': dropoffAddr,
+                  'vehicleType': vType,
+                  'tripDate': DateTime.now().toString().substring(0, 10),
+                  'bookingConfirmation': 'BK-${rideId.substring(0, min(8, rideId.length)).toUpperCase()}',
+                  'invoiceNumber': 'KLX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+                });
+              }
             },
             variant: ButtonVariant.primary,
           ),
           const SizedBox(height: 10),
           TextButton(
             onPressed: () {
+              final ride = rideProv.currentRideDetails;
+              final bookingProv = context.read<BookingProvider>();
+              bookingProv.setTip(_selectedTip);
+              final fare = _fareFrom(ride);
+              final rideId = ride?['id'] as String? ?? 'RIDE';
+              final pickupAddr = ride?['pickup_address'] as String? ?? bookingProv.pickupAddress ?? '';
+              final dropoffAddr = ride?['dropoff_address'] as String? ?? bookingProv.dropoffAddress ?? '';
+              final vType = bookingProv.vehicleType;
+
               rideProv.clearRide();
-              context.go('/passenger-home');
+              if (mounted) {
+                context.push('/booking-invoice', extra: {
+                  'rideId': rideId,
+                  'fareAmount': fare,
+                  'tipAmount': _selectedTip,
+                  'taxAmount': 0.0,
+                  'totalAmount': fare + _selectedTip,
+                  'pickupAddress': pickupAddr,
+                  'dropoffAddress': dropoffAddr,
+                  'vehicleType': vType,
+                  'tripDate': DateTime.now().toString().substring(0, 10),
+                  'bookingConfirmation': 'BK-${rideId.substring(0, min(8, rideId.length)).toUpperCase()}',
+                  'invoiceNumber': 'KLX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+                });
+              }
             },
             child: const Text('Skip Rating',
                 style: TextStyle(color: Colors.grey, fontSize: 12)),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
@@ -137,9 +138,9 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         'tipAmount': _tipAmount,
         'taxAmount': 0.0,
         'totalAmount': _totalAmount,
-        'pickupAddress': pickup?.placeName ?? '',
-        'dropoffAddress': dropoff?.placeName ?? '',
-        'vehicleType': 'VIP Sedan',
+        'pickupAddress': pickup?.placeName ?? context.read<BookingProvider>().pickupAddress ?? '',
+        'dropoffAddress': dropoff?.placeName ?? context.read<BookingProvider>().dropoffAddress ?? '',
+        'vehicleType': context.read<BookingProvider>().vehicleType,
         'tripDate': DateTime.now().toString().substring(0, 10),
         'paymentMethodLast4': _selectedPaymentMethodId != null
             ? _getLast4FromSelected()
@@ -174,7 +175,8 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            Icons.arrow_back_ios_new,
+            size: 20,
             color: isDark ? AppColors.white : AppColors.black,
           ),
           onPressed: () => context.pop(),

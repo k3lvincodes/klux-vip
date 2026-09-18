@@ -238,6 +238,37 @@ class RideProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> cancelCurrentRide({String? reason}) async {
+    if (_currentRideId == null) return true;
+    try {
+      _setLoading(true);
+      await _rideRepository.cancelRide(rideId: _currentRideId!, reason: reason);
+      clearRide();
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> restoreActiveRide(String passengerId) async {
+    try {
+      final activeRide = await _rideRepository.getPassengerActiveRide(passengerId);
+      if (activeRide != null) {
+        _currentRideId = activeRide.id;
+        _currentRide = activeRide;
+        _listenToCurrentRide();
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _rideSubscription?.cancel();

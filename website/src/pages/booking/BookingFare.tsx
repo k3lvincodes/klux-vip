@@ -1,6 +1,5 @@
-import { ArrowLeft, DollarSign } from 'lucide-react';
+import { ArrowLeft, DollarSign, Sparkles, ShieldCheck, ArrowRight, Check } from 'lucide-react';
 import type { FareBreakdown } from './types';
-import { inputStyle, labelStyle, primaryBtnStyle } from './styles';
 
 interface Props {
   fare: FareBreakdown;
@@ -26,111 +25,144 @@ export default function BookingFare({
   onContinue,
 }: Props) {
   return (
-    <>
-      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.9rem', marginBottom: '20px', padding: 0, fontFamily: 'inherit' }}>
-        <ArrowLeft size={16} /> Back
+    <div>
+      <button onClick={onBack} className="booking-btn-back">
+        <ArrowLeft size={15} /> Back to Trip Details
       </button>
 
-      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700, color: '#000' }}>
-        Fare Breakdown
-      </h2>
+      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--admin-primary, #F4C522)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>
+          Guaranteed Executive Quote
+        </span>
+        <h2 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          Tariff & Gratuity
+        </h2>
+        <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#a1a1aa' }}>
+          All tolls, airport fees, and chauffeur dispatch included
+        </p>
+      </div>
 
-      <div style={{ background: '#f9fafb', borderRadius: '14px', padding: '20px', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <span style={{ color: '#64748b', fontSize: '0.95rem' }}>Base Fare</span>
-          <span style={{ fontWeight: 600, color: '#000' }}>${fare.baseFare.toFixed(2)}</span>
+      {/* ── Fare Breakdown Card ── */}
+      <div className="booking-fare-card">
+        <div className="booking-fare-row">
+          <span>Base Chauffeur Dispatch</span>
+          <span className="booking-fare-val">${fare.baseFare.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <span style={{ color: '#64748b', fontSize: '0.95rem' }}>Trip Fare</span>
-          <span style={{ fontWeight: 600, color: '#000' }}>${fare.tripFare.toFixed(2)}</span>
+        <div className="booking-fare-row">
+          <span>Mileage & Service Tariff</span>
+          <span className="booking-fare-val">${fare.tripFare.toFixed(2)}</span>
         </div>
-        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 600, color: '#000' }}>Subtotal</span>
-          <span style={{ fontWeight: 600, color: '#000' }}>${fare.subtotal.toFixed(2)}</span>
+        <div className="booking-fare-row">
+          <span>Chauffeur Gratuity</span>
+          <span className="booking-fare-val" style={{ color: fare.tip > 0 ? '#F4C522' : '#a1a1aa' }}>
+            ${fare.tip.toFixed(2)}
+          </span>
+        </div>
+        <div className="booking-fare-row subtotal">
+          <span>Subtotal</span>
+          <span className="booking-fare-val" style={{ color: '#ffffff', fontSize: '1rem' }}>
+            ${(fare.subtotal + fare.tip).toFixed(2)}
+          </span>
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#000', marginBottom: '14px' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><DollarSign size={16} /> Add a Tip</span>
-        </h3>
-
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
-          {[20, 25, 30].map(pct => (
-            <button
-              key={pct}
-              onClick={() => onTipPercentChange(pct)}
-              style={{
-                flex: 1,
-                padding: '12px 8px',
-                borderRadius: '10px',
-                border: tipMode === 'percent' && tipPercent === pct ? '2px solid #F4C522' : '1.5px solid #d1d5db',
-                background: tipMode === 'percent' && tipPercent === pct ? '#fef9e3' : '#fff',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                color: '#000',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s',
-                textAlign: 'center',
-              }}
-            >
-              {pct}%<br /><span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 400 }}>${(fare.subtotal * pct / 100).toFixed(2)}</span>
-            </button>
-          ))}
+      {/* ── Tip Selector ── */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <label className="booking-label" style={{ margin: 0 }}>
+            <DollarSign size={14} /> Chauffeur Gratuity
+          </label>
+          <span style={{ fontSize: '0.72rem', color: '#71717a' }}>Directly awarded to your chauffeur</span>
         </div>
 
-        <div style={{ marginBottom: '14px' }}>
-          <label style={labelStyle}>Custom Tip</label>
-          <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontWeight: 600 }}>$</span>
+        <div className="booking-tip-grid">
+          {[
+            { pct: 18, label: 'Standard' },
+            { pct: 20, label: 'Recommended' },
+            { pct: 25, label: 'Exceptional' },
+          ].map(({ pct, label }) => {
+            const isActive = tipMode === 'percent' && tipPercent === pct;
+            return (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => onTipPercentChange(pct)}
+                className={`booking-tip-btn ${isActive ? 'active' : ''}`}
+              >
+                <span className="booking-tip-pct">{pct}%</span>
+                <span className="booking-tip-amt">${(fare.subtotal * pct / 100).toFixed(2)}</span>
+                <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginTop: 2, opacity: 0.8 }}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#71717a', fontWeight: 600, fontSize: '0.85rem' }}>
+              $
+            </span>
             <input
               type="number"
               min="0"
               step="0.01"
               value={customTip}
               onChange={e => onCustomTipChange(e.target.value)}
-              placeholder="0.00"
-              style={{ ...inputStyle, paddingLeft: '30px' }}
-              onFocus={e => e.currentTarget.style.borderColor = '#F4C522'}
-              onBlur={e => e.currentTarget.style.borderColor = '#d1d5db'}
+              placeholder="Custom tip amount"
+              className="booking-input"
+              style={{ paddingLeft: '28px' }}
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => onTipModeChange('none')}
+            className={`booking-tip-btn ${tipMode === 'none' ? 'active' : ''}`}
+            style={{ width: '100px', padding: '10px', fontSize: '0.82rem', fontWeight: 600 }}
+          >
+            No Tip
+          </button>
         </div>
-
-        <button
-          onClick={() => onTipModeChange('none')}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '10px',
-            border: tipMode === 'none' ? '2px solid #F4C522' : '1.5px solid #d1d5db',
-            background: tipMode === 'none' ? '#fef9e3' : '#fff',
-            cursor: 'pointer',
-            fontWeight: 500,
-            fontSize: '0.88rem',
-            color: '#64748b',
-            fontFamily: 'inherit',
-            transition: 'all 0.2s',
-          }}
-        >
-          No Tip
-        </button>
       </div>
 
-      <div style={{ background: '#000', borderRadius: '14px', padding: '18px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#fff', fontWeight: 600, fontSize: '1rem' }}>Total</span>
-        <span style={{ color: '#F4C522', fontWeight: 700, fontSize: '1.3rem' }}>${fare.total.toFixed(2)}</span>
+      {/* ── Included Executive Amenities ── */}
+      <div>
+        <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a1a1aa', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Sparkles size={12} style={{ color: '#F4C522' }} />
+          Complimentary Executive Privileges Included
+        </div>
+        <div className="booking-amenities-strip">
+          <span className="booking-amenity-pill"><Check size={11} /> Live Flight Monitoring</span>
+          <span className="booking-amenity-pill"><Check size={11} /> 15-Min Free Wait Time</span>
+          <span className="booking-amenity-pill"><Check size={11} /> Chilled Artisan Water</span>
+          <span className="booking-amenity-pill"><Check size={11} /> Luggage Handling</span>
+        </div>
       </div>
 
-      <button
-        onClick={onContinue}
-        style={primaryBtnStyle}
-        onMouseEnter={e => e.currentTarget.style.background = '#DCA70B'}
-        onMouseLeave={e => e.currentTarget.style.background = '#F4C522'}
-      >
-        Continue to Payment
+      {/* ── Total Highlight Box ── */}
+      <div className="booking-total-box">
+        <div>
+          <span className="booking-total-label">Total Reservation Amount</span>
+          <div style={{ fontSize: '0.74rem', color: '#71717a', marginTop: 2 }}>
+            Guaranteed all-inclusive total
+          </div>
+        </div>
+        <span className="booking-total-val">${fare.total.toFixed(2)}</span>
+      </div>
+
+      {/* ── Security Trust Notice ── */}
+      <div className="booking-security-badge">
+        <ShieldCheck size={14} />
+        <span>Bank-grade 256-bit encrypted reservation checkout</span>
+      </div>
+
+      <button onClick={onContinue} className="booking-btn-primary">
+        <span>Proceed to Secure Checkout</span>
+        <ArrowRight size={18} />
       </button>
-    </>
+    </div>
   );
 }
+

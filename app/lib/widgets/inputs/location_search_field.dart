@@ -128,7 +128,8 @@ class _LocationSearchFieldState extends State<LocationSearchField>
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
-    if (query.isEmpty) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
       if (_suggestions.isNotEmpty) {
         setState(() => _suggestions = []);
         _overlayEntry?.markNeedsBuild();
@@ -136,12 +137,13 @@ class _LocationSearchFieldState extends State<LocationSearchField>
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 150), () async {
+    // Fast 80ms debounce matching website responsiveness
+    _debounce = Timer(const Duration(milliseconds: 80), () async {
       if (!mounted) return;
       setState(() => _isSearching = true);
       _overlayEntry?.markNeedsBuild();
 
-      final results = await LocationSearchService.search(query, countryCode: widget.countryCode);
+      final results = await LocationSearchService.search(trimmed, countryCode: widget.countryCode);
       if (!mounted) return;
 
       setState(() {
@@ -151,6 +153,7 @@ class _LocationSearchFieldState extends State<LocationSearchField>
       _overlayEntry?.markNeedsBuild();
     });
   }
+
 
   Future<void> _fetchAndSetCurrentLocation() async {
     if (!mounted) return;
@@ -349,7 +352,7 @@ class _LocationSearchFieldState extends State<LocationSearchField>
 
     items.add(_buildCurrentLocationTile());
 
-    if (_isSearching || _isFetchingLocation) {
+    if (_isFetchingLocation) {
       items.add(const Divider(height: 1, thickness: 1));
       items.add(_buildLoadingTile());
     } else if (_suggestions.isNotEmpty) {
@@ -357,7 +360,11 @@ class _LocationSearchFieldState extends State<LocationSearchField>
       for (final result in _suggestions) {
         items.add(_buildSuggestionTile(result));
       }
+    } else if (_isSearching) {
+      items.add(const Divider(height: 1, thickness: 1));
+      items.add(_buildLoadingTile());
     }
+
 
     final bgColor = widget.isDark ? AppColors.darkSurface : Colors.white;
 
@@ -465,14 +472,16 @@ class _LocationSearchFieldState extends State<LocationSearchField>
   }
 
   Widget _buildSuggestionTile(LocationSearchResult result) {
+    final hasDetails = result.mainText != null && result.secondaryText != null && result.secondaryText!.isNotEmpty;
+
     return InkWell(
       onTap: () => _onSelectResult(result),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             Container(
               width: 36,
               height: 36,
@@ -490,20 +499,49 @@ class _LocationSearchFieldState extends State<LocationSearchField>
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                result.placeName,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: widget.isDark ? AppColors.white : AppColors.black,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: hasDetails
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          result.mainText!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: widget.isDark ? AppColors.white : AppColors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          result.secondaryText!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    )
+                  : Text(
+                      result.placeName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: widget.isDark ? AppColors.white : AppColors.black,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
             ),
           ],
         ),
       ),
     );
   }
+
 }

@@ -2,18 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
+import { Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { STEPS, type Step, type BookingFormData, type FareBreakdown, type BookingConfirmation as BookingConfirmationData } from './booking/types';
+import { STEPS, type Step, type BookingFormData, type FareBreakdown, type BookingConfirmation as BookingConfirmationData, type AssignedChauffeur } from './booking/types';
+import type { LocationSuggestion } from '../services/locationService';
 import BookingTripForm from './booking/BookingTripForm';
 import BookingFare from './booking/BookingFare';
+import ChauffeurAssignment from './booking/ChauffeurAssignment';
 import PaymentForm from './booking/PaymentForm';
 import BookingConfirmation from './booking/BookingConfirmation';
+import '../styles/booking.css';
+
+
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function BookingPage() {
   const [searchParams] = useSearchParams();
@@ -22,6 +24,8 @@ export default function BookingPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const leafletRef = useRef<{ map: unknown; script: HTMLScriptElement | null } | null>(null);
+  const pickupMarkerRef = useRef<any>(null);
+  const dropoffMarkerRef = useRef<any>(null);
 
   const [step, setStep] = useState<Step>(STEPS.TRIP);
   const [bookingForm, setBookingForm] = useState<BookingFormData>({
@@ -42,13 +46,59 @@ export default function BookingPage() {
   const [customTip, setCustomTip] = useState('');
   const [tipMode, setTipMode] = useState<'percent' | 'custom' | 'none'>('percent');
   const [error, setError] = useState('');
+  const [chauffeur, setChauffeur] = useState<AssignedChauffeur | null>(null);
   const [confirmation, setConfirmation] = useState<BookingConfirmationData | null>(null);
 
   useEffect(() => {
     if (searchParams.get('vehicle')) {
       setBookingForm((prev: BookingFormData) => ({ ...prev, vehicle: searchParams.get('vehicle')! }));
     }
-  }, [searchParams.get('vehicle')]);
+
+    // Check for return from Stripe Hosted Checkout
+    const isConfirmed = searchParams.get('confirmed') === 'true';
+    const isCanceled = searchParams.get('canceled') === 'true';
+
+    if (isConfirmed) {
+      let storedBooking: Partial<BookingConfirmationData> = {};
+      try {
+        const raw = sessionStorage.getItem('kenick_pending_booking');
+        if (raw) storedBooking = JSON.parse(raw);
+      } catch {
+        // Ignore JSON error
+      }
+
+      const invoice = searchParams.get('invoice') || storedBooking.invoiceNumber || `INV-${Date.now().toString(36).toUpperCase()}`;
+      const booking = searchParams.get('booking') || storedBooking.confirmationNumber || `BK-${Date.now().toString(36).toUpperCase()}`;
+      const pickup = searchParams.get('pickup') || storedBooking.pickup || 'Pickup Location';
+      const dropoff = searchParams.get('dropoff') || storedBooking.dropoff || 'Destination';
+      const date = searchParams.get('date') || storedBooking.date || new Date().toISOString().split('T')[0];
+      const time = searchParams.get('time') || storedBooking.time || '12:00';
+      const vehicle = searchParams.get('vehicle') || storedBooking.vehicle || 'Standard SUV';
+      const total = parseFloat(searchParams.get('total') || '0') || storedBooking.total || 145.00;
+
+      if (storedBooking.chauffeur) {
+        setChauffeur(storedBooking.chauffeur);
+      }
+
+      setConfirmation({
+        invoiceNumber: invoice,
+        confirmationNumber: booking,
+        pickup,
+        dropoff,
+        date,
+        time,
+        vehicle,
+        baseFare: storedBooking.baseFare || total * 0.8,
+        tip: storedBooking.tip || total * 0.2,
+        tax: 0,
+        total,
+        chauffeur: storedBooking.chauffeur,
+      });
+      setStep(STEPS.CONFIRMATION);
+    } else if (isCanceled) {
+      setError('Payment was canceled on Stripe. You can review your trip details and try again.');
+    }
+  }, [searchParams]);
 
   // Initialize Mapbox / Fallback Map
   useEffect(() => {
@@ -197,6 +247,83 @@ export default function BookingPage() {
     };
   }, []);
 
+  const updateMapLocation = (type: 'pickup' | 'dropoff', lat: number, lng: number) => {
+    if (mapRef.current) {
+      const map = mapRef.current;
+      if (type === 'pickup') {
+        if (!pickupMarkerRef.current) {
+          pickupMarkerRef.current = new mapboxgl.Marker({ color: '#F4C522' })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        } else {
+          pickupMarkerRef.current.setLngLat([lng, lat]);
+        }
+      } else {
+        if (!dropoffMarkerRef.current) {
+          dropoffMarkerRef.current = new mapboxgl.Marker({ color: '#ffffff' })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        } else {
+          dropoffMarkerRef.current.setLngLat([lng, lat]);
+        }
+      }
+
+      if (pickupMarkerRef.current && dropoffMarkerRef.current) {
+        const pLngLat = pickupMarkerRef.current.getLngLat();
+        const dLngLat = dropoffMarkerRef.current.getLngLat();
+        const bounds = new mapboxgl.LngLatBounds();
+        bounds.extend(pLngLat);
+        bounds.extend(dLngLat);
+        map.fitBounds(bounds, { padding: 120, maxZoom: 15 });
+      } else {
+        map.flyTo({ center: [lng, lat], zoom: 14, essential: true });
+      }
+    } else if (leafletRef.current?.map) {
+      const lMap = leafletRef.current.map as any;
+      const L = (window as any).L;
+      if (L && lMap) {
+        if (type === 'pickup') {
+          if (!pickupMarkerRef.current) {
+            pickupMarkerRef.current = L.marker([lat, lng]).addTo(lMap);
+          } else {
+            pickupMarkerRef.current.setLatLng([lat, lng]);
+          }
+        } else {
+          if (!dropoffMarkerRef.current) {
+            dropoffMarkerRef.current = L.marker([lat, lng]).addTo(lMap);
+          } else {
+            dropoffMarkerRef.current.setLatLng([lat, lng]);
+          }
+        }
+
+        if (pickupMarkerRef.current && dropoffMarkerRef.current) {
+          const group = L.featureGroup([pickupMarkerRef.current, dropoffMarkerRef.current]);
+          lMap.fitBounds(group.getBounds().pad(0.2));
+        } else {
+          lMap.setView([lat, lng], 14);
+        }
+      }
+    }
+  };
+
+  const handleSelectPickupLocation = (loc: LocationSuggestion) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      pickup: loc.placeName,
+      pickupCoords: { lat: loc.lat, lng: loc.lng },
+    }));
+    updateMapLocation('pickup', loc.lat, loc.lng);
+  };
+
+  const handleSelectDropoffLocation = (loc: LocationSuggestion) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      dropoff: loc.placeName,
+      dropoffCoords: { lat: loc.lat, lng: loc.lng },
+    }));
+    updateMapLocation('dropoff', loc.lat, loc.lng);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setBookingForm((prev: BookingFormData) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -277,6 +404,7 @@ export default function BookingPage() {
     setStep(STEPS.TRIP);
     setFare(null);
     setConfirmation(null);
+    setChauffeur(null);
     setError('');
     setBookingForm({ pickup: '', dropoff: '', date: '', time: '', vehicle: initialVehicle, passengers: '1', name: '', email: '', phone: '' });
   };
@@ -289,10 +417,61 @@ export default function BookingPage() {
       {/* Floating Booking Modal - right side */}
       <div className="booking-modal-container no-scrollbar">
         <div className="booking-modal-content">
+          {/* Step Progress Tracker (Centered Connected Segments) */}
+          <div className="booking-step-tracker">
+            {/* Step 1: Route */}
+            <div className={`booking-step-node ${step === STEPS.TRIP ? 'active' : step > STEPS.TRIP ? 'completed' : ''}`}>
+              <div className="booking-step-circle">
+                {step > STEPS.TRIP ? <Check size={13} strokeWidth={3} /> : '1'}
+              </div>
+              <span className="booking-step-label">Route</span>
+            </div>
+
+            <div className={`booking-step-connector ${step > STEPS.TRIP ? 'filled' : ''}`} />
+
+            {/* Step 2: Tariff */}
+            <div className={`booking-step-node ${step === STEPS.FARE ? 'active' : step > STEPS.FARE ? 'completed' : ''}`}>
+              <div className="booking-step-circle">
+                {step > STEPS.FARE ? <Check size={13} strokeWidth={3} /> : '2'}
+              </div>
+              <span className="booking-step-label">Tariff</span>
+            </div>
+
+            <div className={`booking-step-connector ${step > STEPS.FARE ? 'filled' : ''}`} />
+
+            {/* Step 3: Chauffeur */}
+            <div className={`booking-step-node ${step === STEPS.CHAUFFEUR ? 'active' : step > STEPS.CHAUFFEUR ? 'completed' : ''}`}>
+              <div className="booking-step-circle">
+                {step > STEPS.CHAUFFEUR ? <Check size={13} strokeWidth={3} /> : '3'}
+              </div>
+              <span className="booking-step-label">Chauffeur</span>
+            </div>
+
+            <div className={`booking-step-connector ${step > STEPS.CHAUFFEUR ? 'filled' : ''}`} />
+
+            {/* Step 4: Payment */}
+            <div className={`booking-step-node ${step === STEPS.PAYMENT ? 'active' : step > STEPS.PAYMENT ? 'completed' : ''}`}>
+              <div className="booking-step-circle">
+                {step > STEPS.PAYMENT ? <Check size={13} strokeWidth={3} /> : '4'}
+              </div>
+              <span className="booking-step-label">Payment</span>
+            </div>
+
+            <div className={`booking-step-connector ${step > STEPS.PAYMENT ? 'filled' : ''}`} />
+
+            {/* Step 5: Voucher */}
+            <div className={`booking-step-node ${step === STEPS.CONFIRMATION ? 'active' : ''}`}>
+              <div className="booking-step-circle">
+                {step === STEPS.CONFIRMATION ? <Check size={13} strokeWidth={3} /> : '5'}
+              </div>
+              <span className="booking-step-label">Voucher</span>
+            </div>
+          </div>
 
           {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#dc2626', fontSize: '0.9rem' }}>
-              {error}
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#fca5a5', fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+              <span>{error}</span>
             </div>
           )}
 
@@ -303,6 +482,8 @@ export default function BookingPage() {
               onChange={handleChange}
               onSubmit={handleCalculateFare}
               isCalculating={isCalculating}
+              onSelectPickupLocation={handleSelectPickupLocation}
+              onSelectDropoffLocation={handleSelectDropoffLocation}
             />
           )}
 
@@ -317,27 +498,39 @@ export default function BookingPage() {
               onTipPercentChange={handleTipPercent}
               onCustomTipChange={handleCustomTip}
               onBack={() => setStep(STEPS.TRIP)}
-              onContinue={() => setStep(STEPS.PAYMENT)}
+              onContinue={() => setStep(STEPS.CHAUFFEUR)}
             />
           )}
 
-          {/* STEP 3: Stripe Payment */}
-          {step === STEPS.PAYMENT && fare && (
-            <Elements stripe={stripePromise}>
-              <PaymentForm
-                fare={fare}
-                bookingForm={bookingForm}
-                onBack={() => setStep(STEPS.FARE)}
-                onSuccess={(conf) => {
-                  setConfirmation(conf);
-                  setStep(STEPS.CONFIRMATION);
-                }}
-                onError={setError}
-              />
-            </Elements>
+          {/* STEP 3: Chauffeur Assignment */}
+          {step === STEPS.CHAUFFEUR && fare && (
+            <ChauffeurAssignment
+              bookingForm={bookingForm}
+              fare={fare}
+              onBack={() => setStep(STEPS.FARE)}
+              onConfirmChauffeur={(assigned) => {
+                setChauffeur(assigned);
+                setStep(STEPS.PAYMENT);
+              }}
+            />
           )}
 
-          {/* STEP 4: Confirmation + Invoice */}
+          {/* STEP 4: Stripe Hosted Payment */}
+          {step === STEPS.PAYMENT && fare && (
+            <PaymentForm
+              fare={fare}
+              bookingForm={bookingForm}
+              chauffeur={chauffeur}
+              onBack={() => setStep(STEPS.CHAUFFEUR)}
+              onSuccess={(conf) => {
+                setConfirmation(conf);
+                setStep(STEPS.CONFIRMATION);
+              }}
+              onError={setError}
+            />
+          )}
+
+          {/* STEP 5: Confirmation + Invoice */}
           {step === STEPS.CONFIRMATION && confirmation && (
             <BookingConfirmation confirmation={confirmation} onReset={handleReset} />
           )}
@@ -347,3 +540,4 @@ export default function BookingPage() {
     </div>
   );
 }
+

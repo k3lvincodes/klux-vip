@@ -91,9 +91,9 @@ class _PaymentSuccessfulScreenState extends State<PaymentSuccessfulScreen>
                           ),
                         ),
                         child: Icon(
-                          Icons.arrow_back,
+                          Icons.arrow_back_ios_new,
                           color: isDark ? AppColors.white : AppColors.black,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
                     ),
