@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, User, Star, PenLine, Sparkles } from 'lucide-react';
 import LeaveReviewModal, { type UserReview } from './LeaveReviewModal';
+import { supabase } from '../../lib/supabase';
 
 export default function Testimonials() {
   const { t } = useTranslation();
@@ -26,19 +27,36 @@ export default function Testimonials() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load user submitted reviews from localStorage
+  // Load approved reviews from Supabase
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('kenick_user_reviews');
-      if (stored) {
-        const parsed: UserReview[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setUserReviews(parsed);
-        }
+    const fetchReviews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('client_reviews')
+          .select('id, name, rating, service_type, review_text, created_at')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error || !data) return;
+
+        const mapped: UserReview[] = data.map((row) => ({
+          id: row.id,
+          name: row.name.toUpperCase(),
+          text: row.review_text,
+          rating: row.rating,
+          service: row.service_type ?? undefined,
+          date: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          isUserSubmitted: true,
+        }));
+
+        setUserReviews(mapped);
+      } catch {
+        // silently ignore network errors — default testimonials still show
       }
-    } catch {
-      // Fallback
-    }
+    };
+
+    fetchReviews();
   }, []);
 
   // Built-in default testimonials from translations
