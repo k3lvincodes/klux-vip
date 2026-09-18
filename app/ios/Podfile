@@ -1,8 +1,13 @@
 # Define global platform for iOS deployment target
-didit_sdk_ios_nfc_enabled = ENV.fetch('DIDIT_SDK_IOS_NFC_ENABLED', 'false').downcase != 'false'
+# Explicitly set NFC to false: Kenick VIP uses camera/photo ID verification, not NFC passport reading.
+# Setting ENV ensures both the Podfile and didit_sdk.podspec agree on the 'DiditSDK/Core' subspec.
+ENV['DIDIT_SDK_IOS_NFC_ENABLED'] = 'false'
+$DiditSdkIosVariant = 'core'
+
 platform :ios, '15.0'
 
-# DiditSDK is installed automatically by the didit_sdk Flutter plugin via flutter_install_all_ios_pods.
+# DiditSDK is hosted on GitHub rather than CocoaPods trunk, so we specify its podspec location:
+didit_sdk_ios_podspec = 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/3.6.2/DiditSDK.podspec'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -37,6 +42,8 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
+
+  pod 'DiditSDK/Core', :podspec => didit_sdk_ios_podspec
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
