@@ -1,4 +1,5 @@
 # Define global platform for iOS deployment target
+didit_sdk_ios_nfc_enabled = ENV.fetch('DIDIT_SDK_IOS_NFC_ENABLED', 'false').downcase != 'false'
 platform :ios, '15.0'
 
 didit_sdk_ios_pod = didit_sdk_ios_nfc_enabled ? 'DiditSDK' : 'DiditSDK/Core'
