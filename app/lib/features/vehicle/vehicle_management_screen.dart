@@ -95,7 +95,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
     }
   }
 
-  /// Opens dialog to input license plate and activate a fleet car for shift
+  /// Opens dialog to input license plate and register a platform fleet vehicle model
   void _promptSelectFleetCar(FleetCar car) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -146,13 +146,25 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            color: Colors.black.withValues(alpha: 0.4),
+                            padding: const EdgeInsets.all(4),
+                            child: AspectRatio(
+                              aspectRatio: 1.0,
+                              child: car.imageUrl != null && car.imageUrl!.startsWith('http')
+                                  ? CachedNetworkImage(
+                                      imageUrl: car.imageUrl!,
+                                      fit: BoxFit.contain,
+                                      errorWidget: (context, url, error) =>
+                                          Image.asset(car.assetFallback, fit: BoxFit.contain),
+                                    )
+                                  : Image.asset(car.assetFallback, fit: BoxFit.contain),
+                            ),
                           ),
-                          child: Icon(Icons.verified, color: colorScheme.primary, size: 24),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -160,16 +172,17 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Select for Active Shift',
-                                style: textTheme.titleLarge?.copyWith(
+                                'Register Vehicle for Service',
+                                style: textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: colorScheme.onSurface,
                                 ),
                               ),
+                              const SizedBox(height: 2),
                               Text(
                                 '${car.year} ${car.make} ${car.model}',
                                 style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.primary,
+                                  color: const Color(0xFFD4AF37),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -192,7 +205,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Authorized Kenick VIP Fleet Vehicle. Exterior: Obsidian Black.',
+                              'Supported platform model. Kenick VIP requires Obsidian / Jet Black exterior and pristine interior. Enter your vehicle license plate to register.',
                               style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                             ),
                           ),
@@ -201,7 +214,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Assigned License Plate',
+                      'Your Vehicle License Plate',
                       style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -233,7 +246,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Please enter the vehicle license plate';
+                          return 'Please enter your vehicle license plate';
                         }
                         if (v.trim().length < 3) {
                           return 'Enter a valid license plate';
@@ -268,7 +281,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                   if (!mounted) return;
                                   CustomToast.showSuccess(
                                     context,
-                                    '${car.make} ${car.model} activated for shift!',
+                                    '${car.make} ${car.model} registered as your active vehicle!',
                                   );
                                   _loadData();
                                 } catch (e) {
@@ -276,7 +289,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                   if (!mounted) return;
                                   CustomToast.showError(
                                     context,
-                                    'Failed to activate vehicle: $e',
+                                    'Failed to register vehicle: $e',
                                   );
                                 }
                               },
@@ -295,7 +308,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : Text(
-                                'Activate for Active Shift',
+                                'Confirm Vehicle Registration',
                                 style: textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: colorScheme.onPrimary,
@@ -314,7 +327,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
     );
   }
 
-  /// Propose Custom VIP Vehicle with real-time Gemini AI vetting
+  /// Propose Custom VIP Vehicle with real-time Kenick AI vetting
   void _showProposeVehicleSheet() {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -402,7 +415,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                 ),
                               ),
                               Text(
-                                'Vetted in real-time by Kenick Gemini AI',
+                                'Vetted in real-time by Kenick AI',
                                 style: textTheme.bodySmall?.copyWith(
                                   color: const Color(0xFFD4AF37),
                                   fontWeight: FontWeight.w600,
@@ -637,7 +650,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                               )
                             : const Icon(Icons.auto_awesome, size: 20),
                         label: Text(
-                          isEvaluating ? 'Gemini AI Evaluating...' : 'Submit for AI Inspection',
+                          isEvaluating ? 'Kenick AI Evaluating...' : 'Submit for AI Inspection',
                           style: textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onPrimary,
@@ -693,7 +706,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Declined by Fleet AI',
+                'Declined by Kenick AI',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.error,
@@ -886,12 +899,12 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'No Vehicle Selected for Shift',
+                    'No Active Vehicle Registered',
                     style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Choose an authorized Kenick VIP vehicle from the fleet catalog below to start accepting rides.',
+                    'Select your vehicle model from the supported platform fleet below to register your vehicle and receive assignments.',
                     style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                 ],
@@ -947,15 +960,19 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'ACTIVE SHIFT VEHICLE · READY FOR DISPATCH',
-                  style: textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    color: const Color(0xFFD4AF37),
+                Expanded(
+                  child: Text(
+                    'ACTIVE VEHICLE · READY FOR ASSIGNMENTS',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                      color: const Color(0xFFD4AF37),
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 const Icon(Icons.check_circle, size: 16, color: Color(0xFFD4AF37)),
               ],
             ),
@@ -966,20 +983,23 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
               children: [
                 Row(
                   children: [
-                    // Vehicle Image
+                    // Vehicle Image (1:1 Aspect Ratio)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
-                        width: 110,
-                        height: 75,
+                        width: 80,
+                        height: 80,
                         color: Colors.black.withValues(alpha: 0.4),
-                        child: imageUrl != null && imageUrl.startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.contain,
-                                errorWidget: (context, url, error) => Image.asset(assetPath, fit: BoxFit.contain),
-                              )
-                            : Image.asset(assetPath, fit: BoxFit.contain),
+                        child: AspectRatio(
+                          aspectRatio: 1.0,
+                          child: imageUrl != null && imageUrl.startsWith('http')
+                              ? CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) => Image.asset(assetPath, fit: BoxFit.cover),
+                                )
+                              : Image.asset(assetPath, fit: BoxFit.cover),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -1061,68 +1081,82 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row with Tier & Feature
+          // Header Row with Tier & Feature (Flexible prevents 7.7px overflow)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    car.tierLabel.toUpperCase(),
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                      letterSpacing: 1,
-                      color: const Color(0xFFD4AF37),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      car.tierLabel.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                        color: const Color(0xFFD4AF37),
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
-                if (car.isFeatured)
+                if (car.isFeatured) ...[
+                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.star, size: 14, color: Color(0xFFD4AF37)),
                       const SizedBox(width: 4),
                       Text(
-                        'Featured Flagship',
+                        'Featured',
                         style: textTheme.labelSmall?.copyWith(
                           color: const Color(0xFFD4AF37),
                           fontWeight: FontWeight.bold,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
+                ],
               ],
             ),
           ),
 
-          // Large High-Res Vehicle Photo Presentation
+          // 1:1 High-Res Vehicle Photo Presentation (no padding, image clipped to border radius)
           Container(
-            width: double.infinity,
-            height: 150,
             margin: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+              ),
             ),
-            child: Center(
-              child: car.imageUrl != null && car.imageUrl!.startsWith('http')
-                  ? CachedNetworkImage(
-                      imageUrl: car.imageUrl!,
-                      fit: BoxFit.contain,
-                      errorWidget: (context, url, error) => Image.asset(car.assetFallback, fit: BoxFit.contain),
-                    )
-                  : Image.asset(
-                      car.assetFallback,
-                      fit: BoxFit.contain,
-                      height: 130,
-                    ),
+            child: AspectRatio(
+              aspectRatio: 1.0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: car.imageUrl != null && car.imageUrl!.startsWith('http')
+                    ? CachedNetworkImage(
+                        imageUrl: car.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Image.asset(
+                          car.assetFallback,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(
+                        car.assetFallback,
+                        fit: BoxFit.cover,
+                      ),
+              ),
             ),
           ),
 
@@ -1138,14 +1172,14 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 6),
-                // Specs pill row
-                Row(
+                const SizedBox(height: 8),
+                // Specs pill row - Wrap eliminates any right overflow on narrow displays
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     _buildSpecChip(Icons.people_outline, '${car.passengerCapacity} Seats'),
-                    const SizedBox(width: 8),
                     _buildSpecChip(Icons.luggage_outlined, '${car.luggageCapacity} Luggage'),
-                    const SizedBox(width: 8),
                     _buildSpecChip(Icons.circle, 'Black Only', iconColor: Colors.black),
                   ],
                 ),
@@ -1162,21 +1196,11 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton.icon(
+                  height: 48,
+                  child: ElevatedButton(
                     onPressed: isActive ? null : () => _promptSelectFleetCar(car),
-                    icon: Icon(
-                      isActive ? Icons.check_circle : Icons.directions_car,
-                      size: 18,
-                    ),
-                    label: Text(
-                      isActive ? 'Active on Current Shift' : 'Select for Shift',
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isActive ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
-                      ),
-                    ),
                     style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       backgroundColor: isActive
                           ? colorScheme.surfaceContainerHighest
                           : colorScheme.primary,
@@ -1186,6 +1210,29 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isActive ? Icons.check_circle : Icons.directions_car,
+                          size: 18,
+                          color: isActive ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            isActive ? 'Registered as Active Vehicle' : 'Register This Model',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: isActive ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1202,7 +1249,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(10),
@@ -1212,7 +1259,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 13, color: iconColor ?? colorScheme.primary),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             text,
             style: textTheme.labelSmall?.copyWith(
@@ -1351,7 +1398,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Fleet & Vehicle Selection',
+          'Supported Fleet & Vehicle',
           style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -1385,7 +1432,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      // Active Shift Vehicle
+                      // Active Registered Vehicle
                       _buildActiveVehicleHero(),
 
                       // Section Title & Propose Button
@@ -1396,7 +1443,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Authorized Admin Fleet',
+                                  'Supported Platform Fleet',
                                   style: textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: colorScheme.onSurface,
@@ -1404,7 +1451,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Select an approved vehicle for your shift',
+                                  'Models approved for service on Kenick VIP. Register your matching vehicle to receive assignments.',
                                   style: textTheme.bodySmall?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                   ),
@@ -1412,11 +1459,13 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
                           OutlinedButton.icon(
                             onPressed: _showProposeVehicleSheet,
                             icon: const Icon(Icons.add, size: 16),
                             label: const Text('Propose Car', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               foregroundColor: const Color(0xFFD4AF37),
                               side: const BorderSide(color: Color(0xFFD4AF37)),
                               shape: RoundedRectangleBorder(

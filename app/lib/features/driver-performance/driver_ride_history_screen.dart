@@ -65,14 +65,13 @@ class _DriverRideHistoryScreenState extends State<DriverRideHistoryScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Chauffeur Ride History',
-          style: textTheme.titleLarge?.copyWith(
+          'Ride History',
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
         backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -199,74 +198,297 @@ class _DriverRideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    const completedGreen = Color(0xFF22C55E);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: colorScheme.tertiary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.check_circle_rounded, size: 20, color: colorScheme.tertiary),
+    final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Pickup Location';
+    final dropoff = ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Dropoff Location';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _showRideReceipt(context, ride),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+          ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: completedGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        [ride.pickupAddress, ride.dropoffAddress].join(' → '),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${formatDate(ride.createdAt)}  •  ${formatTime(ride.createdAt)}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.check_circle_rounded, size: 12, color: completedGreen),
+                    SizedBox(width: 4),
                     Text(
-                      formatFare(ride.fareAmount),
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: colorScheme.tertiary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Completed',
-                        style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600, color: colorScheme.tertiary),
+                      'Completed',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: completedGreen,
                       ),
                     ),
                   ],
                 ),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  formatFare(ride.fareAmount),
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Pickup
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(Icons.my_location_rounded, color: colorScheme.primary, size: 15),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  pickup,
+                  style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 7),
+            child: SizedBox(
+              height: 10,
+              child: VerticalDivider(
+                width: 2,
+                thickness: 1.5,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+          ),
+          // Dropoff
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.location_on_rounded, color: Color(0xFFEF4444), size: 15),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  dropoff,
+                  style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  '${formatDate(ride.createdAt)}  •  ${formatTime(ride.createdAt)}',
+                  style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'VIP Ride #${ride.id.substring(0, 6).toUpperCase()}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+  }
+
+  void _showRideReceipt(BuildContext context, Ride ride) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trip Receipt',
+                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'VIP Ride #${ride.id.substring(0, 8).toUpperCase()}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'COMPLETED',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF22C55E),
+                    ),
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.my_location_rounded, color: colorScheme.primary, size: 16),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Pickup',
+                          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(height: 1),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded, color: Color(0xFFEF4444), size: 16),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          ride.dropoffAddress.isNotEmpty ? ride.dropoffAddress : 'Dropoff',
+                          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Fare Earned',
+                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  formatFare(ride.fareAmount),
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Date & Time',
+                  style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                ),
+                Text(
+                  '${formatDate(ride.createdAt)} at ${formatTime(ride.createdAt)}',
+                  style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  foregroundColor: colorScheme.onSurface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Close Receipt', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ),

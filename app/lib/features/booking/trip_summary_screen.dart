@@ -239,10 +239,13 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
   }
 
   double _fareFrom(dynamic details) {
-    if (details == null) return 200.0;
-    final raw = details['fare_amount'];
-    if (raw == null) return 200.0;
-    return (raw as num).toDouble();
+    if (details != null) {
+      final raw = details['fare_amount'];
+      if (raw != null) return (raw as num).toDouble();
+    }
+    final bookingFare = context.read<BookingProvider>().fareAmount;
+    if (bookingFare != null && bookingFare > 0) return bookingFare;
+    return 0.0;
   }
 
   LatLng? _parsePoint(dynamic point) {

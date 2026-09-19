@@ -63,7 +63,17 @@ workflows:
 
       - name: Build iOS IPA
         script: |
+          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$APP_ID" 2>/dev/null || echo 1)
+          if [ -z "$LATEST_BUILD" ] || [ "$LATEST_BUILD" -le 0 ] 2>/dev/null; then
+            LATEST_BUILD=1
+          fi
+          NEXT_BUILD=$((LATEST_BUILD + 1))
+          if [ -n "$BUILD_NUMBER" ] && [ "$BUILD_NUMBER" -gt "$NEXT_BUILD" ] 2>/dev/null; then
+            NEXT_BUILD=$BUILD_NUMBER
+          fi
+          echo "Building iOS IPA with build number: $NEXT_BUILD"
           flutter build ipa --release \
+            --build-number=$NEXT_BUILD \
             --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:

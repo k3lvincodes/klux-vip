@@ -128,8 +128,8 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Edit Personal Details',
-          style: tt.titleLarge?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
+          'Edit Profile Details',
+          style: tt.titleMedium?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),

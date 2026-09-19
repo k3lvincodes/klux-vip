@@ -20,7 +20,7 @@ class TermsOfServiceScreen extends StatelessWidget {
         ),
         title: Text(
           'Terms of Service',
-          style: textTheme.titleLarge?.copyWith(
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),

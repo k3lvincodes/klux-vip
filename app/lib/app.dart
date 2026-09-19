@@ -205,8 +205,8 @@ class _KenickVipAppState extends State<KenickVipApp>
         centerTitle: true,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         titleTextStyle: GoogleFonts.poppins(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
           color: colorScheme.onSurface,
         ),
       ),
@@ -422,8 +422,8 @@ class _KenickVipAppState extends State<KenickVipApp>
         centerTitle: true,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         titleTextStyle: GoogleFonts.poppins(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
           color: colorScheme.onSurface,
         ),
       ),

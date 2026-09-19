@@ -20,7 +20,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         ),
         title: Text(
           'Privacy Center',
-          style: textTheme.titleLarge?.copyWith(
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),

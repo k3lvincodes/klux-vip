@@ -168,6 +168,14 @@ class _DriverIdVerificationScreenState
           ),
           onPressed: () => context.pop(),
         ),
+        title: Text(
+          'Identity Verification',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: isDark ? AppColors.white : AppColors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Padding(
@@ -217,7 +225,7 @@ class _DriverIdVerificationScreenState
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'A single combined verification powered by Didit.\nFully encrypted and secure.',
+                              'Enterprise-grade biometric security.\nFully encrypted & confidential.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,

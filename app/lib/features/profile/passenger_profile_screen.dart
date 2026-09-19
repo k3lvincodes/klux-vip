@@ -57,7 +57,13 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('My Profile'),
+        title: Text(
+          'My Profile',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: ListView(

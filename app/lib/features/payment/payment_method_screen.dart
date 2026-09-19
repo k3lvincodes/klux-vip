@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
+import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
@@ -31,7 +32,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final rideProv = context.watch<RideProvider>();
-    final fareAmount = rideProv.currentRideDetails?['fare_amount'] ?? 200;
+    final fareAmount = rideProv.currentRideDetails?['fare_amount'] ?? context.watch<BookingProvider>().fareAmount ?? 0.0;
 
     return Scaffold(
       appBar: AppBar(

@@ -35,7 +35,6 @@ class FleetService {
       model: 'Yukon',
       year: 2024,
       localAssetPath: 'assets/images/GMC.png',
-      hasDriverAssigned: true,
     ),
     FleetVehicleItem(
       id: 'cadillac_escalade',
@@ -44,7 +43,6 @@ class FleetService {
       model: 'Escalade',
       year: 2024,
       localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
     ),
     FleetVehicleItem(
       id: 'ford_expedition',
@@ -53,7 +51,6 @@ class FleetService {
       model: 'Expedition',
       year: 2024,
       localAssetPath: 'assets/images/ford.png',
-      hasDriverAssigned: true,
     ),
   ];
 

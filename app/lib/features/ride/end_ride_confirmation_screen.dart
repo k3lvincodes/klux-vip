@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -81,32 +80,33 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
           ),
 
           // Glassmorphic Back Button
-          Positioned(
-            top: 50,
-            left: 16,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: ClipOval(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 8),
+              child: GestureDetector(
+                onTap: () => context.pop(),
+                child: ClipOval(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white.withValues(alpha: 0.12)
-                            : Colors.white.withValues(alpha: 0.6),
-                        width: 0.8,
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.white.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.6),
+                          width: 0.8,
+                        ),
                       ),
-                    ),
-                    child: Icon(
-                      Icons.arrow_back,
-                      size: 18,
-                      color: isDark ? AppColors.white : AppColors.black,
+                      child: Icon(
+                        Icons.arrow_back,
+                        size: 18,
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
                     ),
                   ),
                 ),
@@ -119,115 +119,110 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : const Color(0xFFF5EFEE),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Premium drag handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.15)
-                            : Colors.black.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : const Color(0xFFF5EFEE),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Title row with green checkmark
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Premium drag handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : Colors.black.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        child: const Icon(
-                          Icons.check_circle_rounded,
-                          color: Colors.green,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Ride completed?',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 38),
-                    child: Text(
-                      'Please confirm that you\'ve completed the ride',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 18),
 
-                  // From / To with styled dot indicators
-                  Consumer<RideProvider>(
-                    builder: (context, rideProv, _) {
-                      final pickup = rideProv.currentRideDetails?['pickup_address'] ?? 'Unknown';
-                      final dropoff = rideProv.currentRideDetails?['dropoff_address'] ?? 'Unknown';
-                      return Column(
-                        children: [
-                          _buildAddressRow(
-                            isDark: isDark,
-                            label: 'From',
-                            address: pickup,
-                            dotColor: Colors.green,
+                    // Title row with green checkmark
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 10),
-                          _buildAddressRow(
-                            isDark: isDark,
-                            label: 'To',
-                            address: dropoff,
-                            dotColor: Colors.red,
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.green,
+                            size: 20,
                           ),
-                        ],
-                      );
-                    }
-                  ),
-                  const SizedBox(height: 24),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Ride completed?',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.white : AppColors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 38),
+                      child: Text(
+                        'Please confirm that you\'ve completed the ride',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-                  // Yes button with PressScale tactile feedback
-                  Consumer<RideProvider>(
-                    builder: (context, rideProv, _) {
-                      return PressScale(
-                        onTap: rideProv.isLoading ? null : () async {
-                          final success = await rideProv.updateRideStatus('completed');
-                          if (success && context.mounted) {
-                            context.push('/ride-payment-received');
-                          }
-                        },
-                        child: CustomButton(
-                          title: rideProv.isLoading ? 'Completing...' : 'Yes',
+                    // From / To with styled dot indicators
+                    Consumer<RideProvider>(
+                      builder: (context, rideProv, _) {
+                        final pickup = rideProv.currentRideDetails?['pickup_address'] ?? 'Unknown location';
+                        final dropoff = rideProv.currentRideDetails?['dropoff_address'] ?? 'Unknown location';
+                        return Column(
+                          children: [
+                            _buildAddressRow(
+                              isDark: isDark,
+                              label: 'From',
+                              address: pickup,
+                              dotColor: Colors.green,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildAddressRow(
+                              isDark: isDark,
+                              label: 'To',
+                              address: dropoff,
+                              dotColor: Colors.red,
+                            ),
+                          ],
+                        );
+                      }
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Complete Trip button with single action trigger
+                    Consumer<RideProvider>(
+                      builder: (context, rideProv, _) {
+                        return CustomButton(
+                          title: rideProv.isLoading ? 'Completing...' : 'Complete Trip',
                           onPress: rideProv.isLoading ? () {} : () async {
                             final success = await rideProv.updateRideStatus('completed');
                             if (success && context.mounted) {
@@ -235,12 +230,12 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
                             }
                           },
                           variant: ButtonVariant.primary,
-                        ),
-                      );
-                    }
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                        );
+                      }
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             )
                 .animate()

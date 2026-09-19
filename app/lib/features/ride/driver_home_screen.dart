@@ -34,7 +34,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   bool _isOnline = true;
   double _todayEarnings = 0.0;
   int _totalTrips = 0;
-  double _rating = 5.0;
+  double _rating = 0.0;
+  int _ratingCount = 0;
 
   final Map<String, String> _passengerNames = {};
   final Set<String> _fetchedPassengerIds = {};
@@ -46,7 +47,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
+    _tabController = TabController(length: 2, vsync: this);
     _fetchProfile();
     _loadDeclinedRides();
     _initCompletedRidesFuture();
@@ -101,8 +102,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             if (profile.driverDetails != null) {
               _isOnline = profile.driverDetails!['is_online'] as bool? ?? true;
               final rawRating = profile.driverDetails!['rating'];
+              final rawCount = profile.driverDetails!['rating_count'];
               if (rawRating != null) {
                 _rating = (rawRating as num).toDouble();
+              }
+              if (rawCount != null) {
+                _ratingCount = (rawCount as num).toInt();
               }
             }
           });
@@ -132,7 +137,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       if (mounted) {
         CustomToast.showSuccess(
           context,
-          nextStatus ? 'Status: Online Standby (Receiving dispatches)' : 'Status: Offline (Standby paused)',
+          nextStatus ? 'Status: Online Standby (Receiving assignments)' : 'Status: Offline (Standby paused)',
         );
       }
     } catch (e) {
@@ -217,8 +222,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildCompletedTab(),
                     _buildAvailableTab(),
+                    _buildCompletedTab(),
                   ],
                 ),
               ),
@@ -358,7 +363,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
               ),
-              child: Icon(Icons.notifications_outlined, color: cs.onSurface, size: 20),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.notifications_outlined, color: cs.onSurface, size: 20),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD4AF37),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -379,13 +401,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         children: [
           // 1. Today's Revenue
           Expanded(
-            child: _buildTelemetryItem(
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: cs.primary,
-              label: "Today's Fare",
-              value: '\$${_todayEarnings.toStringAsFixed(2)}',
-              cs: cs,
-              tt: tt,
+            child: GestureDetector(
+              onTap: () => context.push('/account'),
+              behavior: HitTestBehavior.opaque,
+              child: _buildTelemetryItem(
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: cs.primary,
+                label: "Today's Fare",
+                value: '\$${_todayEarnings.toStringAsFixed(2)}',
+                cs: cs,
+                tt: tt,
+              ),
             ),
           ),
           Container(
@@ -395,13 +421,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           ),
           // 2. Completed Trips
           Expanded(
-            child: _buildTelemetryItem(
-              icon: Icons.directions_car_filled_outlined,
-              iconColor: const Color(0xFF3B82F6),
-              label: 'Trips Logged',
-              value: '$_totalTrips',
-              cs: cs,
-              tt: tt,
+            child: GestureDetector(
+              onTap: () => context.push('/driver-ride-history'),
+              behavior: HitTestBehavior.opaque,
+              child: _buildTelemetryItem(
+                icon: Icons.directions_car_filled_outlined,
+                iconColor: const Color(0xFF3B82F6),
+                label: 'Trips Logged',
+                value: '$_totalTrips',
+                cs: cs,
+                tt: tt,
+              ),
             ),
           ),
           Container(
@@ -411,13 +441,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           ),
           // 3. Rating
           Expanded(
-            child: _buildTelemetryItem(
-              icon: Icons.star_rounded,
-              iconColor: const Color(0xFFF59E0B),
-              label: 'Rating',
-              value: '${_rating.toStringAsFixed(1)} ★',
-              cs: cs,
-              tt: tt,
+            child: GestureDetector(
+              onTap: () => context.push('/driver-performance'),
+              behavior: HitTestBehavior.opaque,
+              child: _buildTelemetryItem(
+                icon: Icons.star_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                label: 'Rating',
+                value: (_ratingCount > 0 && _rating > 0) ? '${_rating.toStringAsFixed(1)} ★' : '--',
+                cs: cs,
+                tt: tt,
+              ),
             ),
           ),
         ],
@@ -440,23 +474,31 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 13, color: iconColor),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurfaceVariant,
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         const SizedBox(height: 3),
-        Text(
-          value,
-          style: tt.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.2,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: tt.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.2,
+            ),
+            maxLines: 1,
           ),
         ),
       ],
@@ -482,16 +524,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         labelColor: cs.onPrimary,
         unselectedLabelColor: cs.onSurfaceVariant,
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        dividerHeight: 0,
         tabs: const [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.history_rounded, size: 16),
+                Icon(Icons.assignment_rounded, size: 16),
                 SizedBox(width: 6),
-                Text('Completed'),
+                Flexible(
+                  child: Text(
+                    'Assignments',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
@@ -499,9 +545,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.radar_rounded, size: 16),
+                Icon(Icons.history_rounded, size: 16),
                 SizedBox(width: 6),
-                Text('Available Dispatches'),
+                Flexible(
+                  child: Text(
+                    'Completed',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
@@ -707,7 +759,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
                 ),
                 const SizedBox(height: 12),
-                Text('Connecting to dispatch radar...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                Text('Connecting to assignment radar...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
               ],
             ),
           );
@@ -737,7 +789,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         if (currentRideIds != _lastRideIds) {
           _lastRideIds = currentRideIds;
           final newRides = rides.where((r) => !_notifiedRideIds.contains(r['id'])).toList();
-          if (newRides.isNotEmpty && _tabController.index == 1) {
+          if (newRides.isNotEmpty && _tabController.index == 0) {
             _notifiedRideIds.addAll(newRides.map((r) => r['id'] as String));
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showRideNotification(newRides.first);
@@ -792,7 +844,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 child: Icon(Icons.notifications_active_rounded, size: 28, color: cs.primary),
               ),
               const SizedBox(height: 14),
-              Text('New Executive Dispatch!', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text('New Executive Assignment!', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(
                 'A VIP booking has been matched to your vehicle',
@@ -940,7 +992,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
             const SizedBox(height: 20),
             Text(
-              'Dispatch Radar Active',
+              'Assignment Radar Active',
               style: tt.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.2,
@@ -1090,6 +1142,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
         DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
         DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+        DrawerItem(icon: Icons.verified_user_outlined, title: 'Verification Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
         DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
         DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
         DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),

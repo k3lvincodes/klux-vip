@@ -131,6 +131,8 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                           children: [
                             Text(
                               widget.passengerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -145,11 +147,15 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                                 Icon(Icons.people,
                                     size: 13, color: Colors.grey.shade500),
                                 const SizedBox(width: 4),
-                                Text(
-                                  '${widget.passengerCount} passenger${widget.passengerCount == 1 ? '' : 's'}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500,
+                                Flexible(
+                                  child: Text(
+                                    '${widget.passengerCount} passenger${widget.passengerCount == 1 ? '' : 's'}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -157,21 +163,25 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '\$${widget.fare}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.white : AppColors.black,
+                      const SizedBox(width: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '\$${widget.fare}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.white : AppColors.black,
+                            ),
                           ),
                         ),
                       ),

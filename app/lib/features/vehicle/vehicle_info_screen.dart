@@ -60,25 +60,18 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
         ),
         title: Text(
           'Vehicle Information',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        actions: [
-          TextButton.icon(
-            onPressed: () => context.push('/vehicle-management'),
-            icon: Icon(Icons.edit, size: 18, color: colorScheme.primary),
-            label: Text('Manage', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
-          ),
-        ],
       ),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : _vehicle == null
-            ? _buildEmptyState(context)
-            : _buildVehicleDetails(context),
+          ? const Center(child: CircularProgressIndicator())
+          : _vehicle == null
+              ? _buildEmptyState(context)
+              : _buildVehicleDetails(context),
     );
   }
 
@@ -103,7 +96,7 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Register a vehicle to start accepting rides.',
+              'Select and register your executive vehicle model from the supported platform fleet.',
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
@@ -113,6 +106,8 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Register Vehicle'),
               style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
@@ -128,7 +123,7 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     final String make = _vehicle?.make ?? '';
     final String model = _vehicle?.model ?? '';
     final int year = _vehicle?.year ?? 0;
-    final String color = _vehicle?.color ?? '';
+    final String color = _vehicle?.color ?? 'Obsidian Black';
     final String licensePlate = _vehicle?.licensePlate ?? '';
     final List<String> images = _vehicle?.images ?? [];
 
@@ -136,45 +131,78 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          if (images.isNotEmpty)
-            Container(
-              height: 180,
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: CachedNetworkImageProvider(images.first),
-                  fit: BoxFit.cover,
-                ),
+          // 1:1 Aspect Ratio Vehicle Image Box
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                width: 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          Card(
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildDetailRow(context, Icons.directions_car, 'Make', make),
-                  _buildDetailRow(context, Icons.model_training, 'Model', model),
-                  _buildDetailRow(context, Icons.calendar_today, 'Year', year.toString()),
-                  _buildDetailRow(context, Icons.palette, 'Color', color),
-                  _buildDetailRow(context, Icons.confirmation_number, 'License Plate', licensePlate),
-                ],
+            child: AspectRatio(
+              aspectRatio: 1.0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: images.isNotEmpty && images.first.startsWith('http')
+                    ? CachedNetworkImage(
+                        imageUrl: images.first,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Image.asset(
+                          'assets/images/cadillac.png',
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(
+                        'assets/images/cadillac.png',
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              children: [
+                _buildDetailRow(context, Icons.directions_car_rounded, 'Make', make),
+                const Divider(height: 16),
+                _buildDetailRow(context, Icons.directions_car_filled_outlined, 'Model', model),
+                const Divider(height: 16),
+                _buildDetailRow(context, Icons.calendar_today_rounded, 'Year', year.toString()),
+                const Divider(height: 16),
+                _buildDetailRow(context, Icons.palette_outlined, 'Color', color),
+                const Divider(height: 16),
+                _buildDetailRow(context, Icons.tag_rounded, 'License Plate', licensePlate),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => context.push('/vehicle-management'),
-              icon: Icon(Icons.edit, size: 18, color: colorScheme.onSurface),
-              label: Text('Manage Vehicles', style: TextStyle(color: colorScheme.onSurface)),
+              icon: Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
+              label: Text('Manage Vehicles', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: colorScheme.outline),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: BorderSide(color: colorScheme.outlineVariant),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
             ),
@@ -189,11 +217,11 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(icon, size: 20, color: colorScheme.primary),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +239,8 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

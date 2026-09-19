@@ -185,7 +185,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
             children: [
               Icon(Icons.block, color: Theme.of(context).colorScheme.error),
               const SizedBox(width: 10),
-              const Text('Declined by Fleet AI'),
+              const Text('Declined by Kenick AI'),
             ],
           ),
           content: Column(
@@ -369,7 +369,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                     if (!_isCustomMode) ...[
                       // Admin Fleet Mode
                       Text(
-                        'Select Your Fleet Vehicle',
+                        'Supported Platform Fleet Models',
                         style: textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,
@@ -377,7 +377,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Select an authorized executive VIP car from the Kenick fleet.',
+                        'Select an authorized executive VIP car model from the supported platform fleet.',
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -402,26 +402,26 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(14),
+                              padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
-                                  // Vehicle Photo
+                                  // Vehicle Photo (1:1 Aspect Ratio, clipped to border radius, no padding)
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(14),
                                     child: Container(
-                                      width: 100,
-                                      height: 70,
-                                      color: Colors.black.withValues(alpha: 0.4),
+                                      width: 76,
+                                      height: 76,
+                                      color: Colors.black.withValues(alpha: 0.35),
                                       child: car.imageUrl != null && car.imageUrl!.startsWith('http')
                                           ? CachedNetworkImage(
                                               imageUrl: car.imageUrl!,
-                                              fit: BoxFit.contain,
-                                              errorWidget: (context, url, error) => Image.asset(car.assetFallback, fit: BoxFit.contain),
+                                              fit: BoxFit.cover,
+                                              errorWidget: (context, url, error) => Image.asset(car.assetFallback, fit: BoxFit.cover),
                                             )
-                                          : Image.asset(car.assetFallback, fit: BoxFit.contain),
+                                          : Image.asset(car.assetFallback, fit: BoxFit.cover),
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,6 +432,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                             fontWeight: FontWeight.bold,
                                             color: colorScheme.onSurface,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -439,6 +441,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                           style: textTheme.bodySmall?.copyWith(
                                             color: colorScheme.onSurfaceVariant,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -447,10 +451,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                             color: const Color(0xFFD4AF37),
                                             fontWeight: FontWeight.bold,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Icon(
                                     isSelected
                                         ? Icons.check_circle
@@ -458,7 +465,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                     color: isSelected
                                         ? colorScheme.primary
                                         : colorScheme.outlineVariant,
-                                    size: 24,
+                                    size: 22,
                                   ),
                                 ],
                               ),
@@ -505,7 +512,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                   height: 22,
                                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                 )
-                              : const Text('Confirm & Start Driving', style: TextStyle(fontWeight: FontWeight.bold)),
+                              : const Text('Confirm Vehicle Registration', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ] else ...[

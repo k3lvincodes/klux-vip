@@ -52,7 +52,9 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
     final String firstName = _profile?.firstName ?? 'Chauffeur';
     final String lastName = _profile?.lastName ?? '';
     final String? imageUrl = _profile?.avatarUrl;
-    final double rating = (_profile?.driverDetails?['rating'] ?? 0.0).toDouble();
+    final int ratingCount = (_profile?.driverDetails?['rating_count'] as num?)?.toInt() ?? 0;
+    final double rawRating = (_profile?.driverDetails?['rating'] as num?)?.toDouble() ?? 0.0;
+    final bool hasRating = ratingCount > 0 && rawRating > 0;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -65,7 +67,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         ),
         title: Text(
           'Chauffeur Profile',
-          style: tt.titleLarge?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
+          style: tt.titleMedium?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -107,12 +109,17 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.star, color: Colors.orange, size: 20),
+                  Icon(
+                    hasRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: hasRating ? Colors.orange : cs.onSurfaceVariant.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    rating.toStringAsFixed(1),
+                    hasRating ? rawRating.toStringAsFixed(1) : 'New Chauffeur',
                     style: tt.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: hasRating ? cs.onSurface : cs.onSurfaceVariant,
                     ),
                   ),
                 ],

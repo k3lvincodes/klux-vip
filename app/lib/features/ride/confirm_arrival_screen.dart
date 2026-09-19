@@ -10,7 +10,6 @@ import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -159,22 +158,24 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
             ],
           ),
 
-          Positioned(
-            top: 50, left: 16,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 8),
+              child: GestureDetector(
+                onTap: () => context.pop(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
+                      ),
+                      child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
                     ),
-                    child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
                   ),
                 ),
               ),
@@ -183,77 +184,100 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
 
           Positioned(
             bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, -6))],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(child: Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 18), decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
-                  Row(children: [
-                    Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 6, spreadRadius: 2)])),
-                    const SizedBox(width: 10),
-                    Text('Confirmation of arrival', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black, letterSpacing: 0.2)),
-                  ]),
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 20),
-                    child: Text('You may cancel the offer', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
-                  ),
-                  const SizedBox(height: 20),
-                  Consumer<RideProvider>(
-                    builder: (context, rideProv, _) {
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: isDark ? const Color(0xFF161316) : const Color(0xFFFAF9F9), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100)),
-                        child: Column(children: [
-                          _buildInfoRow(Icons.my_location, Colors.green, rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup', isDark),
-                          Padding(padding: const EdgeInsets.only(left: 7), child: Align(alignment: Alignment.centerLeft, child: Container(width: 2, height: 18, color: isDark ? Colors.grey.shade800 : Colors.grey.shade300))),
-                          _buildInfoRow(Icons.location_on, Colors.red, rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff', isDark),
-                        ]),
-                      );
-                    }
-                  ),
-                  const SizedBox(height: 22),
-                  Consumer<RideProvider>(
-                    builder: (context, rideProv, _) {
-                      return PressScale(
-                        onTap: rideProv.isLoading ? null : () async {
-                          final success = await rideProv.updateRideStatus('arriving');
-                          if (success && context.mounted) context.push('/start-ride');
-                        },
-                        child: CustomButton(
-                          title: rideProv.isLoading ? 'Updating...' : 'Confirm arrival',
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, -6))],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(child: Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 18), decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
+                    Row(children: [
+                      Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 6, spreadRadius: 2)])),
+                      const SizedBox(width: 10),
+                      Text('Confirmation of Arrival', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black, letterSpacing: 0.2)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20),
+                      child: Text('Executive assignment in progress', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
+                    ),
+                    const SizedBox(height: 20),
+                    Consumer<RideProvider>(
+                      builder: (context, rideProv, _) {
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: isDark ? const Color(0xFF161316) : const Color(0xFFFAF9F9), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100)),
+                          child: Column(children: [
+                            _buildInfoRow(Icons.my_location, Colors.green, rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location', isDark),
+                            Padding(padding: const EdgeInsets.only(left: 7), child: Align(alignment: Alignment.centerLeft, child: Container(width: 2, height: 18, color: isDark ? Colors.grey.shade800 : Colors.grey.shade300))),
+                            _buildInfoRow(Icons.location_on, Colors.red, rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location', isDark),
+                          ]),
+                        );
+                      }
+                    ),
+                    const SizedBox(height: 22),
+                    Consumer<RideProvider>(
+                      builder: (context, rideProv, _) {
+                        return CustomButton(
+                          title: rideProv.isLoading ? 'Updating...' : 'Confirm Arrival',
                           onPress: rideProv.isLoading ? () {} : () async {
                             final success = await rideProv.updateRideStatus('arriving');
                             if (success && context.mounted) context.push('/start-ride');
                           },
                           variant: ButtonVariant.primary,
-                        ),
-                      );
-                    }
-                  ),
-                  const SizedBox(height: 12),
-                  PressScale(
-                    onTap: () => context.pop(),
-                    child: SizedBox(
+                        );
+                      }
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.pop(),
-                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                        child: Text('Cancel', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: Theme.of(ctx).colorScheme.surface,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              title: const Text('Cancel Assignment?'),
+                              content: const Text('Are you sure you want to cancel this executive assignment? It will return to the radar for other chauffeurs.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Keep Assignment'),
+                                ),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Cancel Assignment'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true && context.mounted) {
+                            await context.read<RideProvider>().cancelCurrentRide(reason: 'Chauffeur cancelled before arrival');
+                            if (context.mounted) context.go('/driver-home');
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        ),
+                        child: Text('Cancel Assignment', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ).animate().slideY(begin: 0.15, end: 0, duration: 450.ms, curve: Curves.easeOutCubic).fadeIn(duration: 350.ms),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ).animate().slideY(begin: 0.15, end: 0, duration: 450.ms, curve: Curves.easeOutCubic).fadeIn(duration: 350.ms),
+            ),
           ),
         ],
       ),

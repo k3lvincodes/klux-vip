@@ -132,15 +132,26 @@ class ActiveTripCard extends StatelessWidget {
                         : null,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    passengerName!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.white : AppColors.black,
+                  Expanded(
+                    child: Text(
+                      passengerName!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
+                  if (onContact != null) ...[
+                    IconButton(
+                      icon: const Icon(Icons.phone_in_talk_rounded, size: 20, color: AppColors.primary),
+                      onPressed: onContact,
+                      tooltip: 'Contact Client',
+                    ),
+                  ],
+                  const SizedBox(width: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
@@ -200,7 +211,6 @@ class ActiveTripCard extends StatelessWidget {
                 if (onContact != null) ...[
                   Expanded(
                     child: PressScale(
-                      onTap: onContact,
                       child: SizedBox(
                         height: 48,
                         child: OutlinedButton.icon(
@@ -230,7 +240,6 @@ class ActiveTripCard extends StatelessWidget {
                 if (onEndRide != null)
                   Expanded(
                     child: PressScale(
-                      onTap: onEndRide,
                       child: SizedBox(
                         height: 48,
                         child: ElevatedButton(

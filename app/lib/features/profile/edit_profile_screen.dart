@@ -130,7 +130,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         title: Text(
           'Edit Profile',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: isDark ? AppColors.white : AppColors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),

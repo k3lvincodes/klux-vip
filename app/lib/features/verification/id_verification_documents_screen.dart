@@ -18,6 +18,7 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
   bool _isLoading = true;
   UserProfile? _profile;
   String? _overallStatus;
+  List<dynamic>? _verificationUrls;
 
   @override
   void initState() {
@@ -30,33 +31,73 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
     if (user != null) {
       try {
         final profile = await ProfileRepository().getDriverProfile(user.id);
-        // Fetch actual document statuses from driver_documents
+
+        // 1. Fetch direct chauffeur verification & status from driver_details and profiles
+        final ddRes = await Supabase.instance.client
+            .from('driver_details')
+            .select('verification_status, status, verification_urls')
+            .eq('profile_id', user.id)
+            .maybeSingle();
+
+        final profRes = await Supabase.instance.client
+            .from('profiles')
+            .select('verification_status')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        final rawDdVerification = (ddRes?['verification_status'] as String?)?.toLowerCase();
+        final rawDdStatus = (ddRes?['status'] as String?)?.toLowerCase();
+        final rawProfVerification = (profRes?['verification_status'] as String?)?.toLowerCase() ??
+            profile?.verificationStatus?.toLowerCase();
+
+        // 2. Fetch document statuses from driver_documents
         final docs = await Supabase.instance.client
             .from('driver_documents')
-            .select('type, status')
+            .select('type, status, document_url')
             .eq('driver_id', user.id)
             .filter('deleted_at', 'is', null);
 
-        final requiredTypes = ['driver_license', 'insurance', 'registration'];
-        final approvedTypes = (docs as List)
-            .where((d) => d['status'] == 'approved')
-            .map((d) => d['type'] as String)
-            .toSet();
-        final allRequiredApproved = requiredTypes.every((t) => approvedTypes.contains(t));
+        final docList = (docs as List?) ?? [];
+        final hasAnyDeclined = docList.any((d) => d['status'] == 'declined' || d['status'] == 'rejected');
+        final allDocsApproved = docList.isNotEmpty && docList.every((d) => d['status'] == 'approved');
 
-        String? computedStatus;
-        if (allRequiredApproved) {
+        String computedStatus;
+        if (rawDdVerification == 'approved' ||
+            rawDdStatus == 'approved' ||
+            rawProfVerification == 'approved' ||
+            allDocsApproved) {
           computedStatus = 'approved';
-        } else if (approvedTypes.isNotEmpty) {
+        } else if (rawDdVerification == 'rejected' ||
+            rawDdVerification == 'declined' ||
+            rawProfVerification == 'rejected' ||
+            rawProfVerification == 'declined' ||
+            hasAnyDeclined) {
+          computedStatus = 'declined';
+        } else if (rawDdVerification == 'pending' ||
+            rawProfVerification == 'pending' ||
+            docList.isNotEmpty) {
           computedStatus = 'pending';
         } else {
-          computedStatus = profile?.driverDetails?['verification_status'] as String?;
+          computedStatus = 'unverified';
+        }
+
+        // Collect verification image URLs
+        final urls = <dynamic>[];
+        if (ddRes?['verification_urls'] is List) {
+          urls.addAll(ddRes!['verification_urls'] as List);
+        } else if (profile?.driverDetails?['verification_urls'] is List) {
+          urls.addAll(profile!.driverDetails!['verification_urls'] as List);
+        }
+        for (final doc in docList) {
+          final url = doc['document_url'];
+          if (url != null && !urls.contains(url)) urls.add(url);
         }
 
         if (mounted) {
           setState(() {
             _profile = profile;
             _overallStatus = computedStatus;
+            _verificationUrls = urls;
             _isLoading = false;
           });
         }
@@ -113,8 +154,10 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String? status = _overallStatus ?? _profile?.driverDetails?['verification_status'] as String?;
-    final List<dynamic>? verificationUrls = _profile?.driverDetails?['verification_urls'] as List<dynamic>?;
+    final String? status = _overallStatus ??
+        _profile?.driverDetails?['verification_status'] as String? ??
+        _profile?.verificationStatus;
+    final List<dynamic>? verificationUrls = _verificationUrls ?? _profile?.driverDetails?['verification_urls'] as List<dynamic>?;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -126,16 +169,22 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'ID Verification',
-          style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold),
+          'Verification Documents',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: isDark ? AppColors.white : AppColors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
       body: _isLoading
         ? const Center(child: CircularProgressIndicator())
         : SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+            child: RefreshIndicator(
+              onRefresh: _loadProfile,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
                   const SizedBox(height: 20),
@@ -305,6 +354,7 @@ class _IdVerificationDocumentsScreenState extends State<IdVerificationDocumentsS
               ),
             ),
           ),
+        ),
     );
   }
 }

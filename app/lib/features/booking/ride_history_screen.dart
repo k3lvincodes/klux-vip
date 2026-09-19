@@ -104,13 +104,12 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
         ),
         title: Text(
           'Ride History',
-          style: textTheme.titleLarge?.copyWith(
+          style: textTheme.titleMedium?.copyWith(
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
         backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,

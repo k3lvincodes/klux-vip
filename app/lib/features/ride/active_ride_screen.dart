@@ -12,6 +12,7 @@ import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ActiveRideScreen extends StatefulWidget {
   const ActiveRideScreen({super.key});
@@ -29,6 +30,8 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   late Stopwatch _rideTimer;
   late Timer _displayTimer;
   String _elapsedDisplay = '00:00';
+  String _passengerName = 'VIP Client';
+  String? _passengerAvatarUrl;
 
   @override
   void initState() {
@@ -47,7 +50,31 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     _startGps();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(_currentPosition, mem.lastZoom);
+      _fetchPassengerDetails();
     });
+  }
+
+  Future<void> _fetchPassengerDetails() async {
+    final rideProv = context.read<RideProvider>();
+    final ride = rideProv.currentRideDetails;
+    final passengerId = ride?['passenger_id'] as String?;
+    if (passengerId == null || passengerId.isEmpty) return;
+
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', passengerId)
+          .maybeSingle();
+
+      if (res != null && mounted) {
+        final name = '${res['first_name'] ?? ''} ${res['last_name'] ?? ''}'.trim();
+        setState(() {
+          if (name.isNotEmpty) _passengerName = name;
+          _passengerAvatarUrl = res['avatar_url'] as String?;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -105,6 +132,36 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     }
   }
 
+  Future<bool> _confirmExit() async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Exit Navigation?'),
+        content: const Text(
+          'This luxury itinerary is currently in progress. You can safely return to the home screen without ending the ride.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Stay on Map', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Return Home'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -121,77 +178,187 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
       if (lat != null && lng != null) dropoffPos = LatLng(lat, lng);
     }
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 14.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await _confirmExit();
+        if (shouldExit && context.mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentPosition,
+                initialZoom: 14.5,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                ),
               ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              if (_routePoints.length >= 2)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: _routePoints,
-                      color: cs.primary,
-                      strokeWidth: 4.0,
-                      borderColor: cs.primary.withValues(alpha: 0.3),
-                      borderStrokeWidth: 1.5,
-                    ),
+              children: [
+                TileLayer(
+                  urlTemplate: isDark
+                      ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+                      : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
+                  additionalOptions: {
+                    'accessToken': EnvConfig.mapboxAccessToken,
+                  },
+                  userAgentPackageName: 'com.kenickvip.app',
+                  maxZoom: 22,
+                ),
+                if (_routePoints.length >= 2)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _routePoints,
+                        color: cs.primary,
+                        strokeWidth: 4.0,
+                        borderColor: cs.primary.withValues(alpha: 0.3),
+                        borderStrokeWidth: 1.5,
+                      ),
+                    ],
+                  ),
+                MarkerLayer(
+                  markers: [
+                    AnimatedMarker.driverCar(point: _currentPosition),
+                    if (dropoffPos != null)
+                      AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
                   ],
                 ),
-              MarkerLayer(
-                markers: [
-                  AnimatedMarker.driverCar(point: _currentPosition),
-                  if (dropoffPos != null)
-                    AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
-                ],
+              ],
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16, top: 8),
+                child: GestureDetector(
+                  onTap: () async {
+                    final shouldExit = await _confirmExit();
+                    if (shouldExit && context.mounted) {
+                      context.pop();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.arrow_back, size: 20, color: cs.onSurface),
+                  ),
+                ),
               ),
-            ],
-          ),
-          Positioned(
-            top: 50, left: 16,
-            child: GestureDetector(
-              onTap: () => context.pop(),
+            ),
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: ActiveTripCard(
+                passengerName: _passengerName,
+                passengerAvatarUrl: _passengerAvatarUrl,
+                pickupAddress: rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location',
+                dropoffAddress: rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location',
+                fare: rideProv.currentRideDetails?['fare_amount']?.toString() ?? '0.00',
+                status: 'in_progress',
+                timeElapsed: _elapsedDisplay,
+                onEndRide: () => context.push('/end-ride-confirmation'),
+                onContact: () => _showContactOptions(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showContactOptions(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
               child: Container(
-                padding: const EdgeInsets.all(8),
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: cs.surface,
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              'Contact Passenger',
+              style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Reach out to $_passengerName regarding this assignment',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.arrow_back, size: 18, color: cs.onSurface),
+                child: const Icon(Icons.phone_rounded, color: Color(0xFF22C55E)),
               ),
+              title: const Text('Voice Call Client', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Secured masked call via Kenick VIP', style: TextStyle(fontSize: 12)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Connecting secured call to client...')),
+                );
+              },
             ),
-          ),
-          Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: ActiveTripCard(
-              passengerName: 'Client',
-              pickupAddress: rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location',
-              dropoffAddress: rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location',
-              fare: rideProv.currentRideDetails?['fare_amount']?.toString() ?? '0.00',
-              status: 'in_progress',
-              timeElapsed: _elapsedDisplay,
-              onEndRide: () => context.push('/end-ride-confirmation'),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.chat_bubble_outline_rounded, color: cs.primary),
+              ),
+              title: const Text('Direct In-App Message', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Send an update or ETA notification', style: TextStyle(fontSize: 12)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening secure messenger...')),
+                );
+              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

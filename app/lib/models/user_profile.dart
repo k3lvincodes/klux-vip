@@ -54,7 +54,11 @@ class UserProfile {
           : null,
       stripeConnectId: json['stripe_connect_id'] as String?,
       stripeCustomerId: json['stripe_customer_id'] as String?,
-      driverDetails: json['driver_details'] as Map<String, dynamic>?,
+      driverDetails: json['driver_details'] is List
+          ? ((json['driver_details'] as List).isNotEmpty
+              ? (json['driver_details'] as List).first as Map<String, dynamic>?
+              : null)
+          : json['driver_details'] as Map<String, dynamic>?,
     );
   }
   final String id;

@@ -106,7 +106,13 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: Text(widget.subject, style: const TextStyle(fontSize: 16)),
+        title: Text(
+          widget.subject,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
