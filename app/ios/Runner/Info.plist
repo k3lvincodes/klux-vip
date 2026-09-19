@@ -59,5 +59,7 @@
 		<string>Photo library access is required to upload documents.</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>We need your Face ID to securely authenticate you.</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 	</dict>
 </plist>
