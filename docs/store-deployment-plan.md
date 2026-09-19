@@ -130,40 +130,30 @@ Your compiled bundle will be generated at:
 
 ---
 
-## 3. Apple App Store Deployment (Without a Mac)
+## 3. Apple App Store Deployment (Via Codemagic Workflow Editor - No Mac)
 
-Since you are running on Windows and do not have a physical Mac, you cannot run Xcode locally. However, you can achieve a **100% automated build, signing, and upload to TestFlight and the App Store** using a cloud CI/CD platform with macOS runners.
-
-### Recommended Tool: **Codemagic** (or GitHub Actions)
-**Codemagic** is purpose-built for Flutter and offers:
-- Free monthly build minutes on M1/M2 macOS runners.
-- Direct integration with Apple Developer Portal to automatically generate certificates and provisioning profiles.
-- Automatic upload directly to **Apple TestFlight** and **App Store Connect**.
+Since you are running on Windows and do not have a physical Mac machine, you cannot run Xcode locally. You achieve a **100% automated build, signing, and upload to TestFlight and the App Store** using **Codemagic** (Workflow Editor UI).
 
 ---
 
-### Step 3.1: Apple Developer Portal Setup (In Browser)
-You do all of this in your web browser:
-1. Log in to [developer.apple.com](https://developer.apple.com/account/).
-2. Navigate to **Certificates, Identifiers & Profiles**:
-   - Go to **Identifiers** -> Click `+` -> Select **App IDs**.
+### Step 3.1: Apple Developer Portal & App Store Connect Setup (In Browser)
+All developer configurations are done via web browser:
+1. **Create App ID on [developer.apple.com](https://developer.apple.com/account/)**:
+   - Go to **Certificates, Identifiers & Profiles** -> **Identifiers** -> Click `+` -> **App IDs**.
    - Description: `Kenick VIP`
    - Bundle ID: Explicit -> `com.kenick.vip.kenickVip`
-   - Capabilities: Check **Push Notifications** and any required entitlements.
-3. Generate an **App Store Connect API Key** (this allows the cloud builder to sign and upload for you):
+   - Capabilities: Check **Push Notifications** (and any other required capabilities).
+2. **Generate App Store Connect API Key** (allows Codemagic to automatically create distribution certificates, provisioning profiles, and upload builds):
    - Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com/) -> **Users and Access** -> **Integrations** -> **App Store Connect API**.
    - Click `+` to generate a new API Key:
-     - Name: `Codemagic CI` (or `GitHub Actions CI`)
+     - Name: `Codemagic CI`
      - Access: `Admin` or `App Manager`
-   - Download the `.p8` private key file immediately (it can only be downloaded once!).
-   - Note down:
-     - **Issuer ID** (UUID at the top)
-     - **Key ID** (10-character code)
-     - The downloaded `.p8` file contents.
-
-### Step 3.2: Create the App in App Store Connect
-1. Go to [App Store Connect](https://appstoreconnect.apple.com/) -> **Apps** -> Click `+` -> **New App**.
-2. Fill in:
+   - **Download the `.p8` private key file immediately** (Apple only allows downloading it once!).
+   - Copy and note down:
+     - **Issuer ID** (UUID at top of the page)
+     - **Key ID** (10-character alphanumeric code)
+3. **Create the App Record in App Store Connect**:
+   - Go to **Apps** -> Click `+` -> **New App**.
    - Platform: **iOS**
    - Name: **Kenick** (or **Kenick VIP**)
    - Primary Language: **English**
@@ -171,36 +161,87 @@ You do all of this in your web browser:
    - SKU: `KENICK-VIP-001`
    - User Access: **Full Access**
 
-### Step 3.3: Configure Cloud Build (Codemagic or GitHub Actions)
+---
 
-#### Option A: Using Codemagic (Easiest - 10-minute setup)
-1. Sign up at [Codemagic.io](https://codemagic.io/) using your GitHub/Git repository.
-2. Select your repository and select the `app` project directory.
-3. In Codemagic **App settings**:
+### Step 3.2: Codemagic Workflow Editor Configuration
+
+Configure Codemagic entirely through its web UI (**Workflow Editor**, no `codemagic.yaml` needed):
+
+1. **Repository Setup**:
+   - Connect repository `https://github.com/k3lvincodes/klux-vip.git` (branch `main`).
+   - Under **Project path**, enter: `app`
+2. **Build Settings**:
+   - **Flutter version**: Stable (or matched to your project).
+   - **Xcode version**: Latest stable.
+   - **Build Mode**: **Release** (Mode `Release` is required for TestFlight & App Store submissions; `Debug` will be rejected by Apple).
+3. **Environment Variables**:
+   - Add variable `ENV_FILE` containing your full `.env` configuration (Supabase URL, Anon Key, Stripe Publishable Key, Google Maps API Key, Didit credentials).
+   - Codemagic injects this at build time into `app/.env`.
+4. **iOS Code Signing (Automatic)**:
    - Under **Distribution** -> **iOS code signing**:
-     - Select **Automatic code signing**.
-     - Connect your **App Store Connect API Key** (upload the `.p8` file, enter Key ID and Issuer ID).
-     - Select Bundle Identifier: `com.kenick.vip.kenickVip`.
+   - Select **Automatic code signing**.
+   - Upload your App Store Connect API Key (`.p8` file).
+   - Enter **Key ID** and **Issuer ID**.
+   - Select Bundle Identifier: `com.kenick.vip.kenickVip`.
+   - Provisioning profile type: `App Store`.
+5. **App Store Connect Distribution**:
    - Under **Distribution** -> **App Store Connect**:
-     - Check **Publishing to App Store Connect**.
-     - Check **Submit to TestFlight**.
-4. Click **Start new build** -> Select `iOS` -> Workflow: `Release`.
-5. Codemagic will:
-   - Spin up an Apple Silicon Mac runner.
-   - Run `flutter pub get`.
-   - Fetch/create the Apple Distribution Certificate and Provisioning Profile.
-   - Build `flutter build ipa --release`.
-   - Upload the `.ipa` directly to App Store Connect / TestFlight!
+   - Check **Publishing to App Store Connect**.
+   - Check **Submit to TestFlight**.
 
-#### Option B: Using GitHub Actions (`.github/workflows/ios-release.yml`)
-If you prefer running inside your own GitHub repository, a GitHub Actions workflow with `macos-latest` runner can automatically sign with fastlane / Apple API key and upload to TestFlight.
+---
 
-### Step 3.4: Test on Your iPhone via TestFlight
-Once the cloud build finishes uploading:
-1. Open [App Store Connect](https://appstoreconnect.apple.com/) -> **Apps** -> **Kenick** -> **TestFlight**.
-2. Add yourself under **Internal Testing**.
-3. Install the **TestFlight** app from the App Store on your physical iPhone.
-4. Open the email invitation and install the live build on your iPhone to verify maps, Stripe, and GPS tracking.
+### Step 3.3: Critical Native iOS & CocoaPods Configuration (Already Solved in Code)
+
+The following architectural fixes have already been committed to `app/ios/` to guarantee smooth Codemagic builds:
+
+1. **DiditSDK Resolution & Subspec Synchronization** (`app/ios/Podfile`):
+   - **Issue:** `DiditSDK` is not hosted on CocoaPods trunk (`cdn.cocoapods.org`). Furthermore, if `DIDIT_SDK_IOS_NFC_ENABLED` is unset, the Flutter plugin defaults to the full `DiditSDK` while the Podfile defaults to `Core`, resulting in CocoaPods duplicate framework conflicts: `The 'Pods-Runner' target has frameworks with conflicting names: diditsdk.xcframework`.
+   - **Solution in `Podfile`:**
+     ```ruby
+     ENV['DIDIT_SDK_IOS_NFC_ENABLED'] = 'false'
+     $DiditSdkIosVariant = 'core'
+     platform :ios, '15.0'
+
+     didit_sdk_ios_podspec = 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/3.6.2/DiditSDK.podspec'
+
+     target 'Runner' do
+       use_frameworks!
+       use_modular_headers!
+       pod 'DiditSDK/Core', :podspec => didit_sdk_ios_podspec
+       flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+     end
+     ```
+   - **Why `Core`:** Kenick VIP uses camera, microphone, photo library, and Face ID for identity verification. It does not perform NFC passport reading. Using `Core` prevents Apple review rejection for undeclared NFC entitlements and reduces build size by ~120MB (omits OpenSSL).
+
+2. **Apple App Icon Alpha Channel Compliance (Error 90717)**:
+   - **Issue:** Apple App Store Connect strictly rejects any app icon with an alpha channel or transparent corners (`ERROR: Invalid large app icon. The large app icon in the asset catalog in “Runner.app” can’t be transparent or contain an alpha channel`).
+   - **Solution:** All 21 icon sizes in `app/ios/Runner/Assets.xcassets/AppIcon.appiconset/` are formatted strictly as **24-bit RGB PNGs without alpha channel**, composited onto a solid `#000000` square background. Apple's iOS automatically handles corner rounding dynamically on devices.
+   - Master 1024x1024 icon for App Store listing is preserved at: `Kenick_app_icon_1024x1024_apple_standard.png`.
+
+---
+
+### Step 3.4: Processing & TestFlight Distribution
+
+Once Codemagic finishes building and uploads the `.ipa`:
+
+1. **Processing in App Store Connect (5–15 min)**:
+   - Open [App Store Connect](https://appstoreconnect.apple.com/) -> **Apps** -> **Kenick** -> **TestFlight**.
+   - Build `1.0.0 (1)` will show as **Processing**.
+2. **Export Compliance**:
+   - When processing completes, a yellow **Missing Compliance** warning will appear.
+   - Click **Manage** / **Provide Export Compliance Information**.
+   - Select **No** for proprietary encryption (standard HTTPS/TLS used by Supabase, Stripe, and Flutter is exempt).
+3. **Internal Testing on Physical iPhone**:
+   - In the TestFlight tab sidebar, click **Internal Testing** -> Add your email.
+   - Open the **TestFlight** app on your iPhone, accept the invite, and install the build.
+   - Verify live map tiles, real GPS location tracking, Supabase authentication, and Stripe payment flows.
+4. **App Store Public Submission**:
+   - In the **1.0.0 Prepare for Submission** tab:
+     - Select the processed build under **Build**.
+     - Provide App Store listing details, 6.7" iPhone screenshots, and support URLs.
+     - Enter Demo Reviewer credentials in **App Review Information**.
+     - Click **Submit for Review**.
 
 ---
 
@@ -284,11 +325,14 @@ Prepare these creative assets prior to opening the review submission:
 - [ ] Upload bundle to **Closed Testing** and gather 20 testers for 14 days.
 - [ ] Promote to **Production** track.
 
-### Phase 3: Apple App Store (Cloud CI/CD - No Mac)
-- [ ] Create App ID `com.kenick.vip.kenickVip` in Apple Developer Portal.
-- [ ] Generate App Store Connect API Key (`.p8`, Issuer ID, Key ID).
-- [ ] Create the new App record in App Store Connect.
-- [ ] Set up Codemagic (or GitHub Actions) with automatic code signing.
-- [ ] Trigger the cloud release build and verify delivery in **TestFlight**.
-- [ ] Test the build on a physical iPhone via TestFlight.
-- [ ] Submit the build for **App Store Review** with demo reviewer credentials.
+### Phase 3: Apple App Store (Codemagic Workflow Editor - No Mac)
+- [x] Create App ID `com.kenick.vip.kenickVip` in Apple Developer Portal.
+- [x] Generate App Store Connect API Key (`.p8`, Issuer ID, Key ID).
+- [x] Create the new App record in App Store Connect.
+- [x] Configure Codemagic Workflow Editor with automatic code signing & App Store Connect integration.
+- [x] Resolve CocoaPods DiditSDK dependency & subspec conflict in `Podfile`.
+- [x] Fix Apple App Store Icon 90717 compliance (24-bit RGB, no alpha/transparency).
+- [x] Successfully build `.ipa` in Release mode and upload to App Store Connect via Codemagic.
+- [ ] Complete Export Compliance in App Store Connect (select "No" for encryption).
+- [ ] Test the release build on a physical iPhone via TestFlight Internal Testing.
+- [ ] Submit the build for **App Store Review** with demo reviewer credentials and store screenshots.
