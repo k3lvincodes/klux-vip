@@ -195,12 +195,14 @@ class RideRepository {
         return Ride.fromJson(activeRides.first);
       }
 
-      // 2. Check in pending ride requests
+      // 2. Check in pending ride requests (only if created within last 5 minutes)
+      final fiveMinutesAgo = DateTime.now().toUtc().subtract(const Duration(minutes: 5)).toIso8601String();
       final pendingReqs = await _supabase
           .from('ride_requests')
           .select()
           .eq('passenger_id', passengerId)
           .eq('status', 'pending')
+          .gte('created_at', fiveMinutesAgo)
           .order('created_at', ascending: false)
           .limit(1);
 

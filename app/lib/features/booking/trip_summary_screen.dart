@@ -3,13 +3,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
+import 'package:kenick_vip/services/currency_service.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
@@ -18,9 +18,8 @@ import 'package:kenick_vip/widgets/cards/active_trip_card.dart';
 import 'package:kenick_vip/widgets/cards/fare_display.dart';
 import 'package:kenick_vip/widgets/feedback/ride_search_indicator.dart';
 import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
-import 'package:kenick_vip/widgets/map/map_animator.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -37,14 +36,10 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
   static const LatLng _initialPosition =
       LatLng(37.42796133580664, -122.085749655962);
   late LatLng _currentPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
   List<LatLng> _polylinePoints = [];
-  LatLng? _simulatedDriverPosition;
-  double _simulatedDriverRotation = 0.0;
-  int _currentPathIndex = 0;
   String? _lastStatus;
   double _currentEta = 5.0;
-  bool _pickupPinRemoved = false;
   bool _showArrivalBanner = false;
 
   bool _isPaymentProcessing = false;
@@ -54,33 +49,79 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
   String _driverName = '';
   final TextEditingController _commentController = TextEditingController();
 
-  AnimationController? _simAnimationController;
-
   Timer? _searchTimeoutTimer;
+  Timer? _elapsedTimer;
+  String _elapsedTimeString = '00:00';
   String _assignedDriverName = 'Chauffeur';
+  String? _assignedDriverAvatar;
   String _assignedDriverRating = '5.0';
   String _assignedVehicleModel = 'Executive VIP Sedan';
   double _selectedTip = 0.0;
+  String? _countryCode;
 
   @override
   void initState() {
     super.initState();
     final mem = MapMemory();
-    _currentPosition = (mem.hasMemory && mem.lastPosition != null)
-        ? mem.lastPosition!
-        : _initialPosition;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _mapController.move(_currentPosition, mem.lastZoom);
+    final bookingProv = Provider.of<BookingProvider>(context, listen: false);
+    final rideProv = Provider.of<RideProvider>(context, listen: false);
+
+    if (bookingProv.pickupLat != null && bookingProv.pickupLng != null) {
+      _currentPosition = LatLng(bookingProv.pickupLat!, bookingProv.pickupLng!);
+    } else if (mem.hasMemory && mem.lastPosition != null) {
+      _currentPosition = mem.lastPosition!;
+    } else {
+      _currentPosition = _initialPosition;
+    }
+
+    if (bookingProv.routePoints != null && bookingProv.routePoints!.isNotEmpty) {
+      _polylinePoints = List<LatLng>.from(bookingProv.routePoints!);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final (pickup, dropoff) = _resolveCoordinates(rideProv);
+      _fitMapToBounds(pickup, dropoff);
+
+      final code = await LocationSearchService.detectCountryCode(_currentPosition);
+      if (mounted) setState(() => _countryCode = code);
     });
   }
 
   @override
   void dispose() {
     _searchTimeoutTimer?.cancel();
-    _simAnimationController?.dispose();
+    _elapsedTimer?.cancel();
     _commentController.dispose();
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 15.0);
     super.dispose();
+  }
+
+  void _startElapsedTimer() {
+    _elapsedTimer?.cancel();
+    _updateElapsedTime();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) _updateElapsedTime();
+    });
+  }
+
+  void _updateElapsedTime() {
+    final ride = Provider.of<RideProvider>(context, listen: false).currentRide;
+    if (ride == null) return;
+    final start = ride.createdAt;
+    final diff = DateTime.now().difference(start);
+    final mins = diff.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final secs = diff.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final hrs = diff.inHours;
+    if (mounted) {
+      setState(() {
+        if (hrs > 0) {
+          _elapsedTimeString = '$hrs:$mins:$secs';
+        } else {
+          _elapsedTimeString = '$mins:$secs';
+        }
+      });
+    }
   }
 
   void _startSearchTimer() {
@@ -115,7 +156,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           ],
         ),
         content: const Text(
-          'All nearby VIP chauffeurs are currently engaged on active journeys. Would you like to continue searching, schedule your ride for later, or cancel?',
+          'All nearby VIP chauffeurs are currently engaged on active rides. Would you like to continue searching, schedule your ride for later, or cancel?',
           style: TextStyle(fontSize: 14),
         ),
         actions: [
@@ -183,6 +224,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
             final last = (profile['last_name'] as String? ?? '').trim();
             final fullName = '$first $last'.trim();
             _assignedDriverName = fullName.isNotEmpty ? fullName : 'Chauffeur';
+            _assignedDriverAvatar = profile['avatar_url'] as String?;
             _driverName = _assignedDriverName;
           }
           if (details != null && details['rating'] != null) {
@@ -272,149 +314,176 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
     return null;
   }
 
-  List<LatLng> _generatePath(LatLng start, LatLng end, int steps) {
-    final List<LatLng> path = [];
-    final pt1 = LatLng(start.latitude, end.longitude);
+  (LatLng, LatLng) _resolveCoordinates(RideProvider rideProv) {
+    final ride = rideProv.currentRide;
+    final bookingProv = Provider.of<BookingProvider>(context, listen: false);
 
-    final halfSteps = steps ~/ 2;
-    for (int i = 0; i <= halfSteps; i++) {
-      final t = i / halfSteps;
-      final lat = start.latitude + (pt1.latitude - start.latitude) * t;
-      final lng = start.longitude + (pt1.longitude - start.longitude) * t;
-      path.add(LatLng(lat, lng));
+    LatLng? pickup;
+    LatLng? dropoff;
+
+    if (ride != null) {
+      if (ride.pickupLat != 0.0 && ride.pickupLng != 0.0) {
+        pickup = LatLng(ride.pickupLat, ride.pickupLng);
+      }
+      if (ride.dropoffLat != 0.0 && ride.dropoffLng != 0.0) {
+        dropoff = LatLng(ride.dropoffLat, ride.dropoffLng);
+      }
     }
-    for (int i = 1; i <= halfSteps; i++) {
-      final t = i / halfSteps;
-      final lat = pt1.latitude + (end.latitude - pt1.latitude) * t;
-      final lng = pt1.longitude + (end.longitude - pt1.longitude) * t;
-      path.add(LatLng(lat, lng));
+
+    pickup ??= _parsePoint(rideProv.currentRideDetails?['pickup_location']);
+    dropoff ??= _parsePoint(rideProv.currentRideDetails?['dropoff_location']);
+
+    if (pickup == null && bookingProv.pickupLat != null && bookingProv.pickupLng != null) {
+      pickup = LatLng(bookingProv.pickupLat!, bookingProv.pickupLng!);
     }
-    return path;
+    if (dropoff == null && bookingProv.dropoffLat != null && bookingProv.dropoffLng != null) {
+      dropoff = LatLng(bookingProv.dropoffLat!, bookingProv.dropoffLng!);
+    }
+
+    pickup ??= _currentPosition;
+    dropoff ??= LatLng(pickup.latitude + 0.01, pickup.longitude + 0.01);
+    return (pickup, dropoff);
   }
 
-  double _calculateAngle(LatLng current, LatLng next) {
-    final dy = next.latitude - current.latitude;
-    final dx = next.longitude - current.longitude;
-    return atan2(dx, dy) * 180 / pi;
+  void _fitMapToBounds(LatLng p1, LatLng p2, [LatLng? p3]) {
+    _mapKey.currentState?.fitRouteBounds();
+  }
+
+  void _showSafetyDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'VIP Safety & Assistance',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your VIP ride is protected with active GPS tracking and emergency assistance.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.phone, color: Colors.white, size: 20),
+                  ),
+                  title: const Text('Emergency Services (911)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: const Text('Connect immediately to local emergency dispatch', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    CustomToast.showSuccess(context, 'Emergency dispatch dialed');
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    child: Icon(Icons.share, color: Colors.black, size: 20),
+                  ),
+                  title: const Text('Share Live Ride Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: const Text('Share real-time tracking link with family or security team', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    CustomToast.showSuccess(context, 'Tracking link copied to clipboard');
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                    child: Icon(Icons.headset_mic, color: isDark ? Colors.white : Colors.black, size: 20),
+                  ),
+                  title: const Text('VIP Concierge Support', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: const Text('Priority customer service team', style: TextStyle(fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/support');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleStatusChange(String status) async {
     _lastStatus = status;
 
-    _simAnimationController?.stop();
-    _simAnimationController?.dispose();
-    _simAnimationController = null;
-
     final rideProv = Provider.of<RideProvider>(context, listen: false);
-    final pickupRaw = rideProv.currentRideDetails?['pickup_location'];
-    final dropoffRaw = rideProv.currentRideDetails?['dropoff_location'];
+    final (pickup, dropoff) = _resolveCoordinates(rideProv);
 
-    final pickup =
-        _parsePoint(pickupRaw) ?? const LatLng(37.42796133580664, -122.085749655962);
-    final dropoff =
-        _parsePoint(dropoffRaw) ?? const LatLng(37.43296265331129, -122.08832357078792);
+    if (_polylinePoints.isEmpty) {
+      LocationSearchService.getRoute(pickup, dropoff).then((routeResult) {
+        if (mounted && routeResult != null && routeResult.points.length >= 2) {
+          setState(() {
+            _polylinePoints = routeResult.points;
+            _currentEta = (routeResult.durationSeconds / 60.0).clamp(1.0, 120.0);
+          });
+        } else if (mounted && _polylinePoints.isEmpty) {
+          setState(() {
+            _polylinePoints = [pickup, dropoff];
+          });
+        }
+      });
+    }
 
-    if (status == 'requested' || status == 'pending') {
+    if (status == 'requested' || status == 'pending' || status == 'searching') {
       _startSearchTimer();
       setState(() {
-        _polylinePoints = [pickup, dropoff];
-        _simulatedDriverPosition = null;
-        _pickupPinRemoved = false;
         _showArrivalBanner = false;
         _currentEta = 5.0;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        MapAnimator.smoothMove(_mapController, pickup, zoom: 14.5);
+        _fitMapToBounds(pickup, dropoff);
       });
-    } else if (status == 'arriving') {
+    } else if (status == 'arriving' || status == 'accepted') {
       _searchTimeoutTimer?.cancel();
       final driverId = rideProv.currentRideDetails?['driver_id'] as String?;
       if (driverId != null) {
         _fetchDriverDetails(driverId);
       }
-      final startPt =
-          LatLng(pickup.latitude + 0.003, pickup.longitude - 0.003);
-      _polylinePoints = _generatePath(startPt, pickup, 30);
-      _pickupPinRemoved = false;
-      _showArrivalBanner = false;
-      _currentEta = 3.0;
-
-      _simAnimationController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 12),
-      );
-
-      _simAnimationController!.addListener(() {
-        final t = _simAnimationController!.value;
-        final index = (t * (_polylinePoints.length - 1)).floor();
-        if (mounted) {
-          setState(() {
-            _currentPathIndex = index;
-            _simulatedDriverPosition = _polylinePoints[index];
-            _currentEta = (3.0 * (1.0 - t)).clamp(0.1, 3.0);
-
-            if (index < _polylinePoints.length - 1) {
-              _simulatedDriverRotation = _calculateAngle(
-                  _polylinePoints[index], _polylinePoints[index + 1]);
-            }
-
-            MapAnimator.smoothMove(
-                _mapController, _simulatedDriverPosition!,
-                zoom: 15.2, duration: 400);
-
-            if (t >= 0.70 && !_showArrivalBanner) {
-              _showArrivalBanner = true;
-            }
-          });
-        }
+      setState(() {
+        _showArrivalBanner = true;
       });
-      _simAnimationController!.forward();
-
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitMapToBounds(pickup, dropoff, rideProv.driverPosition);
+      });
     } else if (status == 'in_progress') {
       _searchTimeoutTimer?.cancel();
       final driverId = rideProv.currentRideDetails?['driver_id'] as String?;
       if (driverId != null) {
         _fetchDriverDetails(driverId);
       }
-      _polylinePoints = _generatePath(pickup, dropoff, 40);
-      _pickupPinRemoved = true;
-      _showArrivalBanner = false;
-      _currentEta = 8.0;
-
-      _simAnimationController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 16),
-      );
-
-      _simAnimationController!.addListener(() {
-        final t = _simAnimationController!.value;
-        final index = (t * (_polylinePoints.length - 1)).floor();
-        if (mounted) {
-          setState(() {
-            _currentPathIndex = index;
-            _simulatedDriverPosition = _polylinePoints[index];
-            _currentEta = (8.0 * (1.0 - t)).clamp(0.1, 8.0);
-
-            if (index < _polylinePoints.length - 1) {
-              _simulatedDriverRotation = _calculateAngle(
-                  _polylinePoints[index], _polylinePoints[index + 1]);
-            }
-
-            final turnIndex = _polylinePoints.length ~/ 2;
-            final distToTurn = (index - turnIndex).abs();
-            double zoom = 14.8;
-            if (distToTurn < 6) {
-              zoom = 16.5;
-            }
-
-            MapAnimator.smoothMove(
-                _mapController, _simulatedDriverPosition!,
-                zoom: zoom, duration: 400);
-          });
-        }
+      _startElapsedTimer();
+      setState(() {
+        _showArrivalBanner = false;
       });
-      _simAnimationController!.forward();
-
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitMapToBounds(pickup, dropoff, rideProv.driverPosition);
+      });
     } else if (status == 'completed') {
       _searchTimeoutTimer?.cancel();
       setState(() {
@@ -483,118 +552,132 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = Provider.of<RideProvider>(context);
-    final status = rideProv.currentRideDetails?['status'] ?? 'requested';
-    final isSearching = status == 'requested';
-    final isActive = status == 'in_progress' || status == 'arriving';
-    final isInProgress = status == 'in_progress';
+    final status = rideProv.currentRideDetails?['status'] ?? rideProv.currentRide?.status ?? 'pending';
+    final isSearching = status == 'pending' || status == 'requested' || status == 'searching';
+    final isActive = status == 'accepted' || status == 'arriving' || status == 'in_progress';
     final isCompleted = status == 'completed';
 
-    final pickupRaw = rideProv.currentRideDetails?['pickup_location'];
-    final dropoffRaw = rideProv.currentRideDetails?['dropoff_location'];
-    final pickup =
-        _parsePoint(pickupRaw) ?? const LatLng(37.42796133580664, -122.085749655962);
-    final dropoff =
-        _parsePoint(dropoffRaw) ?? const LatLng(37.43296265331129, -122.08832357078792);
+    final (pickup, dropoff) = _resolveCoordinates(rideProv);
     final fare = _fareFrom(rideProv.currentRideDetails);
+    final driverPos = rideProv.driverPosition ??
+        (rideProv.currentRide?.driverLat != null && rideProv.currentRide?.driverLng != null
+            ? LatLng(rideProv.currentRide!.driverLat!, rideProv.currentRide!.driverLng!)
+            : null);
 
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 14.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-              onPositionChanged: (position, hasGesture) {
-                _currentPosition = position.center;
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points:
-                        _polylinePoints.isNotEmpty ? _polylinePoints : [pickup, dropoff],
-                    color: isInProgress
-                        ? AppColors.primary
-                        : AppColors.primary.withValues(alpha: 0.4),
-                    strokeWidth: isInProgress ? 4.5 : 3.0,
-                  ),
-                  if (rideProv.driverPosition != null && (status == 'arriving' || status == 'accepted'))
-                    Polyline(
-                      points: [rideProv.driverPosition!, pickup],
-                      color: Colors.green.withValues(alpha: 0.5),
-                      strokeWidth: 3.0,
-                    ),
-                  if (rideProv.driverPosition != null && status == 'in_progress')
-                    Polyline(
-                      points: [rideProv.driverPosition!, dropoff],
-                      color: AppColors.primary,
-                      strokeWidth: 4.0,
-                    ),
-                ],
-              ),
-              MarkerLayer(
-                markers: [
-                  if (_simulatedDriverPosition == null && rideProv.driverPosition == null)
-                    AnimatedMarker.locationDot(
-                        point: pickup, color: AppColors.primary),
-                  AnimatedMarker.pickupPin(
-                    point: pickup,
-                    animateOut: _pickupPinRemoved,
-                  ),
-                  AnimatedMarker.dropoffPin(point: dropoff),
-                  if (rideProv.driverPosition != null)
-                    AnimatedMarker.driverCar(
-                      point: rideProv.driverPosition!,
-                      isStationary: status == 'arriving',
-                    )
-                  else if (_simulatedDriverPosition != null)
-                    AnimatedMarker.driverCar(
-                      point: _simulatedDriverPosition!,
-                      rotationAngle: _simulatedDriverRotation,
-                      isStationary: status == 'arriving' &&
-                          _currentPathIndex >= _polylinePoints.length - 2,
-                    ),
-                ],
-              ),
-            ],
+          VipGoogleMap(
+            key: _mapKey,
+            initialCenter: _currentPosition,
+            initialZoom: 14.5,
+            pickupPosition: pickup,
+            dropoffPosition: dropoff,
+            driverPosition: driverPos,
+            routePoints:
+                _polylinePoints.isNotEmpty ? _polylinePoints : [pickup, dropoff],
+            onCameraMove: (pos) => _currentPosition = pos,
+            padding: const EdgeInsets.only(bottom: 220, top: 80),
           ),
 
-          if (!isCompleted)
-            Positioned(
-              top: 60,
-              left: 0,
-              right: 0,
-              child: RideSearchIndicator(
-                isSearching: isSearching,
-                searchingText: 'Finding your chauffeur',
-                foundText: status == 'arriving'
-                    ? 'Chauffeur is arriving'
-                    : 'Trip in progress',
-                driverName: _assignedDriverName,
-                driverRating: _assignedDriverRating,
-                carModel: _assignedVehicleModel,
-                eta: _currentEta.ceil().toString(),
-                onCancelSearch: _handleCancelRide,
-                onContactDriver: () {
-                  ActiveTripChatSheet.show(context, _assignedDriverName);
-                },
+          // Re-center Map Floating Button
+          Positioned(
+            right: 16,
+            bottom: isActive ? 240 : 180,
+            child: GestureDetector(
+              onTap: () => _fitMapToBounds(pickup, dropoff, driverPos),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+                child: Icon(
+                  Icons.my_location,
+                  size: 20,
+                  color: isDark ? AppColors.primary : Colors.black87,
+                ),
               ),
             ),
+          ),
+
+          if (!isCompleted) ...[
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16, top: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/passenger-home');
+                    }
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: isDark ? AppColors.white : AppColors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 62,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: RideSearchIndicator(
+                    margin: const EdgeInsets.only(left: 6, right: 16),
+                    isSearching: isSearching,
+                    searchingText: 'Finding your chauffeur',
+                    foundText: (status == 'arriving' || status == 'accepted')
+                        ? 'Chauffeur is arriving'
+                        : 'Trip in progress',
+                    driverName: _assignedDriverName,
+                    driverRating: _assignedDriverRating,
+                    driverAvatarUrl: _assignedDriverAvatar,
+                    carModel: _assignedVehicleModel,
+                    eta: _currentEta.ceil().toString(),
+                    onCancelSearch: _handleCancelRide,
+                    onContactDriver: () {
+                      ActiveTripChatSheet.show(context, _assignedDriverName);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           if (!isCompleted)
             Consumer<RideProvider>(
@@ -611,59 +694,64 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
 
           if (_showArrivalBanner && status == 'arriving' && !isCompleted)
             Positioned(
-              top: 190,
+              top: 0,
               left: 24,
               right: 24,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 130),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.black,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.star,
-                          color: AppColors.primary, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Chauffeur has arrived!',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.black,
-                              fontSize: 13,
-                            ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.black,
+                            shape: BoxShape.circle,
                           ),
-                          Text(
-                            'Michael is waiting at your pickup point.',
-                            style: TextStyle(
-                              color: AppColors.black.withValues(alpha: 0.7),
-                              fontSize: 11,
-                            ),
+                          child: const Icon(Icons.star,
+                              color: AppColors.primary, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$_assignedDriverName has arrived!',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.black,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '$_assignedDriverName is waiting at your pickup point.',
+                                style: TextStyle(
+                                  color: AppColors.black.withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ).animate().slideY(
                   begin: -0.5, end: 0, duration: 400.ms, curve: Curves.easeOutBack).fadeIn(duration: 200.ms),
@@ -700,26 +788,24 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
       left: 0,
       right: 0,
       child: ActiveTripCard(
-        passengerName: 'You',
+        passengerName: _assignedDriverName,
+        passengerAvatarUrl: _assignedDriverAvatar,
+        subtitle: _assignedVehicleModel,
+        rating: _assignedDriverRating,
         pickupAddress:
-            rp.currentRideDetails?['pickup_address'] ?? 'Pickup',
+            rp.currentRideDetails?['pickup_address'] ?? 'Pickup location',
         dropoffAddress:
-            rp.currentRideDetails?['dropoff_address'] ?? 'Dropoff',
+            rp.currentRideDetails?['dropoff_address'] ?? 'Dropoff destination',
         fare: fare.toStringAsFixed(2),
         status: _lastStatus ?? 'requested',
-        timeElapsed: '12:30',
-        onEndRide: () async {
-          final rideId = rp.currentRideDetails?['id'] as String?;
-          if (rideId != null) {
-            try {
-              await Supabase.instance.client
-                  .from('rides')
-                  .update({'status': 'completed'}).eq('id', rideId);
-            } catch (_) {}
-          }
-        },
+        timeElapsed: _elapsedTimeString,
+        contactButtonText: 'Contact Chauffeur',
         onContact: () {
           ActiveTripChatSheet.show(context, _assignedDriverName);
+        },
+        secondaryActionText: 'Safety & Help',
+        onSecondaryAction: () {
+          _showSafetyDialog();
         },
       ),
     );
@@ -829,7 +915,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                FareDisplay(amount: '\$${fare.toStringAsFixed(2)}'),
+                FareDisplay(amount: CurrencyService.format(fare, countryCode: _countryCode)),
                 const SizedBox(height: 16),
                 GestureDetector(
                   onTap: () => context.push('/payment-method'),
@@ -1076,7 +1162,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            '\$${fare.toStringAsFixed(2)} debited from VIP Card',
+            '${CurrencyService.format(fare, countryCode: _countryCode)} processed securely',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -1085,22 +1171,37 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Base Fare',
+              const Text('Trip Fare',
                   style: TextStyle(fontSize: 12, color: Colors.grey)),
-              Text('\$${(fare * 0.9).toStringAsFixed(2)}',
+              Text(CurrencyService.format(fare, countryCode: _countryCode),
                   style:
                       const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
             ],
           ),
-          const SizedBox(height: 8),
+          if (_selectedTip > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Chauffeur Gratuity',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(CurrencyService.format(_selectedTip, countryCode: _countryCode),
+                    style:
+                        const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('VIP Lounge Surcharge',
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
-              Text('\$${(fare * 0.1).toStringAsFixed(2)}',
+              const Text('Total Paid',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(CurrencyService.format(fare + _selectedTip, countryCode: _countryCode),
                   style:
-                      const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                      const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
             ],
           ),
         ],
@@ -1207,13 +1308,18 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [0.0, 5.0, 10.0, 20.0].map((amount) {
+            children: (_countryCode == 'NG'
+                    ? [0.0, 500.0, 1000.0, 2000.0]
+                    : [0.0, 5.0, 10.0, 20.0])
+                .map((amount) {
               final isSel = _selectedTip == amount;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: ChoiceChip(
                   label: Text(
-                    amount == 0.0 ? 'No Tip' : '\$${amount.toStringAsFixed(0)}',
+                    amount == 0.0
+                        ? 'No Tip'
+                        : CurrencyService.format(amount, countryCode: _countryCode, decimalDigits: 0),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -1269,6 +1375,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                   'tipAmount': _selectedTip,
                   'taxAmount': 0.0,
                   'totalAmount': fare + _selectedTip,
+                  'countryCode': _countryCode,
                   'pickupAddress': pickupAddr,
                   'dropoffAddress': dropoffAddr,
                   'vehicleType': vType,
@@ -1300,6 +1407,7 @@ class _TripSummaryScreenState extends State<TripSummaryScreen>
                   'tipAmount': _selectedTip,
                   'taxAmount': 0.0,
                   'totalAmount': fare + _selectedTip,
+                  'countryCode': _countryCode,
                   'pickupAddress': pickupAddr,
                   'dropoffAddress': dropoffAddr,
                   'vehicleType': vType,

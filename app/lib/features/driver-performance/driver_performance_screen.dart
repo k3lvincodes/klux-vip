@@ -97,7 +97,7 @@ class _DriverPerformanceScreenState extends State<DriverPerformanceScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      // Rating & Telemetry Card
+                      // Rating & Performance Metrics Card
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(

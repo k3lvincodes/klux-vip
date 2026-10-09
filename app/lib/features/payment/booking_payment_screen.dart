@@ -5,6 +5,7 @@ import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
@@ -21,6 +22,7 @@ class BookingPaymentScreen extends StatefulWidget {
 class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
   double _fareAmount = 0.0;
   double _tipAmount = 0.0;
+  String? _countryCode;
   String? _selectedPaymentMethodId;
   bool _showNewCardForm = false;
   bool _isProcessing = false;
@@ -33,6 +35,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
     if (extras != null) {
       _fareAmount = (extras['fareAmount'] as num?)?.toDouble() ?? 0.0;
       _tipAmount = (extras['tipAmount'] as num?)?.toDouble() ?? 0.0;
+      _countryCode = extras['countryCode'] as String?;
     }
   }
 
@@ -82,6 +85,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         userId: auth.currentUser!.id,
         rideId: rideId,
         amount: _totalAmount,
+        currency: CurrencyService.getCode(_countryCode),
         paymentMethodId: _selectedPaymentMethodId,
       );
 
@@ -138,6 +142,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         'tipAmount': _tipAmount,
         'taxAmount': 0.0,
         'totalAmount': _totalAmount,
+        'countryCode': _countryCode,
         'pickupAddress': pickup?.placeName ?? context.read<BookingProvider>().pickupAddress ?? '',
         'dropoffAddress': dropoff?.placeName ?? context.read<BookingProvider>().dropoffAddress ?? '',
         'vehicleType': context.read<BookingProvider>().vehicleType,
@@ -267,7 +272,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
                           ),
                         ),
                         Text(
-                          '\$${_totalAmount.toStringAsFixed(2)}',
+                          CurrencyService.format(_totalAmount, countryCode: _countryCode),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -345,7 +350,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
                 ),
               ),
               Text(
-                '\$${_totalAmount.toStringAsFixed(2)}',
+                CurrencyService.format(_totalAmount, countryCode: _countryCode),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -381,7 +386,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         Text(
           customLabel != null
               ? ''
-              : '\$${value.toStringAsFixed(2)}',
+              : CurrencyService.format(value, countryCode: _countryCode),
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w400,

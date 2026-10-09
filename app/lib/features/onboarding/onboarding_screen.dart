@@ -13,6 +13,7 @@ class OnboardingScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? Colors.black : Colors.white,
       body: Stack(
         children: [
           Positioned.fill(
@@ -28,7 +29,18 @@ class OnboardingScreen extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-            ),
+            )
+                .animate()
+                .fade(
+                  duration: 1200.ms,
+                  curve: Curves.easeOutCubic,
+                )
+                .scale(
+                  begin: const Offset(1.08, 1.08),
+                  end: const Offset(1.0, 1.0),
+                  duration: 1800.ms,
+                  curve: Curves.easeOutCubic,
+                ),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -44,15 +56,15 @@ class OnboardingScreen extends StatelessWidget {
                           Colors.black,
                         ]
                       : [
-                          Colors.white.withValues(alpha: 0.7),
-                          Colors.white.withValues(alpha: 0.4),
-                          Colors.white.withValues(alpha: 0.85),
-                          Colors.white,
+                          cs.surface.withValues(alpha: 0.94),
+                          cs.surface.withValues(alpha: 0.78),
+                          cs.surface.withValues(alpha: 0.95),
+                          cs.surface,
                         ],
-                  stops: const [0.0, 0.35, 0.7, 1.0],
+                  stops: const [0.0, 0.35, 0.65, 1.0],
                 ),
               ),
-            ),
+            ).animate().fade(duration: 900.ms, curve: Curves.easeOut),
           ),
           SafeArea(
             child: Padding(
@@ -81,7 +93,20 @@ class OnboardingScreen extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ).animate().fade(duration: 600.ms).slideY(begin: -0.1, end: 0),
+                  )
+                      .animate()
+                      .fade(
+                        duration: 800.ms,
+                        delay: 150.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .slideY(
+                        begin: 0.15,
+                        end: 0,
+                        duration: 800.ms,
+                        delay: 150.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
                   const SizedBox(height: 8),
                   Text(
                     'Experience Premium Transportation\nand Black Car Service.',
@@ -89,7 +114,20 @@ class OnboardingScreen extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       height: 1.4,
                     ),
-                  ).animate().fade(duration: 600.ms, delay: 150.ms).slideY(begin: 0.1, end: 0),
+                  )
+                      .animate()
+                      .fade(
+                        duration: 800.ms,
+                        delay: 300.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .slideY(
+                        begin: 0.2,
+                        end: 0,
+                        duration: 800.ms,
+                        delay: 300.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
                   const Spacer(),
                   Text(
                     'Your Premium Ride\nAwaits.',
@@ -98,22 +136,73 @@ class OnboardingScreen extends StatelessWidget {
                       height: 1.1,
                       letterSpacing: -0.5,
                     ),
-                  ).animate().fade(duration: 600.ms, delay: 300.ms).slideY(begin: 0.15, end: 0),
+                  )
+                      .animate()
+                      .fade(
+                        duration: 850.ms,
+                        delay: 450.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .slideY(
+                        begin: 0.2,
+                        end: 0,
+                        duration: 850.ms,
+                        delay: 450.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
                   const SizedBox(height: 14),
                   Text(
-                    'Built for refined comfort, smooth movement,\nand effortless elegance.',
-                    style: tt.bodySmall?.copyWith(
+                    'Built for refined comfort,\nsmooth movement, and effortless elegance.',
+                    style: tt.bodyLarge?.copyWith(
                       color: cs.onSurfaceVariant,
-                      height: 1.5,
+                      fontSize: 15,
+                      height: 1.4,
                     ),
-                  ).animate().fade(duration: 600.ms, delay: 450.ms).slideY(begin: 0.15, end: 0),
+                  )
+                      .animate()
+                      .fade(
+                        duration: 850.ms,
+                        delay: 600.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .slideY(
+                        begin: 0.2,
+                        end: 0,
+                        duration: 850.ms,
+                        delay: 600.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
                   const SizedBox(height: 40),
                   CustomButton(
                     title: 'Get Started',
-                    onPress: () => context.push('/sign-up'),
+                    onPress: () => context.push('/role-selection'),
                     variant: ButtonVariant.primary,
-                    textStyle: tt.labelLarge,
-                  ).animate().fade(duration: 600.ms, delay: 600.ms).slideY(begin: 0.2, end: 0),
+                    textStyle: tt.bodyLarge?.copyWith(
+                      color: cs.onPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                      .animate()
+                      .fade(
+                        duration: 900.ms,
+                        delay: 750.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .slideY(
+                        begin: 0.2,
+                        end: 0,
+                        duration: 900.ms,
+                        delay: 750.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .scale(
+                        begin: const Offset(0.96, 0.96),
+                        end: const Offset(1.0, 1.0),
+                        duration: 900.ms,
+                        delay: 750.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
                   const SizedBox(height: 40),
                 ],
               ),

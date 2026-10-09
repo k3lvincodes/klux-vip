@@ -77,6 +77,34 @@ class _RideReviewScreenState extends State<RideReviewScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      _goHome();
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: isDark ? AppColors.white : AppColors.black,
+                    ),
+                  ),
+                ),
+              ),
               const Spacer(),
               Text(
                 'Rate your ride',

@@ -268,16 +268,25 @@ class _LocationSearchFieldState extends State<LocationSearchField>
     await _fetchAndSetCurrentLocation();
   }
 
-  void _onSelectResult(LocationSearchResult result) {
+  Future<void> _onSelectResult(LocationSearchResult result) async {
     _hideDropdown();
     widget.controller.text = result.placeName;
     widget.controller.selection = TextSelection.fromPosition(
       TextPosition(offset: result.placeName.length),
     );
-    widget.onSelected?.call(result);
     _suppressDropdownHide = true;
     _focusNode.unfocus();
     _suppressDropdownHide = false;
+
+    if (!result.hasCoordinates && result.placeId != null) {
+      final resolved = await LocationSearchService.resolvePlace(result);
+      if (mounted) {
+        widget.controller.text = resolved.placeName;
+        widget.onSelected?.call(resolved);
+      }
+    } else {
+      widget.onSelected?.call(result);
+    }
   }
 
   @override

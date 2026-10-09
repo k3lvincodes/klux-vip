@@ -32,22 +32,51 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     }
 
     try {
-      final response = await Supabase.instance.client
-          .from('ride_requests')
+      // Query rides table first (primary completed/cancelled records)
+      final ridesResponse = await Supabase.instance.client
+          .from('rides')
           .select()
           .eq('passenger_id', user.id)
           .inFilter('status', ['completed', 'cancelled'])
           .order('created_at', ascending: false);
 
+      List<Map<String, dynamic>> combined = List<Map<String, dynamic>>.from(ridesResponse);
+
+      // Fallback or union with ride_requests if rides table is empty
+      if (combined.isEmpty) {
+        final requestsResponse = await Supabase.instance.client
+            .from('ride_requests')
+            .select()
+            .eq('passenger_id', user.id)
+            .inFilter('status', ['completed', 'cancelled'])
+            .order('created_at', ascending: false);
+        combined = List<Map<String, dynamic>>.from(requestsResponse);
+      }
+
       if (mounted) {
         setState(() {
-          _rides = List<Map<String, dynamic>>.from(response);
+          _rides = combined;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() { _isLoading = false; _error = 'Failed to load ride history'; });
+      try {
+        final requestsResponse = await Supabase.instance.client
+            .from('ride_requests')
+            .select()
+            .eq('passenger_id', user.id)
+            .inFilter('status', ['completed', 'cancelled'])
+            .order('created_at', ascending: false);
+        if (mounted) {
+          setState(() {
+            _rides = List<Map<String, dynamic>>.from(requestsResponse);
+            _isLoading = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() { _isLoading = false; _error = 'Failed to load ride history'; });
+        }
       }
     }
   }
@@ -305,7 +334,7 @@ class _RideHistoryCard extends StatelessWidget {
     final createdAt = ride['created_at'] as String? ?? '';
     final pickup = ride['pickup_address'] as String? ?? 'Unknown pickup';
     final dropoff = ride['dropoff_address'] as String? ?? 'Unknown dropoff';
-    final fare = ride['fare_amount'];
+    final fare = ride['fare_amount'] ?? ride['fare'] ?? ride['total_fare'];
 
     return Card(
       child: Padding(
@@ -374,7 +403,7 @@ class _RideHistoryCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        status[0].toUpperCase() + status.substring(1),
+                        status.isNotEmpty ? '${status[0].toUpperCase()}${status.substring(1)}' : 'Unknown',
                         style: textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: statusColor(context, status),

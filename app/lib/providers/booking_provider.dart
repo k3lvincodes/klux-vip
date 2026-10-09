@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 class BookingProvider extends ChangeNotifier {
   // Trip details
@@ -9,6 +10,7 @@ class BookingProvider extends ChangeNotifier {
   double? _dropoffLat;
   double? _dropoffLng;
   String? _passengerNote;
+  List<LatLng>? _routePoints;
 
   // Fare
   double? _fareAmount;
@@ -44,7 +46,13 @@ class BookingProvider extends ChangeNotifier {
   String get vehicleType => _vehicleType;
   String? get vehicleImage => _vehicleImage;
   String? get rideId => _rideId;
+  List<LatLng>? get routePoints => _routePoints;
   double get totalAmount => (_fareAmount ?? 0) + (_tipAmount ?? 0);
+
+  void setRoutePoints(List<LatLng>? points) {
+    _routePoints = points;
+    notifyListeners();
+  }
 
   void setVehicle(String type, [String? image]) {
     _vehicleType = type;
@@ -102,6 +110,7 @@ class BookingProvider extends ChangeNotifier {
     _dropoffLat = null;
     _dropoffLng = null;
     _passengerNote = null;
+    _routePoints = null;
     _fareAmount = null;
     _tipAmount = null;
     _distanceKm = null;

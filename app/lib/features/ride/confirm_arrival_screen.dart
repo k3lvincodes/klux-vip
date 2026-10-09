@@ -3,16 +3,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
@@ -26,7 +24,7 @@ class ConfirmArrivalScreen extends StatefulWidget {
 class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
   late LatLng _currentPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
   StreamSubscription<Position>? _gpsSubscription;
   List<LatLng> _routePoints = [];
 
@@ -36,15 +34,12 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
     final mem = MapMemory();
     _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
     _startGps();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _mapController.move(_currentPosition, mem.lastZoom);
-    });
   }
 
   @override
   void dispose() {
     _gpsSubscription?.cancel();
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 15.5);
     super.dispose();
   }
 
@@ -117,45 +112,14 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 15.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              if (_routePoints.length >= 2)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: _routePoints,
-                      color: AppColors.primary,
-                      strokeWidth: 4.0,
-                      borderColor: AppColors.primary.withValues(alpha: 0.3),
-                      borderStrokeWidth: 1.5,
-                    ),
-                  ],
-                ),
-              MarkerLayer(
-                markers: [
-                  AnimatedMarker.driverCar(point: _currentPosition),
-                  AnimatedMarker.pickupPin(point: pickupPosition, label: 'Pickup'),
-                ],
-              ),
-            ],
+          VipGoogleMap(
+            key: _mapKey,
+            initialCenter: _currentPosition,
+            initialZoom: 15.5,
+            pickupPosition: pickupPosition,
+            driverPosition: _currentPosition,
+            routePoints: _routePoints,
+            padding: const EdgeInsets.only(bottom: 240, top: 60),
           ),
 
           SafeArea(

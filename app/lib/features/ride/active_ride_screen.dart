@@ -1,15 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/widgets/cards/active_trip_card.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,7 +22,7 @@ class ActiveRideScreen extends StatefulWidget {
 class _ActiveRideScreenState extends State<ActiveRideScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
   late LatLng _currentPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
   StreamSubscription<Position>? _gpsSubscription;
   List<LatLng> _routePoints = [];
   late Stopwatch _rideTimer;
@@ -49,7 +47,6 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
     _startGps();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _mapController.move(_currentPosition, mem.lastZoom);
       _fetchPassengerDetails();
     });
   }
@@ -82,7 +79,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     _rideTimer.stop();
     _displayTimer.cancel();
     _gpsSubscription?.cancel();
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 14.5);
     super.dispose();
   }
 
@@ -165,7 +162,6 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = context.watch<RideProvider>();
     final ride = rideProv.currentRideDetails;
     final dropoffStr = ride?['dropoff_location']?.toString() ?? '';
@@ -190,46 +186,14 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _currentPosition,
-                initialZoom: 14.5,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                ),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: isDark
-                      ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                      : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                  additionalOptions: {
-                    'accessToken': EnvConfig.mapboxAccessToken,
-                  },
-                  userAgentPackageName: 'com.kenickvip.app',
-                  maxZoom: 22,
-                ),
-                if (_routePoints.length >= 2)
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _routePoints,
-                        color: cs.primary,
-                        strokeWidth: 4.0,
-                        borderColor: cs.primary.withValues(alpha: 0.3),
-                        borderStrokeWidth: 1.5,
-                      ),
-                    ],
-                  ),
-                MarkerLayer(
-                  markers: [
-                    AnimatedMarker.driverCar(point: _currentPosition),
-                    if (dropoffPos != null)
-                      AnimatedMarker.dropoffPin(point: dropoffPos, label: 'Dropoff'),
-                  ],
-                ),
-              ],
+            VipGoogleMap(
+              key: _mapKey,
+              initialCenter: _currentPosition,
+              initialZoom: 14.5,
+              driverPosition: _currentPosition,
+              dropoffPosition: dropoffPos,
+              routePoints: _routePoints.isNotEmpty ? _routePoints : (dropoffPos != null ? [_currentPosition, dropoffPos] : null),
+              padding: const EdgeInsets.only(bottom: 240, top: 60),
             ),
             SafeArea(
               child: Padding(

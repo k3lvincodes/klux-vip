@@ -163,13 +163,22 @@ class AuthProvider extends ChangeNotifier {
         .catchError((_) {});
   }
 
-  Future<bool> signUp(String email, String password, String name, String role) async {
+  Future<bool> signUp(
+    String email,
+    String password,
+    String name,
+    String role, {
+    Map<String, dynamic>? extraData,
+  }) async {
     try {
       _setLoading(true);
       _setError(null);
       final metadata = <String, dynamic>{'name': name};
       if (role.isNotEmpty) {
         metadata['role'] = role;
+      }
+      if (extraData != null) {
+        metadata.addAll(extraData);
       }
       final response = await _supabase.auth.signUp(
         email: email,

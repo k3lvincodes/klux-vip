@@ -11,7 +11,8 @@ class PaymentRepository {
           .from('payment_methods')
           .select()
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .isFilter('deleted_at', null)
+          .order('is_default', ascending: false);
       return (response as List).map((e) => PaymentMethod.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to fetch payment methods: $e');
@@ -96,7 +97,9 @@ class PaymentRepository {
     required String userId,
     required String rideId,
     required double amount,
+    String? currency,
     String? paymentMethodId,
+    String? paymentMethodType,
   }) async {
     try {
       final response = await _supabase.functions.invoke(
@@ -107,7 +110,9 @@ class PaymentRepository {
             'user_id': userId,
             'ride_id': rideId,
             'amount': amount,
-            'payment_method_id': ?paymentMethodId,
+            if (currency != null) 'currency': currency,
+            if (paymentMethodId != null) 'payment_method_id': paymentMethodId,
+            if (paymentMethodType != null) 'payment_method_type': paymentMethodType,
           },
         },
       );

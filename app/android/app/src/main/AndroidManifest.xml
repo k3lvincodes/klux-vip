@@ -12,6 +12,15 @@
         android:icon="@mipmap/launcher_icon">
         
         <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBlvawyfT3tUd6NlNztHI-i5lTJUwYwCmY" />
+
+        <!-- Enable Google Pay (Google Wallet) via Google Play Services -->
+        <meta-data
+            android:name="com.google.android.gms.wallet.api.enabled"
+            android:value="true" />
+
+        <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="kenick_vip_channel" />
             
@@ -51,6 +60,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 

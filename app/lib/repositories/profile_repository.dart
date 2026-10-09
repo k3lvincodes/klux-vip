@@ -19,14 +19,25 @@ class ProfileRepository {
     }
   }
 
+  static const _validProfileKeys = {
+    'first_name',
+    'last_name',
+    'phone_number',
+    'avatar_url',
+    'selfie_url',
+    'verification_status',
+  };
+
   Future<void> createOrUpdateDriverProfile(String userId, Map<String, dynamic> profileData) async {
     try {
       final email = _supabase.auth.currentUser?.email;
+      final filteredData = Map<String, dynamic>.from(profileData)
+        ..removeWhere((k, _) => !_validProfileKeys.contains(k));
       await _supabase.from('profiles').upsert({
         'id': userId,
         'email': email ?? '',
         'role': 'chauffeur',
-        ...profileData,
+        ...filteredData,
       });
       await _supabase.from('driver_details').upsert({
         'profile_id': userId,
@@ -66,11 +77,13 @@ class ProfileRepository {
   Future<void> createOrUpdatePassengerProfile(String userId, Map<String, dynamic> profileData) async {
     try {
       final email = _supabase.auth.currentUser?.email;
+      final filteredData = Map<String, dynamic>.from(profileData)
+        ..removeWhere((k, _) => !_validProfileKeys.contains(k));
       await _supabase.from('profiles').upsert({
         'id': userId,
         'email': email ?? '',
         'role': 'client',
-        ...profileData,
+        ...filteredData,
       });
     } catch (e) {
       throw Exception('Failed to update client profile: $e');

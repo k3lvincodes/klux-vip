@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/services/location_search_service.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
-import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/features/booking/edit_addresses_screen.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SavedPlacesScreen extends StatefulWidget {
@@ -15,325 +16,342 @@ class SavedPlacesScreen extends StatefulWidget {
 }
 
 class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
-  List<Map<String, dynamic>> _places = [];
   bool _isLoading = true;
-  String? _error;
+  String? _homeAddress;
+  String? _workAddress;
+  String? _otherName;
+  String? _otherAddress;
 
   @override
   void initState() {
     super.initState();
-    _fetchPlaces();
+    _loadPlaces();
   }
 
-  Future<void> _fetchPlaces() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      if (mounted) setState(() { _isLoading = false; _error = 'Not authenticated'; });
-      return;
-    }
-
-    try {
-      final response = await Supabase.instance.client
-          .from('saved_places')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
-
-      if (mounted) {
+  Future<void> _loadPlaces() async {
+    // 1. Instant cache load
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('cached_frequent_addresses');
+    if (cached != null) {
+      try {
+        final map = jsonDecode(cached) as Map<String, dynamic>;
         setState(() {
-          _places = List<Map<String, dynamic>>.from(response);
-          _isLoading = false;
+          _homeAddress = (map['home'] as String?)?.trim().isNotEmpty == true ? map['home'] : null;
+          _workAddress = (map['work'] as String?)?.trim().isNotEmpty == true ? map['work'] : null;
+          _otherName = (map['other_name'] as String?)?.trim().isNotEmpty == true ? map['other_name'] : null;
+          _otherAddress = (map['other_address'] as String?)?.trim().isNotEmpty == true ? map['other_address'] : null;
         });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() { _isLoading = false; _error = 'Failed to load saved places'; });
-      }
+      } catch (_) {}
+    }
+
+    // 2. Remote database fetch
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final response = await Supabase.instance.client
+            .from('saved_places')
+            .select()
+            .eq('user_id', user.id);
+
+        final places = List<Map<String, dynamic>>.from(response);
+        String? home;
+        String? work;
+        String? otherName;
+        String? otherAddr;
+
+        for (final p in places) {
+          final name = (p['name'] as String? ?? '').trim();
+          final addr = (p['address'] as String? ?? '').trim();
+
+          if (name.toLowerCase() == 'home') {
+            home = addr.isNotEmpty ? addr : null;
+          } else if (name.toLowerCase() == 'work') {
+            work = addr.isNotEmpty ? addr : null;
+          } else {
+            otherName = name.isNotEmpty ? name : null;
+            otherAddr = addr.isNotEmpty ? addr : null;
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _homeAddress = home;
+            _workAddress = work;
+            _otherName = otherName;
+            _otherAddress = otherAddr;
+            _isLoading = false;
+          });
+        }
+        return;
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _deletePlace(String id) async {
-    try {
-      await Supabase.instance.client.from('saved_places').delete().eq('id', id);
-      if (mounted) {
-        setState(() => _places.removeWhere((p) => p['id'] == id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Place removed')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to remove place')),
-        );
-      }
-    }
-  }
-
-  void _showAddPlaceDialog() {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    LocationSearchResult? selectedLocation;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24, 0, 24, MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: StatefulBuilder(
-            builder: (ctx, setSheetState) {
-              return Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Add Saved Place',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: nameController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        hintText: 'Place name (e.g. Home, Office)',
-                        prefixIcon: Icon(Icons.label_outline),
-                      ),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter a name' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    LocationSearchField(
-                      hint: 'Search address',
-                      controller: addressController,
-                      isDark: isDark,
-                      onSelected: (r) {
-                        setSheetState(() => selectedLocation = r);
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () async {
-                          if (!formKey.currentState!.validate()) return;
-                          if (addressController.text.trim().isEmpty) return;
-                          final user = Supabase.instance.client.auth.currentUser;
-                          if (user == null) return;
-                          try {
-                            final insertData = <String, dynamic>{
-                              'user_id': user.id,
-                              'name': nameController.text.trim(),
-                              'address': addressController.text.trim(),
-                            };
-                            if (selectedLocation != null) {
-                              insertData['latitude'] = selectedLocation!.latitude;
-                              insertData['longitude'] = selectedLocation!.longitude;
-                            }
-                            final response = await Supabase.instance.client
-                                .from('saved_places')
-                                .insert(insertData)
-                                .select()
-                                .single();
-                            if (mounted) {
-                              setState(() => _places.insert(0, response));
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Place saved')),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Failed to save place')),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text('Save Place'),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
+  Future<void> _openEditAddresses() async {
+    final updated = await Navigator.of(context).push<bool>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (context, animation, secondaryAnimation) => const EditAddressesScreen(),
+        transitionsBuilder: (_, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          final secondaryCurved = CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset.zero,
+                end: const Offset(-0.25, 0.0),
+              ).animate(secondaryCurved),
+              child: child,
+            ),
+          );
+        },
+      ),
     );
+    if (updated == true && mounted) {
+      _loadPlaces();
+    }
   }
 
-  IconData _iconForName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('home')) return Icons.home_rounded;
-    if (lower.contains('work') || lower.contains('office')) return Icons.work_rounded;
-    if (lower.contains('gym') || lower.contains('fitness')) return Icons.fitness_center_rounded;
-    if (lower.contains('school') || lower.contains('university')) return Icons.school_rounded;
-    if (lower.contains('airport')) return Icons.flight_rounded;
-    return Icons.location_on_rounded;
+  Widget _buildAddressItem({
+    required BuildContext context,
+    required Widget icon,
+    required String title,
+    required String? address,
+    required ColorScheme cs,
+    required bool isDark,
+  }) {
+    final isSet = address != null && address.trim().isNotEmpty;
+
+    return InkWell(
+      onTap: _openEditAddresses,
+      splashColor: Colors.transparent,
+      highlightColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 26,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2.0),
+                child: icon,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    isSet ? address : 'Not set',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: isSet
+                          ? cs.onSurfaceVariant
+                          : cs.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Saved Places'),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddPlaceDialog,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Place'),
-      ),
-      body: _buildBody(cs),
-    );
-  }
-
-  Widget _buildBody(ColorScheme cs) {
-    if (_isLoading) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: SafeArea(
         child: Column(
-          children: List.generate(3, (i) => const Padding(
-            padding: EdgeInsets.only(bottom: 12),
-            child: ShimmerListItem(height: 80, avatarSize: 44),
-          )),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  color: cs.errorContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.error_outline_rounded, size: 36, color: cs.error),
-              ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 16),
-              Text('Something went wrong',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      )),
-              const SizedBox(height: 24),
-              TextButton.icon(
-                onPressed: _fetchPlaces,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_places.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 88, height: 88,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add_location_alt_rounded,
-                    size: 40, color: cs.onPrimaryContainer),
-              ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 20),
-              Text('No saved places',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(
-                'Save your favourite locations\nfor faster booking.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white12
+                              : Colors.black.withValues(alpha: 0.06),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 15,
+                        color: cs.onSurface,
+                      ),
                     ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _showAddPlaceDialog,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add Your First Place'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _fetchPlaces,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        itemCount: _places.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final place = _places[index];
-          final name = place['name'] as String? ?? 'Unknown';
-          final address = place['address'] as String? ?? '';
-
-          return FadeSlideIn(
-            delay: Duration(milliseconds: 50 * index),
-            child: Dismissible(
-              key: ValueKey(place['id']),
-              direction: DismissDirection.endToStart,
-              onDismissed: (_) => _deletePlace(place['id']),
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 24),
-                decoration: BoxDecoration(
-                  color: cs.error,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(Icons.delete_rounded, color: cs.onError, size: 24),
-              ),
-              child: Card(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(_iconForName(name), size: 20, color: cs.onPrimaryContainer),
                   ),
-                  title: Text(name),
-                  subtitle: address.isNotEmpty ? Text(address, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
-                  trailing: Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
-                ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Frequent addresses',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+
+            // Content List
+            Expanded(
+              child: _isLoading && _homeAddress == null && _workAddress == null
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      children: [
+                        // Home
+                        _buildAddressItem(
+                          context: context,
+                          icon: FaIcon(
+                            FontAwesomeIcons.house,
+                            size: 20,
+                            color: cs.onSurface,
+                          ),
+                          title: 'Home',
+                          address: _homeAddress,
+                          cs: cs,
+                          isDark: isDark,
+                        ),
+
+                        // Work
+                        _buildAddressItem(
+                          context: context,
+                          icon: Icon(
+                            Icons.business_center_outlined,
+                            size: 23,
+                            color: cs.onSurface,
+                          ),
+                          title: 'Work',
+                          address: _workAddress,
+                          cs: cs,
+                          isDark: isDark,
+                        ),
+
+                        // Other
+                        _buildAddressItem(
+                          context: context,
+                          icon: Icon(
+                            Icons.star_border_rounded,
+                            size: 24,
+                            color: cs.onSurface,
+                          ),
+                          title: _otherName ?? 'Other',
+                          address: _otherAddress,
+                          cs: cs,
+                          isDark: isDark,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Divider
+                        Divider(
+                          height: 32,
+                          thickness: 0.8,
+                          color: cs.outlineVariant.withValues(alpha: 0.7),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Edit addresses
+                        InkWell(
+                          onTap: _openEditAddresses,
+                          splashColor: Colors.transparent,
+                          highlightColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.map_outlined,
+                                  size: 24,
+                                  color: cs.onSurface,
+                                ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Text(
+                                    'Edit addresses',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 24,
+                                  color: cs.onSurface,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

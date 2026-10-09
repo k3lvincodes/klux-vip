@@ -2,14 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
@@ -23,21 +21,18 @@ class EndRideConfirmationScreen extends StatefulWidget {
 class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
   static const LatLng _initialPosition = LatLng(37.42796133580664, -122.085749655962);
   late LatLng _currentPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
 
   @override
   void initState() {
     super.initState();
     final mem = MapMemory();
     _currentPosition = (mem.hasMemory && mem.lastPosition != null) ? mem.lastPosition! : _initialPosition;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _mapController.move(_currentPosition, mem.lastZoom);
-    });
   }
 
   @override
   void dispose() {
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 14.5);
     super.dispose();
   }
 
@@ -48,35 +43,14 @@ class _EndRideConfirmationScreenState extends State<EndRideConfirmationScreen> {
       body: Stack(
         children: [
           // Map Background
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 14.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              MarkerLayer(
-                markers: [
-                  // Dropoff destination pin
-                  AnimatedMarker.dropoffPin(point: _currentPosition, label: 'Dropoff'),
-                  // Chauffeur car marker (stationary idle)
-                  AnimatedMarker.driverCar(point: _currentPosition, isStationary: true),
-                ],
-              ),
-            ],
+          VipGoogleMap(
+            key: _mapKey,
+            initialCenter: _currentPosition,
+            initialZoom: 14.5,
+            dropoffPosition: _currentPosition,
+            driverPosition: _currentPosition,
+            isStationary: true,
+            padding: const EdgeInsets.only(bottom: 240, top: 60),
           ),
 
           // Glassmorphic Back Button

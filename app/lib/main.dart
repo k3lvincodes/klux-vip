@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:kenick_vip/app.dart';
 import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
@@ -15,6 +17,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure Google Maps rendering on Android to use Hybrid Composition
+  // This prevents BLASTBufferQueue frame drop / deadlock issues on Android 14/15
+  final GoogleMapsFlutterPlatform mapsImplementation =
+      GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    mapsImplementation.useAndroidViewSurface = true;
+    try {
+      await mapsImplementation.initializeWithRenderer(AndroidMapRenderer.latest);
+    } catch (e) {
+      debugPrint('Google Maps renderer init fallback: $e');
+    }
+  }
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);

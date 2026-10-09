@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
@@ -26,6 +27,15 @@ class BookingInvoiceScreen extends StatelessWidget {
         args['bookingConfirmation'] as String? ?? 'BK-000000';
     final invoiceNumber =
         args['invoiceNumber'] as String? ?? 'KLX-00000000-0000';
+    final countryCode = args['countryCode'] as String? ??
+        ((pickupAddress.toLowerCase().contains('nigeria') ||
+                pickupAddress.toLowerCase().contains('lagos') ||
+                pickupAddress.toLowerCase().contains('abuja') ||
+                dropoffAddress.toLowerCase().contains('nigeria') ||
+                dropoffAddress.toLowerCase().contains('lagos') ||
+                dropoffAddress.toLowerCase().contains('abuja'))
+            ? 'NG'
+            : null);
 
     return Scaffold(
       backgroundColor:
@@ -149,6 +159,7 @@ class BookingInvoiceScreen extends StatelessWidget {
                         tipAmount: tipAmount,
                         taxAmount: taxAmount,
                         totalAmount: totalAmount,
+                        countryCode: countryCode,
                         pickupAddress: pickupAddress,
                         dropoffAddress: dropoffAddress,
                         vehicleType: vehicleType,
@@ -214,6 +225,7 @@ class _InvoiceCard extends StatelessWidget {
     required this.tipAmount,
     required this.taxAmount,
     required this.totalAmount,
+    this.countryCode,
     required this.pickupAddress,
     required this.dropoffAddress,
     required this.vehicleType,
@@ -228,6 +240,7 @@ class _InvoiceCard extends StatelessWidget {
   final double tipAmount;
   final double taxAmount;
   final double totalAmount;
+  final String? countryCode;
   final String pickupAddress;
   final String dropoffAddress;
   final String vehicleType;
@@ -390,24 +403,28 @@ class _InvoiceCard extends StatelessWidget {
                 _FareRow(
                     label: 'Base Fare',
                     value: fareAmount,
+                    countryCode: countryCode,
                     textColor: textColor,
                     mutedColor: mutedColor),
                 const SizedBox(height: 8),
                 _FareRow(
                     label: 'Trip Fare',
                     value: fareAmount,
+                    countryCode: countryCode,
                     textColor: textColor,
                     mutedColor: mutedColor),
                 const SizedBox(height: 8),
                 _FareRow(
                     label: 'Tip',
                     value: tipAmount,
+                    countryCode: countryCode,
                     textColor: textColor,
                     mutedColor: mutedColor),
                 const SizedBox(height: 8),
                 _FareRow(
                     label: 'Tax',
                     value: taxAmount,
+                    countryCode: countryCode,
                     textColor: textColor,
                     mutedColor: mutedColor),
                 const SizedBox(height: 12),
@@ -429,7 +446,7 @@ class _InvoiceCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '\$${totalAmount.toStringAsFixed(2)}',
+                      CurrencyService.format(totalAmount, countryCode: countryCode),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -600,12 +617,14 @@ class _FareRow extends StatelessWidget {
   const _FareRow({
     required this.label,
     required this.value,
+    this.countryCode,
     required this.textColor,
     required this.mutedColor,
   });
 
   final String label;
   final double value;
+  final String? countryCode;
   final Color textColor;
   final Color mutedColor;
 
@@ -619,7 +638,7 @@ class _FareRow extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: mutedColor),
         ),
         Text(
-          '\$${value.toStringAsFixed(2)}',
+          CurrencyService.format(value, countryCode: countryCode),
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,

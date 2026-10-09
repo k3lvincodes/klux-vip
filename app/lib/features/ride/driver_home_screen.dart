@@ -36,6 +36,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   int _totalTrips = 0;
   double _rating = 0.0;
   int _ratingCount = 0;
+  bool _isAffiliate = false;
+  String _organizationName = '';
+  String _contactPerson = '';
+  int _fleetVehicleCount = 0;
 
   final Map<String, String> _passengerNames = {};
   final Set<String> _fetchedPassengerIds = {};
@@ -92,12 +96,43 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Future<void> _fetchProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
+      final role = (user.userMetadata?['role'] as String?)?.toLowerCase();
+      final orgName = (user.userMetadata?['organization_name'] as String?) ?? '';
+      final contact = (user.userMetadata?['contact_person'] as String?) ?? '';
+      final isAff = role == 'affiliate' || (user.userMetadata?['is_organization'] == true);
+
+      if (mounted) {
+        setState(() {
+          _isAffiliate = isAff;
+          _organizationName = orgName;
+          _contactPerson = contact;
+        });
+      }
+
+      if (isAff) {
+        try {
+          final countRes = await Supabase.instance.client
+              .from('vehicles')
+              .select('id')
+              .eq('chauffeur_id', user.id);
+          if (mounted) {
+            setState(() {
+              _fleetVehicleCount = (countRes as List).length;
+            });
+          }
+        } catch (_) {}
+      }
+
       try {
         final profile = await ProfileRepository().getDriverProfile(user.id);
         if (profile != null && mounted) {
           setState(() {
-            _userName = profile.displayName.trim().toUpperCase();
-            if (_userName.isEmpty) _userName = 'CHAUFFEUR';
+            if (_isAffiliate && _organizationName.isNotEmpty) {
+              _userName = _organizationName.toUpperCase();
+            } else {
+              _userName = profile.displayName.trim().toUpperCase();
+              if (_userName.isEmpty) _userName = _isAffiliate ? 'AFFILIATE PARTNER' : 'CHAUFFEUR';
+            }
             _profileImageUrl = profile.avatarUrl;
             if (profile.driverDetails != null) {
               _isOnline = profile.driverDetails!['is_online'] as bool? ?? true;
@@ -207,8 +242,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               // 1. Executive Top Bar
               _buildTopBar(cs, tt),
 
-              // 2. Chauffeur Telemetry Card
-              _buildTelemetryCard(cs, tt),
+              // 2. Performance Metrics Card
+              _buildMetricsCard(cs, tt),
 
               const SizedBox(height: 10),
 
@@ -235,6 +270,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Widget _buildTopBar(ColorScheme cs, TextTheme tt) {
+    final badgeText = _isAffiliate ? 'AFFILIATE PARTNER' : 'VIP CHAUFFEUR';
+    final statusText = _isAffiliate
+        ? (_isOnline ? 'FLEET ACTIVE' : 'FLEET STANDBY')
+        : (_isOnline ? 'ONLINE' : 'OFFLINE');
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
@@ -258,7 +298,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           ),
           const SizedBox(width: 12),
 
-          // Chauffeur Identity
+          // Identity (Chauffeur or Affiliate Organization)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,14 +312,23 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                         color: cs.primary.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        'VIP CHAUFFEUR',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: cs.primary,
-                          letterSpacing: 0.8,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isAffiliate) ...[
+                            Icon(Icons.business_outlined, size: 10, color: cs.primary),
+                            const SizedBox(width: 3),
+                          ],
+                          Text(
+                            badgeText,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: cs.primary,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -294,11 +343,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (_isAffiliate && _contactPerson.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      'Rep: $_contactPerson',
+                      style: tt.labelSmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
               ],
             ),
           ),
 
-          // Online / Offline Toggle Pill
+          // Online / Offline / Fleet Active Toggle Pill
           GestureDetector(
             onTap: _toggleOnlineStatus,
             child: AnimatedContainer(
@@ -337,7 +399,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _isOnline ? 'ONLINE' : 'OFFLINE',
+                    statusText,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -388,7 +450,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildTelemetryCard(ColorScheme cs, TextTheme tt) {
+  Widget _buildMetricsCard(ColorScheme cs, TextTheme tt) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -399,15 +461,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       ),
       child: Row(
         children: [
-          // 1. Today's Revenue
+          // 1. Revenue
           Expanded(
             child: GestureDetector(
               onTap: () => context.push('/account'),
               behavior: HitTestBehavior.opaque,
-              child: _buildTelemetryItem(
+              child: _buildMetricItem(
                 icon: Icons.account_balance_wallet_outlined,
                 iconColor: cs.primary,
-                label: "Today's Fare",
+                label: _isAffiliate ? 'Fleet Revenue' : "Today's Fare",
                 value: '\$${_todayEarnings.toStringAsFixed(2)}',
                 cs: cs,
                 tt: tt,
@@ -419,15 +481,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             height: 32,
             color: cs.outlineVariant.withValues(alpha: 0.25),
           ),
-          // 2. Completed Trips
+          // 2. Completed Trips / Bookings
           Expanded(
             child: GestureDetector(
               onTap: () => context.push('/driver-ride-history'),
               behavior: HitTestBehavior.opaque,
-              child: _buildTelemetryItem(
+              child: _buildMetricItem(
                 icon: Icons.directions_car_filled_outlined,
                 iconColor: const Color(0xFF3B82F6),
-                label: 'Trips Logged',
+                label: _isAffiliate ? 'Fleet Bookings' : 'Trips Logged',
                 value: '$_totalTrips',
                 cs: cs,
                 tt: tt,
@@ -439,16 +501,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             height: 32,
             color: cs.outlineVariant.withValues(alpha: 0.25),
           ),
-          // 3. Rating
+          // 3. Rating or Fleet Vehicles
           Expanded(
             child: GestureDetector(
-              onTap: () => context.push('/driver-performance'),
+              onTap: () => context.push(_isAffiliate ? '/vehicle-management' : '/driver-performance'),
               behavior: HitTestBehavior.opaque,
-              child: _buildTelemetryItem(
-                icon: Icons.star_rounded,
+              child: _buildMetricItem(
+                icon: _isAffiliate ? Icons.directions_car_outlined : Icons.star_rounded,
                 iconColor: const Color(0xFFF59E0B),
-                label: 'Rating',
-                value: (_ratingCount > 0 && _rating > 0) ? '${_rating.toStringAsFixed(1)} ★' : '--',
+                label: _isAffiliate ? 'Vehicles' : 'Rating',
+                value: _isAffiliate
+                    ? (_fleetVehicleCount > 0 ? '$_fleetVehicleCount' : 'Active')
+                    : ((_ratingCount > 0 && _rating > 0) ? '${_rating.toStringAsFixed(1)} ★' : '--'),
                 cs: cs,
                 tt: tt,
               ),
@@ -459,7 +523,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildTelemetryItem({
+  Widget _buildMetricItem({
     required IconData icon,
     required Color iconColor,
     required String label,
@@ -524,16 +588,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         labelColor: cs.onPrimary,
         unselectedLabelColor: cs.onSurfaceVariant,
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        tabs: const [
+        tabs: [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.assignment_rounded, size: 16),
-                SizedBox(width: 6),
+                const Icon(Icons.assignment_rounded, size: 16),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'Assignments',
+                    _isAffiliate ? 'Fleet Dispatch' : 'Assignments',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -541,7 +605,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               ],
             ),
           ),
-          Tab(
+          const Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -992,7 +1056,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
             const SizedBox(height: 20),
             Text(
-              'Assignment Radar Active',
+              _isAffiliate ? 'Fleet Dispatch Active' : 'Assignment Radar Active',
               style: tt.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.2,
@@ -1000,7 +1064,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
             const SizedBox(height: 6),
             Text(
-              'Scanning for luxury bookings and VIP client itineraries in your zone...',
+              _isAffiliate
+                  ? 'Scanning for luxury corporate bookings and VIP itineraries for your fleet...'
+                  : 'Scanning for luxury bookings and VIP client itineraries in your zone...',
               textAlign: TextAlign.center,
               style: tt.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
@@ -1089,11 +1155,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
-                        errorWidget: (context, url, error) => Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
+                        placeholder: (context, url) => Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
+                        errorWidget: (context, url, error) => Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
                       ),
                     )
-                  : Icon(Icons.person, size: 28, color: cs.onSurfaceVariant),
+                  : Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1102,7 +1168,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 children: [
                   Text(_userName, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text('View Profile', style: tt.labelMedium?.copyWith(color: cs.primary)),
+                  Text(_isAffiliate ? 'Organization Profile' : 'View Profile', style: tt.labelMedium?.copyWith(color: cs.primary)),
                 ],
               ),
             ),
@@ -1138,15 +1204,25 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       isDark: Theme.of(context).brightness == Brightness.dark,
       header: header,
       footer: footer,
-      items: [
-        DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.verified_user_outlined, title: 'Verification Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-        DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-      ],
+      items: _isAffiliate
+          ? [
+              DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Company Wallet & Payouts', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.history, title: 'Fleet Bookings & Trips', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.directions_car_outlined, title: 'Fleet Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.verified_user_outlined, title: 'Organization Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.insights_outlined, title: 'Fleet Performance', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+            ]
+          : [
+              DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.verified_user_outlined, title: 'Verification Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+              DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
+            ],
     );
   }
 }

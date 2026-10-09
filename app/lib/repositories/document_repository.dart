@@ -37,6 +37,7 @@ class DocumentRepository {
     required String type,
     required String fileUrl,
     String status = 'pending',
+    String? rejectionReason,
     DateTime? expiresAt,
   }) async {
     try {
@@ -47,7 +48,11 @@ class DocumentRepository {
         'type': type,
         'file_url': fileUrl,
         'status': status,
+        // ignore: use_null_aware_elements
+        if (rejectionReason != null) 'rejection_reason': rejectionReason,
+        // ignore: use_null_aware_elements
         if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       };
 
       if (existingDoc != null) {

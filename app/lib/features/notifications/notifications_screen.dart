@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:kenick_vip/repositories/notification_repository.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
-import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -15,293 +12,220 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final NotificationRepository _repo = NotificationRepository();
-  List<Map<String, dynamic>> _notifications = [];
+  bool _pushRideStatus = false;
+  bool _pushPersonalizedUpdates = true;
+  bool _smsRideStatus = true;
   bool _isLoading = true;
-  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotifications();
+    _loadPreferences();
   }
 
-  Future<void> _fetchNotifications() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      if (mounted) setState(() { _isLoading = false; _error = 'Not authenticated'; });
-      return;
-    }
-
-    try {
-      final response = await Supabase.instance.client
-          .from('notifications')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
-
-      if (mounted) {
-        setState(() {
-          _notifications = List<Map<String, dynamic>>.from(response);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() { _isLoading = false; _error = 'Failed to load notifications'; });
-      }
-    }
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushRideStatus = prefs.getBool('pref_push_ride_status') ?? false;
+      _pushPersonalizedUpdates = prefs.getBool('pref_push_personalized') ?? true;
+      _smsRideStatus = prefs.getBool('pref_sms_ride_status') ?? true;
+      _isLoading = false;
+    });
   }
 
-  Future<void> _markAsRead(String id) async {
-    // Optimistically update UI immediately
-    if (mounted) {
-      setState(() {
-        final index = _notifications.indexWhere((n) => n['id'] == id);
-        if (index != -1) {
-          _notifications[index] = Map<String, dynamic>.from(_notifications[index])
-            ..['is_read'] = true;
-        }
-      });
-    }
-
-    try {
-      await _repo.markAsRead(id);
-    } catch (e) {
-      debugPrint('Failed to mark notification as read: $e');
-    }
+  Future<void> _updatePref(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
   }
 
-  Future<void> _markAllAsRead() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    if (mounted) {
-      setState(() {
-        _notifications = _notifications.map((n) {
-          return Map<String, dynamic>.from(n)..['is_read'] = true;
-        }).toList();
-      });
-    }
-
-    try {
-      await _repo.markAllAsRead(user.id);
-    } catch (e) {
-      debugPrint('Failed to mark all notifications as read: $e');
-    }
-  }
-
-  String _formatDate(String iso) {
-    final date = DateTime.parse(iso);
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d').format(date);
-  }
-
-  IconData _iconForType(String? type) {
-    switch (type) {
-      case 'ride_update':
-        return Icons.directions_car_rounded;
-      case 'payment':
-        return Icons.payment_rounded;
-      case 'promotion':
-        return Icons.local_offer_rounded;
-      case 'system':
-        return Icons.info_outline_rounded;
-      case 'driver_assigned':
-        return Icons.person_pin_circle_rounded;
-      default:
-        return Icons.notifications_rounded;
-    }
-  }
-
-  Color _colorForType(String? type, ColorScheme cs) {
-    switch (type) {
-      case 'ride_update':
-        return cs.primary;
-      case 'payment':
-        return const Color(0xFF22C55E);
-      case 'promotion':
-        return cs.tertiary;
-      case 'driver_assigned':
-        return const Color(0xFF3B82F6);
-      default:
-        return cs.onSurfaceVariant;
-    }
+  Widget _buildToggleRow({
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required ColorScheme cs,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: Colors.white,
+                activeTrackColor: AppColors.primary,
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: cs.outlineVariant.withValues(alpha: 0.6),
+                trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              ),
+            ],
+          ),
+        ),
+        Divider(
+          height: 1,
+          thickness: 0.8,
+          color: cs.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Notifications'),
-        actions: [
-          if (_notifications.any((n) => n['is_read'] != true))
-            IconButton(
-              icon: const Icon(Icons.done_all_rounded),
-              tooltip: 'Mark all as read',
-              onPressed: _markAllAsRead,
-            ),
-        ],
-      ),
-      body: _buildBody(cs),
-    );
-  }
-
-  Widget _buildBody(ColorScheme cs) {
-    if (_isLoading) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: SafeArea(
         child: Column(
-          children: List.generate(5, (i) => const Padding(
-            padding: EdgeInsets.only(bottom: 12),
-            child: ShimmerListItem(height: 80, avatarSize: 44),
-          )),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  color: cs.errorContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.error_outline_rounded, size: 36, color: cs.error),
-              ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 16),
-              Text('Something went wrong',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      )),
-              const SizedBox(height: 24),
-              TextButton.icon(
-                onPressed: _fetchNotifications,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_notifications.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 88, height: 88,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.notifications_none_rounded,
-                    size: 40, color: cs.onPrimaryContainer),
-              ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 20),
-              Text('No notifications',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(
-                'You\'re all caught up!\nWe\'ll let you know when something comes up.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _fetchNotifications,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        itemCount: _notifications.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 2),
-        itemBuilder: (context, index) {
-          final notification = _notifications[index];
-          final isRead = notification['is_read'] as bool? ?? false;
-          final type = notification['type'] as String?;
-          final title = notification['title'] as String? ?? 'Notification';
-          final body = notification['body'] as String?;
-          final createdAt = notification['created_at'] as String?;
-
-          return FadeSlideIn(
-            delay: Duration(milliseconds: 40 * index),
-            child: ListTile(
-              onTap: !isRead && notification['id'] != null
-                  ? () => _markAsRead(notification['id'])
-                  : null,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              leading: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _colorForType(type, cs).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(_iconForType(type), size: 20, color: _colorForType(type, cs)),
-              ),
-              title: Text(
-                title,
-                style: TextStyle(
-                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                  color: cs.onSurface,
-                ),
-              ),
-              subtitle: body != null && body.isNotEmpty
-                  ? Text(body, maxLines: 2, overflow: TextOverflow.ellipsis)
-                  : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Row(
                 children: [
-                  if (createdAt != null)
-                    Text(
-                      _formatDate(createdAt),
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  if (!isRead) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 8, height: 8,
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
-                        color: cs.primary,
                         shape: BoxShape.circle,
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white12
+                              : Colors.black.withValues(alpha: 0.06),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 15,
+                        color: cs.onSurface,
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Notifications',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
                 ],
               ),
             ),
-          );
-        },
+
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      children: [
+                        // Subtitle
+                        Text(
+                          'Choose which updates you want to receive and how.',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurface,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Section 1: Push notifications
+                        Text(
+                          'Push notifications',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        _buildToggleRow(
+                          title: 'Ride status, rate the ride',
+                          value: _pushRideStatus,
+                          onChanged: (val) {
+                            setState(() => _pushRideStatus = val);
+                            _updatePref('pref_push_ride_status', val);
+                          },
+                          cs: cs,
+                        ),
+
+                        _buildToggleRow(
+                          title:
+                              'Personalized updates and offers, curated travel tips, feedback requests',
+                          value: _pushPersonalizedUpdates,
+                          onChanged: (val) {
+                            setState(() => _pushPersonalizedUpdates = val);
+                            _updatePref('pref_push_personalized', val);
+                          },
+                          cs: cs,
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // Section 2: SMS messages
+                        Text(
+                          'SMS messages',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        _buildToggleRow(
+                          title: 'Ride status',
+                          value: _smsRideStatus,
+                          onChanged: (val) {
+                            setState(() => _smsRideStatus = val);
+                            _updatePref('pref_sms_ride_status', val);
+                          },
+                          cs: cs,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

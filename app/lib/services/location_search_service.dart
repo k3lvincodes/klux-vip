@@ -12,6 +12,7 @@ class LocationSearchResult {
     required this.longitude,
     this.mainText,
     this.secondaryText,
+    this.placeId,
   });
 
   final String placeName;
@@ -19,6 +20,9 @@ class LocationSearchResult {
   final double longitude;
   final String? mainText;
   final String? secondaryText;
+  final String? placeId;
+
+  bool get hasCoordinates => latitude != 0.0 || longitude != 0.0;
 }
 
 class RouteResult {
@@ -39,6 +43,48 @@ class LocationSearchService {
   static final Map<String, List<LocationSearchResult>> _searchCache = {};
   static final Map<String, LocationSearchResult?> _reverseCache = {};
   static final Map<String, Completer<List<LocationSearchResult>>> _inflight = {};
+  static String? _currentSessionToken;
+
+  static String getOrCreateSessionToken() {
+    _currentSessionToken ??=
+        '${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+    return _currentSessionToken!;
+  }
+
+  static void resetSessionToken() {
+    _currentSessionToken = null;
+  }
+
+  /// Decodes Google Directions encoded polyline into `List<LatLng>`
+  static List<LatLng> decodePolyline(String encoded) {
+    final List<LatLng> poly = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      final int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      final int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      poly.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+    return poly;
+  }
 
   static Future<Map<String, String>> _headers() async {
     return {
@@ -110,9 +156,61 @@ class LocationSearchService {
     _inflight[key] = completer;
 
     try {
+      final googleKey = EnvConfig.googleMapsApiKey;
+
+      // ── PRIMARY PROVIDER: Google Places Autocomplete API ──
+      if (googleKey.isNotEmpty) {
+        try {
+          final queryEsc = Uri.encodeComponent(query);
+          final countryFilter = countryCode != null && countryCode.isNotEmpty
+              ? '&components=country:${countryCode.toLowerCase()}'
+              : '';
+          final session = getOrCreateSessionToken();
+          final googleUrl = Uri.parse(
+            'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+            '?input=$queryEsc'
+            '&key=$googleKey'
+            '$countryFilter'
+            '&sessiontoken=$session',
+          );
+
+          final response = await _client.get(googleUrl, headers: await _headers()).timeout(const Duration(seconds: 4));
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final status = data['status'] as String? ?? '';
+            final predictions = data['predictions'] as List? ?? [];
+
+            if ((status == 'OK' || status == 'ZERO_RESULTS') && predictions.isNotEmpty) {
+              final results = predictions.map<LocationSearchResult>((p) {
+                final desc = p['description'] as String? ?? '';
+                final formatting = p['structured_formatting'] as Map? ?? {};
+                final main = formatting['main_text'] as String? ?? desc.split(',').first.trim();
+                final secondary = formatting['secondary_text'] as String?;
+                final placeId = p['place_id'] as String?;
+
+                return LocationSearchResult(
+                  placeName: desc,
+                  latitude: 0.0,
+                  longitude: 0.0,
+                  mainText: main,
+                  secondaryText: secondary,
+                  placeId: placeId,
+                );
+              }).toList();
+
+              _searchCache[key] = results;
+              completer.complete(results);
+              return results;
+            }
+          }
+        } catch (_) {
+          // Fall through to Mapbox
+        }
+      }
+
       final token = EnvConfig.mapboxAccessToken;
 
-      // ── PRIMARY PROVIDER: Mapbox Places Geocoding API (Ultra-Fast 20-50ms worldwide) ──
+      // ── SECONDARY PROVIDER: Mapbox Places Geocoding API ──
       if (token.isNotEmpty && token.startsWith('pk.')) {
         try {
           final countryParam = countryCode != null && countryCode.isNotEmpty
@@ -224,6 +322,54 @@ class LocationSearchService {
     }
   }
 
+  static Future<LocationSearchResult> resolvePlace(LocationSearchResult item) async {
+    if (item.hasCoordinates || item.placeId == null || item.placeId!.isEmpty) {
+      return item;
+    }
+
+    final googleKey = EnvConfig.googleMapsApiKey;
+    if (googleKey.isEmpty) return item;
+
+    try {
+      final session = _currentSessionToken;
+      final sessionParam = session != null ? '&sessiontoken=$session' : '';
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/details/json'
+        '?place_id=${item.placeId}'
+        '&fields=geometry,name,formatted_address'
+        '&key=$googleKey'
+        '$sessionParam',
+      );
+
+      resetSessionToken();
+
+      final response = await _client.get(url, headers: await _headers()).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final result = data['result'] as Map?;
+        if (result != null) {
+          final geom = result['geometry'] as Map?;
+          final loc = geom?['location'] as Map?;
+          if (loc != null) {
+            final lat = (loc['lat'] as num).toDouble();
+            final lng = (loc['lng'] as num).toDouble();
+            final formatted = result['formatted_address'] as String? ?? item.placeName;
+            return LocationSearchResult(
+              placeName: formatted,
+              latitude: lat,
+              longitude: lng,
+              mainText: item.mainText ?? result['name'] as String?,
+              secondaryText: item.secondaryText,
+              placeId: item.placeId,
+            );
+          }
+        }
+      }
+    } catch (_) {}
+
+    return item;
+  }
+
   static Future<String?> detectCountryCode(LatLng point) async {
     final code = await detectCountryCodeByIP();
     if (code != null) return code;
@@ -236,46 +382,92 @@ class LocationSearchService {
   }
 
   static Future<RouteResult?> getRoute(LatLng from, LatLng to) async {
-    final token = EnvConfig.mapboxAccessToken;
-    if (token.isEmpty) return null;
+    final googleKey = EnvConfig.googleMapsApiKey;
 
-    final url = Uri.parse(
-      'https://api.mapbox.com/directions/v5/mapbox/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
-      '?geometries=geojson'
-      '&overview=full'
-      '&access_token=$token',
-    );
+    // ── PRIMARY PROVIDER: Google Directions API ──
+    if (googleKey.isNotEmpty) {
+      try {
+        final url = Uri.parse(
+          'https://maps.googleapis.com/maps/api/directions/json'
+          '?origin=${from.latitude},${from.longitude}'
+          '&destination=${to.latitude},${to.longitude}'
+          '&mode=driving'
+          '&key=$googleKey',
+        );
 
-    try {
-      final response = await http.get(url).timeout(const Duration(seconds: 5));
-      if (response.statusCode != 200) return null;
+        final response = await http.get(url).timeout(const Duration(seconds: 5));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final routes = data['routes'] as List? ?? [];
+          if (routes.isNotEmpty) {
+            final route = routes.first;
+            final overviewPolyline = route['overview_polyline']?['points'] as String? ?? '';
+            final legs = route['legs'] as List? ?? [];
+            double totalDistanceMeters = 0;
+            double totalDurationSeconds = 0;
 
-      final data = jsonDecode(response.body);
-      final routes = data['routes'] as List? ?? [];
-      if (routes.isEmpty) return null;
+            for (final leg in legs) {
+              totalDistanceMeters += (leg['distance']?['value'] as num?)?.toDouble() ?? 0;
+              totalDurationSeconds += (leg['duration']?['value'] as num?)?.toDouble() ?? 0;
+            }
 
-      final route = routes[0];
-      final geometry = route['geometry'] as Map?;
-      if (geometry == null) return null;
-
-      final coords = geometry['coordinates'] as List? ?? [];
-      final points = coords.map((c) {
-        final lng = (c[0] as num).toDouble();
-        final lat = (c[1] as num).toDouble();
-        return LatLng(lat, lng);
-      }).toList();
-
-      final distanceMeters = (route['distance'] as num?)?.toDouble() ?? 0;
-      final durationSeconds = (route['duration'] as num?)?.toDouble() ?? 0;
-
-      return RouteResult(
-        points: points,
-        distanceKm: distanceMeters / 1000.0,
-        durationSeconds: durationSeconds,
-      );
-    } catch (_) {
-      return null;
+            final points = decodePolyline(overviewPolyline);
+            if (points.isNotEmpty) {
+              return RouteResult(
+                points: points,
+                distanceKm: totalDistanceMeters / 1000.0,
+                durationSeconds: totalDurationSeconds,
+              );
+            }
+          }
+        }
+      } catch (_) {
+        // Fall through to Mapbox
+      }
     }
+
+    final token = EnvConfig.mapboxAccessToken;
+    if (token.isNotEmpty && token.startsWith('pk.')) {
+      final url = Uri.parse(
+        'https://api.mapbox.com/directions/v5/mapbox/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
+        '?geometries=geojson'
+        '&overview=full'
+        '&access_token=$token',
+      );
+
+      try {
+        final response = await http.get(url).timeout(const Duration(seconds: 5));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final routes = data['routes'] as List? ?? [];
+          if (routes.isNotEmpty) {
+            final route = routes[0];
+            final geometry = route['geometry'] as Map?;
+            if (geometry != null) {
+              final coords = geometry['coordinates'] as List? ?? [];
+              final points = coords.map((c) {
+                final lng = (c[0] as num).toDouble();
+                final lat = (c[1] as num).toDouble();
+                return LatLng(lat, lng);
+              }).toList();
+
+              final distanceMeters = (route['distance'] as num?)?.toDouble() ?? 0;
+              final durationSeconds = (route['duration'] as num?)?.toDouble() ?? 0;
+
+              return RouteResult(
+                points: points,
+                distanceKm: distanceMeters / 1000.0,
+                durationSeconds: durationSeconds,
+              );
+            }
+          }
+        }
+      } catch (_) {
+        // Fall through
+      }
+    }
+
+    return null;
   }
 
   static Future<LocationSearchResult?> reverseGeocode(LatLng point) async {
@@ -283,7 +475,45 @@ class LocationSearchService {
     final cached = _reverseCache[key];
     if (cached != null) return cached;
 
-    // ── Primary Reverse Geocode: Mapbox ──
+    final googleKey = EnvConfig.googleMapsApiKey;
+
+    // ── PRIMARY PROVIDER: Google Geocoding API ──
+    if (googleKey.isNotEmpty) {
+      try {
+        final url = Uri.parse(
+          'https://maps.googleapis.com/maps/api/geocode/json'
+          '?latlng=${point.latitude},${point.longitude}'
+          '&key=$googleKey',
+        );
+
+        final response = await _client.get(url, headers: await _headers()).timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final results = data['results'] as List? ?? [];
+          if (results.isNotEmpty) {
+            final first = results.first;
+            final formatted = first['formatted_address'] as String? ?? '';
+            final parts = formatted.split(',');
+            final main = parts.isNotEmpty ? parts.first.trim() : formatted;
+            final secondary = parts.length > 1 ? parts.sublist(1).join(',').trim() : null;
+
+            final result = LocationSearchResult(
+              placeName: formatted,
+              latitude: point.latitude,
+              longitude: point.longitude,
+              mainText: main,
+              secondaryText: secondary,
+            );
+            _reverseCache[key] = result;
+            return result;
+          }
+        }
+      } catch (_) {
+        // Fall through to Mapbox
+      }
+    }
+
+    // ── SECONDARY PROVIDER: Mapbox ──
     final token = EnvConfig.mapboxAccessToken;
     if (token.isNotEmpty && token.startsWith('pk.')) {
       try {
@@ -318,7 +548,7 @@ class LocationSearchService {
       }
     }
 
-    // ── Fallback Reverse Geocode: Nominatim ──
+    // ── FALLBACK PROVIDER: Nominatim ──
     final uri = Uri.parse(
       'https://nominatim.openstreetmap.org/reverse'
       '?lat=${point.latitude}'

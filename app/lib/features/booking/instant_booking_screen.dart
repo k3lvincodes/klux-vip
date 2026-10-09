@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
@@ -12,8 +10,8 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,7 +29,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     -122.085749655962,
   );
   LatLng _currentPosition = _initialPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
 
 
   String? _countryCode;
@@ -45,6 +43,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
   double? _distanceKm;
   double? _durationSeconds;
   double _sheetExtent = 0;
+  List<LatLng>? _routePoints;
 
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
@@ -58,9 +57,6 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     final mem = MapMemory();
     if (mem.hasMemory && mem.lastPosition != null) {
       _currentPosition = mem.lastPosition!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapController.move(mem.lastPosition!, mem.lastZoom);
-      });
     }
 
     final rideProv = context.read<RideProvider>();
@@ -114,8 +110,8 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
     if (mounted) {
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
-        _mapController.move(_currentPosition, 15.0);
       });
+      _mapKey.currentState?.animateTo(_currentPosition);
       final code = await LocationSearchService.detectCountryCode(
         LatLng(position.latitude, position.longitude),
       );
@@ -125,7 +121,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
   @override
   void dispose() {
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 15.0);
     _fromController.dispose();
     _toController.dispose();
     _commentController.dispose();
@@ -220,12 +216,14 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
       final dropoffLatLng = LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude);
 
       final routeResult = await LocationSearchService.getRoute(pickupLatLng, dropoffLatLng);
-      if (routeResult != null) {
+      if (routeResult != null && routeResult.points.length >= 2) {
         _distanceKm = routeResult.distanceKm;
         _durationSeconds = routeResult.durationSeconds;
+        _routePoints = routeResult.points;
       } else {
         _distanceKm = const Distance().as(LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
         _durationSeconds = null;
+        _routePoints = [pickupLatLng, dropoffLatLng];
       }
 
       final rate = await FareRateService.getRate(_countryCode ?? 'US');
@@ -236,6 +234,10 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
         _sheetExtent = _initialChildSize(context);
         setState(() {});
       }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapKey.currentState?.fitRouteBounds();
+      });
     }
   }
 
@@ -289,41 +291,26 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initialSize = _initialChildSize(context).clamp(0.08, 0.88);
+    final currentExtent = _sheetExtent > 0 ? _sheetExtent : initialSize;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 14.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              MarkerLayer(
-                markers: [
-                  if (_pickupLocation != null)
-                    AnimatedMarker.pickupPin(point: LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude)),
-                  if (_dropoffLocation != null)
-                    AnimatedMarker.dropoffPin(point: LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude)),
-                  if (_pickupLocation == null && _dropoffLocation == null)
-                    AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
-                ],
-              ),
-            ],
+          VipGoogleMap(
+            key: _mapKey,
+            initialCenter: _currentPosition,
+            initialZoom: 14.5,
+            pickupPosition: _pickupLocation != null
+                ? LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude)
+                : null,
+            dropoffPosition: _dropoffLocation != null
+                ? LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude)
+                : null,
+            routePoints: _routePoints,
+            myLocationEnabled: true,
+            padding: const EdgeInsets.only(bottom: 240, top: 90),
           ),
 
           Positioned(
@@ -356,7 +343,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
+              bottom: MediaQuery.of(context).size.height * currentExtent.clamp(0.08, 0.88) + 10,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -384,15 +371,17 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
 
           NotificationListener<DraggableScrollableNotification>(
             onNotification: (notification) {
-              _sheetExtent = notification.extent;
+              if ((_sheetExtent - notification.extent).abs() > 0.002) {
+                setState(() => _sheetExtent = notification.extent);
+              }
               return false;
             },
             child: DraggableScrollableSheet(
-            initialChildSize: _initialChildSize(context),
+            initialChildSize: _initialChildSize(context).clamp(0.08, 0.88),
             minChildSize: 0.08,
-            maxChildSize: _initialChildSize(context),
+            maxChildSize: 0.88,
             snap: true,
-            snapSizes: [0.08, _initialChildSize(context)],
+            snapSizes: [0.08, _initialChildSize(context).clamp(0.08, 0.88), 0.88],
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(

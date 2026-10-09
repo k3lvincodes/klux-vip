@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
@@ -7,7 +8,6 @@ import 'package:kenick_vip/services/auth_routing_service.dart';
 import 'package:kenick_vip/services/device_biometrics_service.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,6 +22,7 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _showPasswordField = false;
   bool _isPasswordVisible = false;
   bool _biometricAvailable = false;
   Map<String, dynamic>? _biometricData;
@@ -51,7 +52,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _checkBiometricForEmail() async {
-    final data = await DeviceBiometricsService.checkDeviceBiometric(_emailController.text.trim());
+    final data = await DeviceBiometricsService.checkDeviceBiometric(
+      _emailController.text.trim(),
+    );
     if (mounted) {
       setState(() {
         _biometricAvailable = data != null;
@@ -91,7 +94,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
         final user = auth.currentUser;
         if (user == null) {
-          CustomToast.showError(context, 'Session expired. Please log in with your password.');
+          CustomToast.showError(
+            context,
+            'Session expired. Please log in with your password.',
+          );
           return;
         }
 
@@ -124,6 +130,17 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  void _onContinuePressed() {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      CustomToast.showError(context, 'Please enter a valid email address');
+      return;
+    }
+    setState(() {
+      _showPasswordField = true;
+    });
+  }
+
   Future<void> _handleLogin() async {
     FocusScope.of(context).unfocus();
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -133,7 +150,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final auth = context.read<AuthProvider>();
     setState(() => _isNavigating = true);
-    final success = await auth.signIn(_emailController.text.trim(), _passwordController.text);
+    final success = await auth.signIn(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
     if (success && mounted) {
       final user = auth.currentUser;
@@ -161,215 +181,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _handleSignUp() {
-    context.push('/sign-up');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: cs.surface,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 120, 0, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      slideOffset: 0.04,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back',
-                            style: tt.headlineLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Sign in to continue to Kenick',
-                            style: tt.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 44),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 80),
-                      slideOffset: 0.04,
-                      child: _buildInput(
-                        controller: _emailController,
-                        hintText: 'Email address',
-                        icon: Icons.person_outline,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 120),
-                      slideOffset: 0.04,
-                      child: _buildInput(
-                        controller: _passwordController,
-                        hintText: 'Password',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                        isPasswordVisible: _isPasswordVisible,
-                        onToggleVisibility: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 160),
-                      slideOffset: 0.04,
-                      child: Row(
-                        children: [
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () => context.push('/forgot-password'),
-                            child: Text(
-                              'Forgot password?',
-                              style: tt.labelMedium?.copyWith(
-                                color: cs.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 200),
-                      slideOffset: 0.04,
-                      child: Consumer<AuthProvider>(
-                        builder: (context, auth, _) {
-                          final isLoading = auth.isLoading || _isNavigating;
-                          return CustomButton(
-                            title: isLoading ? 'Signing in...' : 'Sign In',
-                            onPress: isLoading ? () {} : _handleLogin,
-                            variant: ButtonVariant.primary,
-                            textStyle: tt.labelLarge,
-                            isLoading: isLoading,
-                          );
-                        },
-                      ),
-                    ),
-                    if (_biometricAvailable) ...[
-                      const SizedBox(height: 14),
-                      FadeSlideIn(
-                        duration: AppDurations.slow,
-                        delay: const Duration(milliseconds: 240),
-                        slideOffset: 0.04,
-                        child: CustomButton(
-                          title: 'Log in with Biometrics',
-                          onPress: _handleBiometricLogin,
-                          variant: ButtonVariant.outline,
-                          textStyle: tt.labelLarge,
-                          icon: Icons.fingerprint,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 32),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 280),
-                      slideOffset: 0.04,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: cs.outlineVariant,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'Or continue with',
-                              style: tt.labelSmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: cs.outlineVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    FadeSlideIn(
-                      duration: AppDurations.slow,
-                      delay: const Duration(milliseconds: 320),
-                      slideOffset: 0.04,
-                      child: _buildSocialButtons(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 36),
-                child: FadeSlideIn(
-                  duration: AppDurations.slow,
-                  delay: const Duration(milliseconds: 360),
-                  slideOffset: 0.06,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _handleSignUp,
-                        child: Text(
-                          'Sign up',
-                          style: tt.bodySmall?.copyWith(
-                            color: cs.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    context.push('/role-selection');
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -392,89 +204,625 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  Widget _buildSocialButtons() {
+  void _handleCloseOrBack() {
+    if (_showPasswordField) {
+      setState(() => _showPasswordField = false);
+    } else if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/onboarding');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        GestureDetector(
-          onTap: _handleGoogleSignIn,
-          child: _socialButton(
-            label: 'G',
-            color: const Color(0xFFDB4437),
+    final tt = Theme.of(context).textTheme;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              // Top Back button
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: _handleCloseOrBack,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : cs.surfaceContainerLow,
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.transparent
+                            : cs.outlineVariant,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Headline: "Welcome"
+              FadeSlideIn(
+                duration: AppDurations.slow,
+                slideOffset: 0.04,
+                child: Text(
+                  'Welcome',
+                  style: tt.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 28,
+                    letterSpacing: -0.5,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Subtitle
+              FadeSlideIn(
+                duration: AppDurations.slow,
+                delay: const Duration(milliseconds: 60),
+                slideOffset: 0.04,
+                child: Text(
+                  _showPasswordField
+                      ? 'Enter your password to continue to Kenick.'
+                      : 'Log in to continue to Kenick.',
+                  style: tt.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              if (!_showPasswordField) ...[
+                // --- STEP 1: Email Form ---
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 100),
+                  slideOffset: 0.04,
+                  child: TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _onContinuePressed(),
+                    style: TextStyle(color: cs.onSurface, fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: 'Email address*',
+                      hintStyle: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontSize: 15,
+                      ),
+                      filled: true,
+                      fillColor: cs.surfaceContainerLowest,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.outlineVariant,
+                          width: 1.2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.outlineVariant,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.primary,
+                          width: 1.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Primary "Continue" Pill Button
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 140),
+                  slideOffset: 0.04,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _onContinuePressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                      ),
+                      child: Text(
+                        'Continue',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                if (_biometricAvailable) ...[
+                  const SizedBox(height: 12),
+                  FadeSlideIn(
+                    duration: AppDurations.slow,
+                    delay: const Duration(milliseconds: 160),
+                    slideOffset: 0.04,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: _handleBiometricLogin,
+                        icon: Icon(
+                          Icons.fingerprint_rounded,
+                          size: 22,
+                          color: cs.primary,
+                        ),
+                        label: Text(
+                          'Log in with Biometrics',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: cs.outlineVariant, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(26),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Don't have an account? Sign up
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 180),
+                  slideOffset: 0.04,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: tt.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 15,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _handleSignUp,
+                        child: Text(
+                          'Sign up',
+                          style: tt.bodyMedium?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            decoration: TextDecoration.underline,
+                            decorationColor: cs.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // OR divider
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 220),
+                  slideOffset: 0.04,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: cs.outlineVariant,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: tt.labelSmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: cs.outlineVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // Social Button: Continue with Google
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 260),
+                  slideOffset: 0.04,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: _handleGoogleSignIn,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: cs.outlineVariant, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildGoogleIcon(),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Social Button: Continue with Apple
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 300),
+                  slideOffset: 0.04,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: _handleAppleSignIn,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: cs.outlineVariant, width: 1.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildAppleIcon(cs),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Continue with Apple',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                // --- STEP 2: Password Form (Matching user's uploaded Blacklane screenshot) ---
+
+                // Box 1: Email Box with "Edit"
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 100),
+                  slideOffset: 0.04,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: cs.outlineVariant,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _emailController.text.trim(),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: cs.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _showPasswordField = false);
+                          },
+                          child: Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              decoration: TextDecoration.underline,
+                              decorationColor: cs.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Box 2: Password Field ("and code input should be password")
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 130),
+                  slideOffset: 0.04,
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _handleLogin(),
+                    style: TextStyle(color: cs.onSurface, fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your password*',
+                      hintStyle: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontSize: 15,
+                      ),
+                      filled: true,
+                      fillColor: cs.surfaceContainerLowest,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          size: 20,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.outlineVariant,
+                          width: 1.2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.outlineVariant,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: cs.primary,
+                          width: 1.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Box 3: Primary "Continue" Pill Button
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 160),
+                  slideOffset: 0.04,
+                  child: Consumer<AuthProvider>(
+                    builder: (context, auth, _) {
+                      final isLoading = auth.isLoading || _isNavigating;
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(26),
+                            ),
+                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      cs.onPrimary,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  'Continue',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: cs.onPrimary,
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Forgot Password Link ("and resend side should be like forgot password")
+                FadeSlideIn(
+                  duration: AppDurations.slow,
+                  delay: const Duration(milliseconds: 190),
+                  slideOffset: 0.04,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Forgot your password? ',
+                        style: tt.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 15,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.push('/forgot-password'),
+                        child: Text(
+                          'Reset',
+                          style: tt.bodyMedium?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            decoration: TextDecoration.underline,
+                            decorationColor: cs.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (_biometricAvailable) ...[
+                  const SizedBox(height: 24),
+                  FadeSlideIn(
+                    duration: AppDurations.slow,
+                    delay: const Duration(milliseconds: 220),
+                    slideOffset: 0.04,
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: _handleBiometricLogin,
+                        icon: Icon(
+                          Icons.fingerprint_rounded,
+                          size: 22,
+                          color: cs.primary,
+                        ),
+                        label: Text(
+                          'Log in with Biometrics',
+                          style: TextStyle(
+                            color: cs.onSurface,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+
+              const SizedBox(height: 40),
+            ],
           ),
         ),
-        const SizedBox(width: 18),
-        GestureDetector(
-          onTap: _handleAppleSignIn,
-          child: _socialButton(
-            iconWidget: Icon(Icons.apple, size: 22, color: cs.onSurface),
-            color: cs.onSurface,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _socialButton({String? label, Widget? iconWidget, required Color color}) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: label != null
-            ? Text(
-                label,
-                style: TextStyle(
-                  fontSize: label.length == 1 && label.toLowerCase() == 'f' ? 20 : 22,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              )
-            : (iconWidget ?? const SizedBox()),
+  Widget _buildGoogleIcon() {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF4285F4),
+          Color(0xFF34A853),
+          Color(0xFFFBBC05),
+          Color(0xFFEA4335),
+        ],
+        stops: [0.1, 0.4, 0.7, 1.0],
+      ).createShader(bounds),
+      child: const FaIcon(
+        FontAwesomeIcons.google,
+        size: 19,
+        color: Colors.white,
       ),
     );
   }
 
-  Widget _buildInput({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    bool isPassword = false,
-    bool isPasswordVisible = false,
-    VoidCallback? onToggleVisibility,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return TextField(
-      scrollPadding: const EdgeInsets.only(bottom: 10),
-      controller: controller,
-      obscureText: isPassword && !isPasswordVisible,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: Icon(icon, size: 20),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                  size: 20,
-                ),
-                onPressed: onToggleVisibility,
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        filled: true,
-        fillColor: cs.surfaceContainerLow,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
+  Widget _buildAppleIcon(ColorScheme cs) {
+    return FaIcon(
+      FontAwesomeIcons.apple,
+      size: 20,
+      color: cs.onSurface,
     );
   }
 }

@@ -123,65 +123,85 @@ Deno.serve(async (req) => {
         }
 
         let pmId = payment_method_id
-        if (!pmId) {
-          const { data: pm } = await supabase
-            .from('payment_methods')
-            .select('stripe_pm_id')
-            .eq('user_id', user_id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single()
-          if (pm?.stripe_pm_id) pmId = pm.stripe_pm_id
-        }
-
-        if (!pmId) {
-          return jsonResponse({ error: 'No payment method found' }, 400)
-        }
 
         const idempotencyKey = `ride_auth_${ride_id}_${Date.now()}`
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(amount * 100),
-          currency: 'usd',
-          payment_method: pmId,
-          confirm: true,
-          capture_method: 'manual',
-          metadata: { ride_id, user_id },
-          idempotencyKey,
-        })
 
-        if (paymentIntent.status === 'requires_action') {
+        const currency = (data.currency || 'usd').toLowerCase()
+
+        // If a specific saved card is selected, confirm directly
+        if (pmId) {
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(amount * 100),
+            currency,
+            payment_method: pmId,
+            confirm: true,
+            capture_method: 'manual',
+            metadata: { ride_id, user_id },
+            idempotencyKey,
+          })
+
+          if (paymentIntent.status === 'requires_action') {
+            await supabase.from('transactions').insert({
+              ride_id,
+              user_id,
+              payer_id: user_id,
+              amount,
+              type: 'ride_payment',
+              status: 'requires_action',
+              stripe_payment_intent_id: paymentIntent.id,
+            })
+
+            return jsonResponse({
+              success: false,
+              requires_action: true,
+              payment_intent_client_secret: paymentIntent.client_secret,
+              status: paymentIntent.status,
+            })
+          }
+
+          const txStatus = paymentIntent.status === 'requires_capture' ? 'authorized' : 'pending'
           await supabase.from('transactions').insert({
             ride_id,
             user_id,
             payer_id: user_id,
             amount,
             type: 'ride_payment',
-            status: 'requires_action',
+            status: txStatus,
             stripe_payment_intent_id: paymentIntent.id,
           })
 
           return jsonResponse({
-            success: false,
-            requires_action: true,
-            payment_intent_client_secret: paymentIntent.client_secret,
+            success: txStatus === 'authorized',
+            payment_intent: paymentIntent.client_secret,
             status: paymentIntent.status,
           })
         }
 
-        const txStatus = paymentIntent.status === 'requires_capture' ? 'authorized' : 'pending'
+        // If paying via Apple Pay, Google Pay, PayPal or new card:
+        // Create PaymentIntent with automatic payment methods for Stripe PaymentSheet
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100),
+          currency,
+          capture_method: 'manual',
+          automatic_payment_methods: { enabled: true },
+          metadata: { ride_id, user_id, method: data.payment_method_type || 'digital_wallet' },
+          idempotencyKey,
+        })
+
         await supabase.from('transactions').insert({
           ride_id,
           user_id,
           payer_id: user_id,
           amount,
           type: 'ride_payment',
-          status: txStatus,
+          status: 'pending',
           stripe_payment_intent_id: paymentIntent.id,
         })
 
         return jsonResponse({
-          success: txStatus === 'authorized',
-          payment_intent: paymentIntent.client_secret,
+          success: true,
+          requires_payment_sheet: true,
+          payment_intent_client_secret: paymentIntent.client_secret,
           status: paymentIntent.status,
         })
       }

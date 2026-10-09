@@ -4,8 +4,8 @@ class AppColors {
   AppColors._();
 
   static const Color primary = Color(0xFFEAB308);
-  static const Color background = Color(0xFFEBE5E4);
-  static const Color backgroundGradient = Color(0xFFFFFBEB);
+  static const Color background = Color(0xFFF6F6F8);
+  static const Color backgroundGradient = Color(0xFFF6F6F8);
   static const Color text = Color(0xFF111827);
   static const Color white = Colors.white;
   static const Color black = Colors.black;
@@ -21,7 +21,7 @@ class AppColors {
     brightness: Brightness.light,
     primary: Color(0xFFEAB308),
     onPrimary: Color(0xFF1A1A1A),
-    primaryContainer: Color(0xFFFFF8E1),
+    primaryContainer: Color(0xFFF6F6F8),
     onPrimaryContainer: Color(0xFF1A1A1A),
     secondary: Color(0xFF6B7280),
     onSecondary: Colors.white,
@@ -35,20 +35,20 @@ class AppColors {
     onError: Colors.white,
     errorContainer: Color(0xFFFEE2E2),
     onErrorContainer: Color(0xFF7F1D1D),
-    surface: Color(0xFFEBE5E4),
+    surface: Color(0xFFF6F6F8),
     onSurface: Color(0xFF111827),
     onSurfaceVariant: Color(0xFF6B7280),
     outline: Color(0xFFD1D5DB),
     outlineVariant: Color(0xFFE5E7EB),
     surfaceContainerLowest: Colors.white,
-    surfaceContainerLow: Color(0xFFF5F0EF),
-    surfaceContainer: Color(0xFFEDE5E4),
-    surfaceContainerHigh: Color(0xFFE0D8D7),
-    surfaceContainerHighest: Color(0xFFD4CBCB),
+    surfaceContainerLow: Colors.white,
+    surfaceContainer: Color(0xFFECEEF1),
+    surfaceContainerHigh: Color(0xFFE2E4E8),
+    surfaceContainerHighest: Color(0xFFD1D5DB),
     inverseSurface: Color(0xFF1F2937),
     onInverseSurface: Color(0xFFF9FAFB),
     surfaceTint: Color(0xFFEAB308),
-    shadow: Color(0x1A000000),
+    shadow: Color(0x14000000),
   );
 
   static ColorScheme darkColorScheme = const ColorScheme(

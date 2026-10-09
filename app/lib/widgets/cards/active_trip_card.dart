@@ -8,6 +8,8 @@ class ActiveTripCard extends StatelessWidget {
     super.key,
     this.passengerName,
     this.passengerAvatarUrl,
+    this.subtitle,
+    this.rating,
     required this.pickupAddress,
     required this.dropoffAddress,
     required this.fare,
@@ -15,9 +17,14 @@ class ActiveTripCard extends StatelessWidget {
     this.timeElapsed,
     this.onEndRide,
     this.onContact,
+    this.contactButtonText = 'Contact',
+    this.onSecondaryAction,
+    this.secondaryActionText,
   });
   final String? passengerName;
   final String? passengerAvatarUrl;
+  final String? subtitle;
+  final String? rating;
   final String pickupAddress;
   final String dropoffAddress;
   final String fare;
@@ -25,6 +32,9 @@ class ActiveTripCard extends StatelessWidget {
   final String? timeElapsed;
   final VoidCallback? onEndRide;
   final VoidCallback? onContact;
+  final String contactButtonText;
+  final VoidCallback? onSecondaryAction;
+  final String? secondaryActionText;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +127,7 @@ class ActiveTripCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Client info row
+            // Chauffeur / Passenger info row
             if (passengerName != null) ...[
               Row(
                 children: [
@@ -133,27 +143,57 @@ class ActiveTripCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      passengerName!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.white : AppColors.black,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                passengerName!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.white : AppColors.black,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (rating != null && rating!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                              const SizedBox(width: 2),
+                              Text(
+                                rating!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (subtitle != null && subtitle!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (onContact != null) ...[
-                    IconButton(
-                      icon: const Icon(Icons.phone_in_talk_rounded, size: 20, color: AppColors.primary),
-                      onPressed: onContact,
-                      tooltip: 'Contact Client',
-                    ),
-                  ],
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -208,7 +248,7 @@ class ActiveTripCard extends StatelessWidget {
             // Action buttons with PressScale tactile micro-animations
             Row(
               children: [
-                if (onContact != null) ...[
+                if (onContact != null)
                   Expanded(
                     child: PressScale(
                       child: SizedBox(
@@ -216,13 +256,15 @@ class ActiveTripCard extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: onContact,
                           icon: const Icon(Icons.message, size: 15, color: AppColors.primary),
-                          label: const Text(
-                            'Contact',
-                            style: TextStyle(
+                          label: Text(
+                            contactButtonText,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: AppColors.primary, width: 1.5),
@@ -235,8 +277,36 @@ class ActiveTripCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (onContact != null && (onSecondaryAction != null || onEndRide != null))
                   const SizedBox(width: 12),
-                ],
+                if (onSecondaryAction != null)
+                  Expanded(
+                    child: PressScale(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: onSecondaryAction,
+                          icon: Icon(Icons.shield_outlined, size: 15, color: isDark ? Colors.white70 : Colors.black87),
+                          label: Text(
+                            secondaryActionText ?? 'Safety',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: isDark ? Colors.white24 : Colors.black12, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (onEndRide != null)
                   Expanded(
                     child: PressScale(

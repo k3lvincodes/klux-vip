@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:kenick_vip/config/env_config.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
-import 'package:kenick_vip/widgets/map/animated_marker.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
+import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -32,7 +31,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
     -122.085749655962,
   );
   late LatLng _currentPosition;
-  final MapController _mapController = MapController();
+  final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
   final bool _isSearching = false;
   String? _countryCode;
   List<LatLng>? _routePoints;
@@ -45,24 +44,50 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
         ? mem.lastPosition!
         : _initialPosition;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mem.hasMemory && mem.lastPosition != null) {
-        _mapController.move(mem.lastPosition!, mem.lastZoom);
-      }
       final code = await LocationSearchService.detectCountryCode(
         _currentPosition,
       );
       if (mounted) setState(() => _countryCode = code);
     });
 
+    final bookingProv = context.read<BookingProvider>();
     final rideProv = context.read<RideProvider>();
-    if (rideProv.pickupLocation != null) {
+
+    if (bookingProv.pickupAddress != null && bookingProv.pickupAddress!.isNotEmpty) {
+      _fromController.text = bookingProv.pickupAddress!;
+      if (bookingProv.pickupLat != null && bookingProv.pickupLng != null) {
+        _pickupLocation = LocationSearchResult(
+          placeName: bookingProv.pickupAddress!,
+          latitude: bookingProv.pickupLat!,
+          longitude: bookingProv.pickupLng!,
+        );
+      }
+    } else if (rideProv.pickupLocation != null) {
       _pickupLocation = rideProv.pickupLocation;
       _fromController.text = rideProv.pickupLocation!.placeName;
     }
-    if (rideProv.dropoffLocation != null) {
+
+    if (bookingProv.dropoffAddress != null && bookingProv.dropoffAddress!.isNotEmpty) {
+      _toController.text = bookingProv.dropoffAddress!;
+      if (bookingProv.dropoffLat != null && bookingProv.dropoffLng != null) {
+        _dropoffLocation = LocationSearchResult(
+          placeName: bookingProv.dropoffAddress!,
+          latitude: bookingProv.dropoffLat!,
+          longitude: bookingProv.dropoffLng!,
+        );
+      }
+    } else if (rideProv.dropoffLocation != null) {
       _dropoffLocation = rideProv.dropoffLocation;
       _toController.text = rideProv.dropoffLocation!.placeName;
     }
+
+    if (bookingProv.fareAmount != null && bookingProv.fareAmount! > 0) {
+      _calculatedFare = bookingProv.fareAmount;
+    }
+    if (bookingProv.distanceKm != null) {
+      _distanceKm = bookingProv.distanceKm;
+    }
+
     if (_pickupLocation != null && _dropoffLocation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handleLocationSelected();
@@ -71,20 +96,11 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
   }
 
   double _initialChildSize(BuildContext context) {
-    final screenH = MediaQuery.of(context).size.height;
-    final bottomPad = MediaQuery.of(context).padding.bottom;
-    double contentH = 0;
-    contentH += 40;           // 16 top pad + 24 drag handle
-    contentH += 12;           // spacer
-    contentH += 64;           // clients (12 pad + 40 textfield + 12 pad)
-    contentH += 12 + 48;      // spacer + date/time (14 pad + 20 icon + 14 pad)
-    contentH += 12 + 48;      // spacer + event type
-    contentH += 12 + 48 + 20; // spacer + comments + spacer
-    contentH += 116;          // location inputs (50 field + 16 gap + 50 field)
-    if (_calculatedFare != null) contentH += 24 + 80;
-    contentH += 32 + 52 + 8; // spacer + button + spacer
-    return ((contentH + bottomPad) / screenH).clamp(0.08, 0.9);
+    final hasRoute = _pickupLocation != null && _dropoffLocation != null && !_isEditingRoute;
+    return hasRoute ? 0.55 : 0.65;
   }
+
+  bool _isEditingRoute = false;
 
   final TextEditingController _passengersController = TextEditingController(
     text: '1',
@@ -190,7 +206,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
 
   @override
   void dispose() {
-    MapMemory().save(_currentPosition, _mapController.camera.zoom);
+    MapMemory().save(_currentPosition, 14.5);
     _passengersController.dispose();
     _fromController.dispose();
     _toController.dispose();
@@ -228,18 +244,17 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
         _routePoints = [pickupLatLng, dropoffLatLng];
       }
 
-      final rate = await FareRateService.getRate(_countryCode ?? 'US');
-      _calculatedFare = rate.baseFare + (_distanceKm! * rate.perKmRate);
+      final country = _countryCode ?? 'US';
+      final rate = await FareRateService.getRate(country);
+      final minutes = (_durationSeconds ?? (_distanceKm! / 40.0 * 3600)) / 60.0;
+      double base = rate.baseFare + (_distanceKm! * rate.perKmRate) + (minutes * rate.perMinuteRate);
+      base += country == 'NG' ? 10000.0 : 50.0;
+      _calculatedFare = base;
       if (mounted) {
         _sheetExtent = _initialChildSize(context);
         setState(() {});
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _mapController.fitCamera(
-            CameraFit.bounds(
-              bounds: LatLngBounds(pickupLatLng, dropoffLatLng),
-              padding: const EdgeInsets.all(60),
-            ),
-          );
+          _mapKey.currentState?.fitRouteBounds();
         });
       }
     }
@@ -361,51 +376,27 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initialSize = _initialChildSize(context).clamp(0.08, 0.88);
+    final currentExtent = _sheetExtent > 0 ? _sheetExtent : initialSize;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Map Background
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 14.5,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-                    : 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: {
-                  'accessToken': EnvConfig.mapboxAccessToken,
-                },
-                userAgentPackageName: 'com.kenickvip.app',
-                maxZoom: 22,
-              ),
-              MarkerLayer(
-                markers: [
-                  AnimatedMarker.locationDot(point: _currentPosition, color: AppColors.primary),
-                  if (_pickupLocation != null)
-                    AnimatedMarker.pickupPin(point: LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude)),
-                  if (_dropoffLocation != null)
-                    AnimatedMarker.dropoffPin(point: LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude)),
-                ],
-              ),
-              if (_routePoints != null && _routePoints!.length >= 2)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: _routePoints!,
-                      color: AppColors.primary,
-                      strokeWidth: 6,
-                    ),
-                  ],
-                ),
-            ],
+          VipGoogleMap(
+            key: _mapKey,
+            initialCenter: _currentPosition,
+            initialZoom: 14.5,
+            pickupPosition: _pickupLocation != null
+                ? LatLng(_pickupLocation!.latitude, _pickupLocation!.longitude)
+                : null,
+            dropoffPosition: _dropoffLocation != null
+                ? LatLng(_dropoffLocation!.latitude, _dropoffLocation!.longitude)
+                : null,
+            routePoints: _routePoints,
+            onCameraMove: (pos) => _currentPosition = pos,
+            padding: const EdgeInsets.only(bottom: 260, top: 80),
           ),
 
           Positioned(
@@ -438,7 +429,7 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
 
           if (_pickupLocation != null && _dropoffLocation != null && _distanceKm != null)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * _sheetExtent.clamp(0.08, 1.0) + 10,
+              bottom: MediaQuery.of(context).size.height * currentExtent.clamp(0.08, 0.88) + 10,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -466,15 +457,17 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
 
           NotificationListener<DraggableScrollableNotification>(
             onNotification: (notification) {
-              _sheetExtent = notification.extent;
+              if ((_sheetExtent - notification.extent).abs() > 0.002) {
+                setState(() => _sheetExtent = notification.extent);
+              }
               return false;
             },
             child: DraggableScrollableSheet(
             initialChildSize: _initialChildSize(context),
             minChildSize: 0.08,
-            maxChildSize: _initialChildSize(context),
+            maxChildSize: 0.88,
             snap: true,
-            snapSizes: [0.08, _initialChildSize(context)],
+            snapSizes: [0.08, _initialChildSize(context), 0.88],
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -509,7 +502,68 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
                         ),
                       ),
 
-
+                      // Selected Vehicle Card
+                      Consumer<BookingProvider>(
+                        builder: (context, bookingProv, child) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkBackground : const Color(0xFFF5F0EF),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.directions_car, color: AppColors.primary, size: 22),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Chauffeur Vehicle',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      Text(
+                                        bookingProv.vehicleType,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.white : AppColors.black,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'VIP Class',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
 
                       // Number of passengers
                       Container(
@@ -765,122 +819,125 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Location Inputs with timeline
-                      Stack(
-                        children: [
-                          Positioned(
-                            left: 11,
-                            top: 25,
-                            bottom: 25,
-                            child: Container(
-                              width: 2,
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade300,
+                      // Location Inputs (Confirmed route summary or editable inputs)
+                      if (_pickupLocation != null && _dropoffLocation != null && !_isEditingRoute)
+                        _buildConfirmedRouteCard(isDark)
+                      else
+                        Stack(
+                          children: [
+                            Positioned(
+                              left: 11,
+                              top: 25,
+                              bottom: 25,
+                              child: Container(
+                                width: 2,
+                                color: isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey.shade300,
+                              ),
                             ),
-                          ),
-                          Column(
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 13.0),
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.2,
+                            Column(
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 13.0),
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          shape: BoxShape.circle,
                                         ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.my_location,
-                                        size: 12,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: LocationSearchField(
-                                      hint: 'Current Location',
-                                      controller: _fromController,
-                                      isDark: isDark,
-                                      countryCode: _countryCode,
-                                      onSelected: (r) {
-                                        _pickupLocation = r;
-                                        _handleLocationSelected();
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 13.0),
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.location_on,
-                                        size: 12,
-                                        color: Colors.red,
+                                        child: const Icon(
+                                          Icons.my_location,
+                                          size: 12,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: LocationSearchField(
-                                      hint: 'Where to?',
-                                      controller: _toController,
-                                      isDark: isDark,
-                                      countryCode: _countryCode,
-                                      onSelected: (r) {
-                                        _dropoffLocation = r;
-                                        _handleLocationSelected();
-                                      },
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: LocationSearchField(
+                                        hint: 'Current Location',
+                                        controller: _fromController,
+                                        isDark: isDark,
+                                        countryCode: _countryCode,
+                                        onSelected: (r) {
+                                          _pickupLocation = r;
+                                          _handleLocationSelected();
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 13.0),
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.location_on,
+                                          size: 12,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: LocationSearchField(
+                                        hint: 'Where to?',
+                                        controller: _toController,
+                                        isDark: isDark,
+                                        countryCode: _countryCode,
+                                        onSelected: (r) {
+                                          _dropoffLocation = r;
+                                          _handleLocationSelected();
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       if (_calculatedFare != null) ...[
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.darkBackground
                                 : const Color(0xFFF5F0EF),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 8,
+                                horizontal: 24,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '\$${_calculatedFare!.toStringAsFixed(2)}',
+                                CurrencyService.format(_calculatedFare, countryCode: _countryCode),
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? AppColors.white
@@ -1087,7 +1144,10 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Estimated Fare', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        Text('\$${fare.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        Text(
+                          CurrencyService.format(fare, countryCode: _countryCode),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
                       ],
                     ),
                   ],
@@ -1113,6 +1173,124 @@ class _SpecialBookingScreenState extends State<SpecialBookingScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmedRouteCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBackground : const Color(0xFFF5F0EF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pickup Location',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      _fromController.text.isNotEmpty
+                          ? _fromController.text
+                          : (_pickupLocation?.placeName ?? 'Current Location'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _isEditingRoute = true),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text(
+                  'Change',
+                  style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 2, bottom: 2),
+            child: Row(
+              children: [
+                Container(
+                  width: 2,
+                  height: 16,
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Destination',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      _toController.text.isNotEmpty
+                          ? _toController.text
+                          : (_dropoffLocation?.placeName ?? 'Where to?'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

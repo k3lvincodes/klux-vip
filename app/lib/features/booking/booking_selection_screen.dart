@@ -64,7 +64,10 @@ class BookingSelectionScreen extends StatelessWidget {
                     Row(
                       children: [
                         if (vehicleImg != null)
-                          Image.asset(vehicleImg, width: 64, height: 40, fit: BoxFit.contain),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(vehicleImg, width: 64, height: 40, fit: BoxFit.contain),
+                          ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(

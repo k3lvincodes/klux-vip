@@ -134,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen>
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [cs.surface, Colors.black]
-                : [cs.primaryContainer, cs.surface],
+                : [cs.surface, cs.surface],
           ),
         ),
         child: Center(

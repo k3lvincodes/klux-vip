@@ -4,7 +4,6 @@ import 'package:kenick_vip/core/router/app_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/theme_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/widgets/overlays/biometric_lock_screen.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
@@ -383,6 +382,8 @@ class _KenickVipAppState extends State<KenickVipApp>
           TargetPlatform.android: _SmoothPageTransitionBuilder(),
           TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
           TargetPlatform.windows: _SmoothPageTransitionBuilder(),
+          TargetPlatform.macOS: _SmoothPageTransitionBuilder(),
+          TargetPlatform.linux: _SmoothPageTransitionBuilder(),
         },
       ),
     );
@@ -600,6 +601,8 @@ class _KenickVipAppState extends State<KenickVipApp>
           TargetPlatform.android: _SmoothPageTransitionBuilder(),
           TargetPlatform.iOS: _SmoothPageTransitionBuilder(),
           TargetPlatform.windows: _SmoothPageTransitionBuilder(),
+          TargetPlatform.macOS: _SmoothPageTransitionBuilder(),
+          TargetPlatform.linux: _SmoothPageTransitionBuilder(),
         },
       ),
     );
@@ -617,31 +620,30 @@ class _SmoothPageTransitionBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    final secondaryCurved = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
     return SlideTransition(
       position: Tween<Offset>(
-        begin: const Offset(0.04, 0.0),
+        begin: const Offset(1.0, 0.0),
         end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: animation,
-          curve: AppCurves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        ),
-      ),
-      child: FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-          reverseCurve: Curves.easeIn,
-        ),
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.98, end: 1.0).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: AppCurves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            ),
-          ),
+      ).animate(curved),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(-0.25, 0.0),
+        ).animate(secondaryCurved),
+        child: FadeTransition(
+          opacity: Tween<double>(begin: 0.65, end: 1.0).animate(curved),
           child: child,
         ),
       ),

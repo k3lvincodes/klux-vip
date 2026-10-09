@@ -1,13 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:go_router/go_router.dart';
-import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/providers/booking_provider.dart';
-import 'package:kenick_vip/providers/payment_provider.dart';
-import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/feedback/shimmer_loading.dart';
-import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/features/payment/add_card_screen.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -17,355 +14,442 @@ class PaymentMethodScreen extends StatefulWidget {
 }
 
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
-  String _selectedMethod = 'Credit/Debit card';
+  List<Map<String, dynamic>> _savedCards = [];
+  bool _isLoading = true;
+  String? _selectedCardId;
 
   @override
   void initState() {
     super.initState();
-    final userId = context.read<AuthProvider>().currentUser?.id;
-    if (userId != null) {
-      context.read<PaymentProvider>().fetchPaymentMethods(userId);
+    _loadCards();
+  }
+
+  Future<void> _loadCards() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString('saved_user_cards');
+    if (jsonStr != null) {
+      try {
+        final decoded = jsonDecode(jsonStr) as List<dynamic>;
+        setState(() {
+          _savedCards = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (_savedCards.isNotEmpty && _selectedCardId == null) {
+            _selectedCardId = _savedCards.first['id'] as String?;
+          }
+        });
+      } catch (_) {}
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final rideProv = context.watch<RideProvider>();
-    final fareAmount = rideProv.currentRideDetails?['fare_amount'] ?? context.watch<BookingProvider>().fareAmount ?? 0.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
+  Future<void> _deleteCard(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _savedCards.removeWhere((c) => c['id'] == id);
+      if (_selectedCardId == id) {
+        _selectedCardId = _savedCards.isNotEmpty ? _savedCards.first['id'] as String? : null;
+      }
+    });
+    await prefs.setString('saved_user_cards', jsonEncode(_savedCards));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Card removed', style: GoogleFonts.poppins(color: Colors.white)),
+          backgroundColor: AppColors.darkSurface,
+          behavior: SnackBarBehavior.floating,
         ),
-        title: const Text('Payment method'),
+      );
+    }
+  }
+
+  void _showAddPaymentMethodSheet() {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Saved cards',
-                    style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 12),
-                Consumer<PaymentProvider>(
-                  builder: (context, payProv, _) {
-                    if (payProv.isLoading && payProv.paymentMethods.isEmpty) {
-                      return const SizedBox(
-                        height: 160,
-                        child: ShimmerLoading(width: 260, height: 160, borderRadius: 20),
-                      );
-                    }
-                    if (payProv.paymentMethods.isEmpty) {
-                      return SizedBox(
-                        height: 160,
-                        child: Center(
-                          child: Text(
-                            'No saved cards. Add a new card below.',
-                            style: TextStyle(color: cs.onSurfaceVariant),
-                          ),
-                        ),
-                      );
-                    }
-                    return SizedBox(
-                      height: 160,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: payProv.paymentMethods.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 16),
-                        itemBuilder: (context, index) {
-                          final method = payProv.paymentMethods[index];
-                          final methodId = method.id;
-                          final isSelected = _selectedMethod == methodId;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedMethod = methodId),
-                            child: _buildCreditCard(
-                              color: index % 2 == 0
-                                  ? cs.tertiary
-                                  : cs.error,
-                              cardNumber:
-                                  '**** **** **** ${method.last4 ?? '****'}',
-                              isSelected: isSelected,
-                            ),
+                Text(
+                  'Choose a payment method to\nadd',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                InkWell(
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final added = await Navigator.of(context).push<bool>(
+                      PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 320),
+                        reverseTransitionDuration: const Duration(milliseconds: 280),
+                        pageBuilder: (context, animation, secondaryAnimation) => const AddCardScreen(),
+                        transitionsBuilder: (_, animation, secondaryAnimation, child) {
+                          final curved = CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                            reverseCurve: Curves.easeInCubic,
+                          );
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).animate(curved),
+                            child: child,
                           );
                         },
                       ),
                     );
+                    if (added == true) {
+                      _loadCards();
+                    }
                   },
+                  splashColor: Colors.transparent,
+                  highlightColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.credit_card_outlined,
+                          size: 24,
+                          color: cs.onSurface,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Credit or debit card',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 22,
+                          color: cs.onSurface,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.add_circle_outline, color: cs.onSurface),
-                  title: Text('Add new cards',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                  onTap: () => _showAddCardModal(context),
-                ),
-                const SizedBox(height: 24),
-                Text('Other ways to pay',
-                    style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 12),
-                _buildPaymentOption(icon: Icons.money, title: 'Cash'),
-                const SizedBox(height: 8),
-                _buildPaymentOption(
-                    icon: Icons.credit_card, title: 'Credit/Debit card'),
-                const SizedBox(height: 8),
-                _buildPaymentOption(icon: Icons.paypal, title: 'Paypal'),
-                const SizedBox(height: 8),
-                _buildPaymentOption(icon: Icons.apple, title: 'Apple pay'),
-                const SizedBox(height: 8),
-                _buildPaymentOption(
-                    icon: Icons.g_mobiledata, title: 'Google pay'),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              border: Border(top: BorderSide(color: cs.outlineVariant)),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs, bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Wallet illustration exactly matching design
+            Container(
+              width: 96,
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2563EB),
+                    Color(0xFF60A5FA),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Inner card fold
+                  Positioned(
+                    top: -8,
+                    left: 12,
+                    right: 12,
+                    child: Container(
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D4ED8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  // Wallet flap with button
+                  Positioned(
+                    top: 10,
+                    left: 8,
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
+
+            const SizedBox(height: 36),
+
+            Text(
+              'No payment methods saved',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+                letterSpacing: -0.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              'To book your first ride, please add a\npayment method to your account.',
+              style: GoogleFonts.poppins(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w400,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                height: 1.45,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardList(ColorScheme cs, bool isDark) {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      itemCount: _savedCards.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, index) {
+        final card = _savedCards[index];
+        final id = card['id'] as String;
+        final isSelected = _selectedCardId == id;
+
+        return InkWell(
+          onTap: () => setState(() => _selectedCardId = id),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : cs.outlineVariant.withValues(alpha: 0.5),
+                width: isSelected ? 1.8 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
               children: [
-                RichText(
-                  text: TextSpan(
-                    text: 'Amount to pay ',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                Container(
+                  width: 44,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.credit_card_rounded,
+                    size: 22,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextSpan(
-                        text: '\$$fareAmount',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                      Text(
+                        '•••• •••• •••• ${card['last4'] ?? '0000'}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                           color: cs.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Expires ${card['expiry'] ?? 'MM/YY'} • ${card['holder'] ?? ''}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Consumer<PaymentProvider>(
-                  builder: (context, payProv, _) {
-                    return Column(
-                      children: [
-                        if (payProv.errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Text(
-                              payProv.errorMessage!,
-                              style: TextStyle(color: cs.error, fontSize: 12),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        CustomButton(
-                          title: payProv.isLoading
-                              ? 'Processing...'
-                              : 'Proceed to pay',
-                          onPress: payProv.isLoading
-                              ? () {}
-                              : () async {
-                                  final auth = context.read<AuthProvider>();
-                                  final rideId = rideProv.currentRideId;
-                                  if (auth.currentUser == null || rideId == null) {
-                                    return;
-                                  }
-                                  final result = await payProv.processRidePayment(
-                                    userId: auth.currentUser!.id,
-                                    rideId: rideId,
-                                    amount: (fareAmount as num).toDouble(),
-                                  );
-                                  if (!context.mounted) return;
-                                  if (result['requires_action'] == true &&
-                                      result['payment_intent_client_secret'] != null) {
-                                    try {
-                                      await stripe.Stripe.instance.confirmPayment(
-                                        paymentIntentClientSecret: result[
-                                                'payment_intent_client_secret']
-                                            as String,
-                                      );
-                                      if (context.mounted) {
-                                        context.push('/payment-successful');
-                                      }
-                                    } catch (e) {
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                '3D Secure authentication failed: $e')),
-                                      );
-                                    }
-                                  } else if (result['success'] == true &&
-                                      context.mounted) {
-                                    context.push('/payment-successful');
-                                  }
-                                },
-                          variant: ButtonVariant.primary,
-                        ),
-                      ],
-                    );
-                  },
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 20,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                  onPressed: () => _deleteCard(id),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCreditCard({
-    required Color color,
-    required String cardNumber,
-    bool isSelected = false,
-  }) {
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: isSelected
-            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3)
-            : null,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(Icons.memory, color: Colors.white, size: 30),
-              Icon(Icons.credit_card, color: Colors.white, size: 30),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            cardNumber,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              letterSpacing: 2,
-            ),
-          ),
-          const Expanded(child: SizedBox()),
-          const Text(
-            'User',
-            style: TextStyle(color: Colors.white, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentOption({
-    required IconData icon,
-    required String title,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    final isSelected = _selectedMethod == title;
-
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        trailing: Icon(
-          isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-          color: isSelected ? cs.primary : cs.onSurfaceVariant,
-        ),
-        onTap: () => setState(() => _selectedMethod = title),
-      ),
-    );
-  }
-
-  void _showAddCardModal(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        final card = stripe.CardFormEditController();
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            bool isSaving = false;
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Add New Card',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 24),
-                    stripe.CardFormField(
-                      controller: card,
-                      style: stripe.CardFormStyle(
-                        backgroundColor: cs.surfaceContainerLow,
-                        textColor: cs.onSurface,
-                        placeholderColor: cs.onSurfaceVariant,
-                        borderWidth: 1,
-                        borderRadius: 16,
-                        borderColor: cs.outline,
-                        cursorColor: cs.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    CustomButton(
-                      title: 'Save Card',
-                      isLoading: isSaving,
-                      onPress: () async {
-                        if (!card.details.complete) return;
-                        setModalState(() => isSaving = true);
-                        try {
-                          final paymentMethod =
-                              await stripe.Stripe.instance.createPaymentMethod(
-                            params: const stripe.PaymentMethodParams.card(
-                              paymentMethodData: stripe.PaymentMethodData(),
-                            ),
-                          );
-                          if (!ctx.mounted) return;
-                          final auth = ctx.read<AuthProvider>();
-                          if (auth.currentUser != null) {
-                            if (!ctx.mounted) return;
-                            final payProv = ctx.read<PaymentProvider>();
-                            final success = await payProv.addPaymentMethod(
-                              userId: auth.currentUser!.id,
-                              paymentMethodId: paymentMethod.id,
-                              customerId: auth.currentUser!.id,
-                            );
-                            if (success && ctx.mounted) {
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Card added successfully!')),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to save card: $e')),
-                            );
-                          }
-                        }
-                        setModalState(() => isSaving = false);
-                      },
-                      variant: ButtonVariant.primary,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            );
-          },
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white12
+                              : Colors.black.withValues(alpha: 0.06),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 15,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Payment methods',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Body
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : _savedCards.isEmpty
+                      ? _buildEmptyState(cs, isDark)
+                      : _buildCardList(cs, isDark),
+            ),
+
+            // Bottom Add payment method button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _showAddPaymentMethodSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(27),
+                    ),
+                  ),
+                  child: Text(
+                    'Add payment method',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

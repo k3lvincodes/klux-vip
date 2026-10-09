@@ -16,6 +16,7 @@ class RideSearchIndicator extends StatefulWidget {
     this.eta,
     this.onCancelSearch,
     this.onContactDriver,
+    this.margin,
   });
   final bool isSearching;
   final String searchingText;
@@ -27,6 +28,7 @@ class RideSearchIndicator extends StatefulWidget {
   final String? eta;
   final VoidCallback? onCancelSearch;
   final VoidCallback? onContactDriver;
+  final EdgeInsetsGeometry? margin;
 
   @override
   State<RideSearchIndicator> createState() => _RideSearchIndicatorState();
@@ -90,7 +92,7 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
   Widget _buildSearching(bool isDark) {
     return Container(
       key: const ValueKey('searching'),
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.white,
@@ -183,17 +185,21 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
   }
 
   Widget _buildFound(bool isDark) {
+    final cardBg = isDark ? AppColors.darkSurface : const Color(0xFFF2FBF4);
+    final borderColor = isDark ? AppColors.primary.withValues(alpha: 0.25) : Colors.green.shade200;
+    final accentColor = isDark ? AppColors.primary : Colors.green.shade700;
+
     return Container(
       key: const ValueKey('found'),
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green[50],
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green[200]!),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -207,20 +213,20 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
+                decoration: BoxDecoration(
+                  color: accentColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, size: 16, color: Colors.white),
+                child: Icon(Icons.check, size: 16, color: isDark ? Colors.black : Colors.white),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.foundText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: accentColor,
                   ),
                 ),
               ),
@@ -228,15 +234,16 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.green[200],
+                    color: isDark ? AppColors.primary.withValues(alpha: 0.2) : Colors.green.shade100,
                     borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
                   ),
                   child: Text(
                     '${widget.eta} min',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: accentColor,
                     ),
                   ),
                 ),
@@ -248,12 +255,12 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
+                  backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                   backgroundImage: widget.driverAvatarUrl != null
                       ? NetworkImage(widget.driverAvatarUrl!)
                       : null,
                   child: widget.driverAvatarUrl == null
-                      ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                      ? Icon(Icons.person, size: 18, color: isDark ? AppColors.primary : Colors.grey)
                       : null,
                 ),
                 const SizedBox(width: 10),
@@ -267,16 +274,20 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.black : Colors.black87,
+                          color: isDark ? AppColors.white : Colors.black87,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (widget.carModel != null)
                         Text(
                           widget.carModel!,
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? Colors.grey.shade600 : Colors.grey.shade600,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -285,13 +296,14 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                      const Icon(Icons.star_rounded, size: 15, color: Colors.amber),
                       const SizedBox(width: 2),
                       Text(
                         widget.driverRating!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.white : Colors.black87,
                         ),
                       ),
                     ],
@@ -305,12 +317,12 @@ class _RideSearchIndicatorState extends State<RideSearchIndicator>
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: widget.onContactDriver,
-                icon: const Icon(Icons.message, size: 14),
-                label: const Text('Contact driver', style: TextStyle(fontSize: 11)),
+                icon: const Icon(Icons.message_rounded, size: 14),
+                label: const Text('Contact Chauffeur', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  side: BorderSide(color: Colors.green[300]!),
-                  foregroundColor: Colors.green[700],
+                  side: BorderSide(color: isDark ? AppColors.primary.withValues(alpha: 0.5) : Colors.green.shade400),
+                  foregroundColor: isDark ? AppColors.primary : Colors.green.shade800,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),

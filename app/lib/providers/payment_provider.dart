@@ -97,7 +97,9 @@ class PaymentProvider extends ChangeNotifier {
     required String userId,
     required String rideId,
     required double amount,
+    String? currency,
     String? paymentMethodId,
+    String? paymentMethodType,
   }) async {
     try {
       _setLoading(true);
@@ -106,7 +108,9 @@ class PaymentProvider extends ChangeNotifier {
         userId: userId,
         rideId: rideId,
         amount: amount,
+        currency: currency,
         paymentMethodId: paymentMethodId,
+        paymentMethodType: paymentMethodType,
       );
       return result;
     } catch (e) {

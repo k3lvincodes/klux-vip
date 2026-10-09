@@ -5,6 +5,7 @@ import 'package:kenick_vip/features/auth/otp_screen.dart';
 import 'package:kenick_vip/features/auth/sign_in_screen.dart';
 import 'package:kenick_vip/features/auth/sign_up_screen.dart';
 import 'package:kenick_vip/features/booking/booking_selection_screen.dart';
+import 'package:kenick_vip/features/booking/edit_addresses_screen.dart';
 import 'package:kenick_vip/features/booking/instant_booking_screen.dart';
 import 'package:kenick_vip/features/booking/passenger_home_screen.dart';
 import 'package:kenick_vip/features/booking/ride_history_screen.dart';
@@ -15,6 +16,8 @@ import 'package:kenick_vip/features/booking/special_booking_screen.dart';
 import 'package:kenick_vip/features/booking/trip_summary_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_performance_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_ride_history_screen.dart';
+import 'package:kenick_vip/features/fleet/fleet_selection_screen.dart';
+import 'package:kenick_vip/features/legal/legal_information_screen.dart';
 import 'package:kenick_vip/features/legal/privacy_policy_screen.dart';
 import 'package:kenick_vip/features/legal/terms_of_service_screen.dart';
 import 'package:kenick_vip/features/notifications/notifications_screen.dart';
@@ -163,6 +166,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const PassengerHomeScreen(),
     ),
     GoRoute(
+      path: '/fleet-selection',
+      builder: (context, state) => const FleetSelectionScreen(),
+    ),
+    GoRoute(
       path: '/booking-selection',
       builder: (context, state) => const BookingSelectionScreen(),
     ),
@@ -209,6 +216,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/saved-places',
       builder: (context, state) => const SavedPlacesScreen(),
+    ),
+    GoRoute(
+      path: '/edit-addresses',
+      builder: (context, state) => const EditAddressesScreen(),
     ),
     GoRoute(
       path: '/notifications',
@@ -310,12 +321,20 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const IdVerificationDocumentsScreen(),
     ),
     GoRoute(
+      path: '/id-verification-documents',
+      builder: (context, state) => const IdVerificationDocumentsScreen(),
+    ),
+    GoRoute(
       path: '/privacy-policy',
       builder: (context, state) => const PrivacyPolicyScreen(),
     ),
     GoRoute(
       path: '/terms-of-service',
       builder: (context, state) => const TermsOfServiceScreen(),
+    ),
+    GoRoute(
+      path: '/legal-information',
+      builder: (context, state) => const LegalInformationScreen(),
     ),
   ],
 );

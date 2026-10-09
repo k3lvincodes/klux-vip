@@ -24,6 +24,9 @@ class EnvConfig {
   static String get cloudinaryCloudName => _get('CLOUDINARY_CLOUD_NAME');
   static String get cloudinaryUploadPreset => _get('CLOUDINARY_UPLOAD_PRESET');
 
+  // Google Maps
+  static String get googleMapsApiKey => _get('GOOGLE_MAPS_API_KEY');
+
   // Mapbox
   static String get mapboxAccessToken => _get('MAPBOX_ACCESS_TOKEN');
 
