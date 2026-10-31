@@ -426,6 +426,14 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const OffersRewardsScreen(),
     ),
     GoRoute(
+      path: '/rewards',
+      builder: (context, state) => const OffersRewardsScreen(),
+    ),
+    GoRoute(
+      path: '/offers-rewards',
+      builder: (context, state) => const OffersRewardsScreen(),
+    ),
+    GoRoute(
       path: '/newsfeed',
       builder: (context, state) => const NewsfeedScreen(),
     ),

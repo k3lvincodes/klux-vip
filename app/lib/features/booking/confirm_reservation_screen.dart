@@ -102,87 +102,12 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
     }
   }
 
-  void _openApplyOfferModal() {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final codeCtrl = TextEditingController(text: _promoCode ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          16,
-          20,
-          MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Apply offer',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: const Icon(Icons.close_rounded, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: codeCtrl,
-              textCapitalization: TextCapitalization.characters,
-              cursorColor: AppColors.primary,
-              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
-              decoration: InputDecoration(
-                hintText: 'Enter promo code (e.g. VIP2026)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.primary, width: 1.8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () {
-                  final code = codeCtrl.text.trim();
-                  if (code.isNotEmpty) {
-                    setState(() => _promoCode = code);
-                    Navigator.pop(ctx);
-                    CustomToast.showSuccess(context, 'Offer code "$code" applied!');
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: const Color(0xFF111827),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  elevation: 0,
-                ),
-                child: Text('Apply Offer', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _openApplyOfferModal() async {
+    final code = await context.push<String>('/offers');
+    if (code != null && code.isNotEmpty && mounted) {
+      setState(() => _promoCode = code);
+      CustomToast.showSuccess(context, 'Offer code "$code" applied!');
+    }
   }
 
   void _openPaymentMethodSheet() {
