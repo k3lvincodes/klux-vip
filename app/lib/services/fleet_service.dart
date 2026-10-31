@@ -83,9 +83,14 @@ class FleetService {
     ),
   ];
 
-  static String autoCategorize(String make, String model) {
+  static String autoCategorize(String make, String model, [int? year]) {
     final text = '$make $model'.toLowerCase();
-    if (text.contains('van') ||
+    final y = year ?? DateTime.now().year;
+
+    // Criteria 2: Business Van
+    // Purpose: Group transportation, corporate travel and airport transfers
+    // Requirement: Luxury passenger van / MPV / large executive SUV (5–7 pax, 4+ medium suitcases, 2019 or newer)
+    final isVan = text.contains('van') ||
         text.contains('v-class') ||
         text.contains('v class') ||
         text.contains('vclass') ||
@@ -95,17 +100,32 @@ class FleetService {
         text.contains('multivan') ||
         text.contains('caravelle') ||
         text.contains('metris') ||
+        text.contains('alphard') ||
+        text.contains('vellfire') ||
         text.contains('escalade') ||
         text.contains('suburban') ||
-        text.contains('navigator')) {
+        text.contains('navigator') ||
+        text.contains('yukon') ||
+        text.contains('tahoe');
+
+    if (isVan) {
       return 'Business Van';
     }
-    if (text.contains('s-class') ||
+
+    // Criteria 3: First Class
+    // Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
+    // Requirement: Flagship luxury sedan (max 3 pax, 4 doors, full luxury leather, 2021 or newer)
+    final isFlagship = text.contains('s-class') ||
         text.contains('s class') ||
         text.contains('sclass') ||
         text.contains('maybach') ||
+        text.contains('s 580') ||
+        text.contains('s 680') ||
+        text.contains('s580') ||
+        text.contains('s680') ||
         text.contains('7 series') ||
         text.contains('7-series') ||
+        text.contains('740') ||
         text.contains('750') ||
         text.contains('760') ||
         text.contains('i7') ||
@@ -116,9 +136,16 @@ class FleetService {
         text.contains('phantom') ||
         text.contains('ghost') ||
         text.contains('rolls') ||
-        text.contains('bentley')) {
+        text.contains('bentley') ||
+        text.contains('eqs');
+
+    if (isFlagship && y >= 2021) {
       return 'First Class';
     }
+
+    // Criteria 1: Business Class
+    // Purpose: Premium everyday business transportation
+    // Requirement: Executive sedan (max 3 pax, 4 doors, 2019 or newer, min 2 medium suitcases)
     return 'Business Class';
   }
 
@@ -227,7 +254,7 @@ class FleetService {
           final features = f['features'] as String? ?? '';
           final category = (f['category'] as String?)?.isNotEmpty == true
               ? f['category'] as String
-              : autoCategorize(make, model);
+              : autoCategorize(make, model, (f['year'] as num?)?.toInt());
 
           return FleetVehicleItem(
             id: id,

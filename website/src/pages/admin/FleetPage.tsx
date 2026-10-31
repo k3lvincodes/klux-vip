@@ -28,10 +28,14 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
 export type FleetCategory = 'Business Class' | 'Business Van' | 'First Class';
 
-export function autoCategorizeVehicle(make: string, model: string): FleetCategory {
+export function autoCategorizeVehicle(make: string, model: string, year?: number): { category: FleetCategory; reason: string } {
   const text = `${make} ${model}`.toLowerCase();
-  // Business Van: multi-passenger luxury vans, large executive SUVs
-  if (
+  const y = typeof year === 'number' && !isNaN(year) && year > 1900 ? year : new Date().getFullYear();
+
+  // Criteria 2: Business Van
+  // Purpose: Group transportation, corporate travel and airport transfers
+  // Requirement: Luxury passenger van / MPV / large executive SUV (5–7 pax, 4+ medium suitcases, 2019 or newer)
+  const isVanOrMpv =
     text.includes('van') ||
     text.includes('v-class') ||
     text.includes('v class') ||
@@ -42,20 +46,37 @@ export function autoCategorizeVehicle(make: string, model: string): FleetCategor
     text.includes('multivan') ||
     text.includes('caravelle') ||
     text.includes('metris') ||
+    text.includes('alphard') ||
+    text.includes('vellfire') ||
     text.includes('escalade') ||
     text.includes('suburban') ||
-    text.includes('navigator')
-  ) {
-    return 'Business Van';
+    text.includes('navigator') ||
+    text.includes('yukon') ||
+    text.includes('tahoe');
+
+  if (isVanOrMpv) {
+    const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
+    return {
+      category: 'Business Van',
+      reason: `Luxury passenger van / MPV • 5–7 passengers • 4+ suitcases${yearNote}`,
+    };
   }
-  // First Class: flagship ultra-luxury sedans & elite saloons
-  if (
+
+  // Criteria 3: First Class
+  // Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
+  // Requirement: Flagship luxury sedan (max 3 pax, 4 doors, full luxury leather, 2021 or newer)
+  const isFlagshipSedan =
     text.includes('s-class') ||
     text.includes('s class') ||
     text.includes('sclass') ||
     text.includes('maybach') ||
+    text.includes('s 580') ||
+    text.includes('s 680') ||
+    text.includes('s580') ||
+    text.includes('s680') ||
     text.includes('7 series') ||
     text.includes('7-series') ||
+    text.includes('740') ||
     text.includes('750') ||
     text.includes('760') ||
     text.includes('i7') ||
@@ -66,12 +87,31 @@ export function autoCategorizeVehicle(make: string, model: string): FleetCategor
     text.includes('phantom') ||
     text.includes('ghost') ||
     text.includes('rolls') ||
-    text.includes('bentley')
-  ) {
-    return 'First Class';
+    text.includes('bentley') ||
+    text.includes('eqs');
+
+  if (isFlagshipSedan && y >= 2021) {
+    return {
+      category: 'First Class',
+      reason: `Flagship luxury sedan • Model year ${y} (2021+) • Max 3 passengers • Ultra-luxury`,
+    };
   }
-  // Business Class: executive luxury sedans & premium EVs
-  return 'Business Class';
+
+  // Criteria 1: Business Class
+  // Purpose: Premium everyday business transportation
+  // Requirement: Executive sedan (max 3 pax, 4 doors, 2019 or newer, min 2 medium suitcases)
+  if (isFlagshipSedan && y < 2021) {
+    return {
+      category: 'Business Class',
+      reason: `Flagship sedan model year ${y} (First Class requires 2021+) • Classified as Business Class`,
+    };
+  }
+
+  const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
+  return {
+    category: 'Business Class',
+    reason: `Executive sedan • Max 3 passengers • 2 medium suitcases${yearNote}`,
+  };
 }
 
 interface FleetCar {
@@ -250,7 +290,7 @@ export default function FleetPage() {
 
   const filteredCars = useMemo(() => {
     return fleetCars.filter((c) => {
-      const currentCat = c.category || autoCategorizeVehicle(c.make, c.model);
+      const currentCat = c.category || autoCategorizeVehicle(c.make, c.model, c.year).category;
       if (categoryFilter !== 'all' && currentCat !== categoryFilter) {
         return false;
       }
@@ -286,7 +326,7 @@ export default function FleetPage() {
 
   const openEditModal = (car: FleetCar) => {
     setEditCar(car);
-    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '', category: car.category || autoCategorizeVehicle(car.make, car.model) });
+    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '', category: car.category || autoCategorizeVehicle(car.make, car.model, car.year).category });
     setShowAddModal(true);
   };
 
@@ -318,12 +358,12 @@ export default function FleetPage() {
     }
   };
 
-  const [aiSuggestions, setAiSuggestions] = useState<Record<string, FleetCategory>>({});
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, { category: FleetCategory; reason: string }>>({});
 
   const handleSuggestCategory = (car: FleetCar) => {
-    const suggested = autoCategorizeVehicle(car.make, car.model);
-    setAiSuggestions((prev) => ({ ...prev, [car.id]: suggested }));
-    toast.info(`AI suggests "${suggested}" for ${car.make} ${car.model}`);
+    const res = autoCategorizeVehicle(car.make, car.model, car.year);
+    setAiSuggestions((prev) => ({ ...prev, [car.id]: res }));
+    toast.info(`AI suggests "${res.category}" (${res.reason})`);
   };
 
   const handleAcceptSuggestion = async (car: FleetCar, suggestedCat: FleetCategory) => {
@@ -372,7 +412,7 @@ export default function FleetPage() {
         image_url: form.image_url || null,
         features: form.features || '',
       };
-      const cat = form.category || autoCategorizeVehicle(form.make, form.model);
+      const cat = form.category || autoCategorizeVehicle(form.make, form.model, form.year).category;
       const payloadWithCat = { ...basePayload, category: cat };
 
       if (editCar) {
@@ -724,26 +764,26 @@ export default function FleetPage() {
                                   padding: '2px 7px', 
                                   borderRadius: 4, 
                                   fontWeight: 600,
-                                  background: (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class' 
+                                  background: (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class' 
                                     ? 'rgba(234, 179, 8, 0.15)' 
-                                    : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                    : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
                                     ? 'rgba(249, 115, 22, 0.15)'
                                     : 'rgba(59, 130, 246, 0.15)',
-                                  color: (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class'
+                                  color: (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class'
                                     ? '#EAB308'
-                                    : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                    : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
                                     ? '#f97316'
                                     : '#60a5fa',
                                   border: `1px solid ${
-                                    (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class'
+                                    (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class'
                                       ? 'rgba(234, 179, 8, 0.3)'
-                                      : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                      : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
                                       ? 'rgba(249, 115, 22, 0.3)'
                                       : 'rgba(59, 130, 246, 0.3)'
                                   }`
                                 }}
                               >
-                                {car.category || autoCategorizeVehicle(car.make, car.model)}
+                                {car.category || autoCategorizeVehicle(car.make, car.model, car.year).category}
                               </span>
                             </div>
                             <span style={{ fontSize: '0.75rem', color: '#71717a', fontWeight: 600 }}>Model Year {car.year}</span>
@@ -760,64 +800,65 @@ export default function FleetPage() {
                           <div 
                             style={{
                               margin: '0.6rem 0',
-                              padding: '0.45rem 0.65rem',
-                              background: 'rgba(234, 179, 8, 0.08)',
-                              border: '1px solid rgba(234, 179, 8, 0.25)',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '0.5rem',
+                              padding: '0.55rem 0.75rem',
+                              background: 'rgba(234, 179, 8, 0.09)',
+                              border: '1px solid rgba(234, 179, 8, 0.28)',
+                              borderRadius: '8px',
                               fontSize: '0.72rem',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <Sparkles size={12} style={{ color: '#EAB308', flexShrink: 0 }} />
-                              <span style={{ color: '#e4e4e7' }}>
-                                AI: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id]}</strong>
-                              </span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Sparkles size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
+                                <span style={{ color: '#e4e4e7' }}>
+                                  AI suggests: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptSuggestion(car, aiSuggestions[car.id].category)}
+                                  style={{
+                                    background: '#EAB308',
+                                    color: '#111827',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                  title="Accept suggested category"
+                                >
+                                  <Check size={11} strokeWidth={3} /> Accept
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeclineSuggestion(car.id)}
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: '#a1a1aa',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                  title="Decline suggestion"
+                                >
+                                  <X size={11} strokeWidth={2.5} /> Decline
+                                </button>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                              <button
-                                type="button"
-                                onClick={() => handleAcceptSuggestion(car, aiSuggestions[car.id])}
-                                style={{
-                                  background: '#EAB308',
-                                  color: '#111827',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  padding: '2px 7px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '2px',
-                                }}
-                                title="Accept suggested category"
-                              >
-                                <Check size={11} strokeWidth={3} /> Accept
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeclineSuggestion(car.id)}
-                                style={{
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  color: '#a1a1aa',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  padding: '2px 7px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 500,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '2px',
-                                }}
-                                title="Decline suggestion"
-                              >
-                                <X size={11} strokeWidth={2.5} /> Decline
-                              </button>
+                            <div style={{ fontSize: '0.67rem', color: '#a1a1aa', paddingLeft: '18px' }}>
+                              {aiSuggestions[car.id].reason}
                             </div>
                           </div>
                         )}
@@ -1042,7 +1083,7 @@ export default function FleetPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const detected = autoCategorizeVehicle(form.make, form.model);
+                  const detected = autoCategorizeVehicle(form.make, form.model, form.year).category;
                   setForm((prev: any) => ({ ...prev, category: detected }));
                   toast.success(`AI categorized as: ${detected}`);
                 }}
