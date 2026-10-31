@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/features/booking/add_guest_screen.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
@@ -453,10 +454,13 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
   }
 
   // --- Bottom Sheet: Passenger Selection ---
-  void _showPassengerModal() {
+  Future<void> _showPassengerModal() async {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+
+    final savedGuests = await GuestStorageService.getSavedGuests();
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -468,58 +472,98 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Book for another passenger',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                    letterSpacing: -0.3,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Book for another passenger',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Arrange their ride in a few taps, and we'll keep them informed every step of the way.",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: cs.onSurfaceVariant,
-                    height: 1.4,
+                  const SizedBox(height: 10),
+                  Text(
+                    "Arrange their ride in a few taps, and we'll keep them informed every step of the way.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: cs.onSurfaceVariant,
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _buildPassengerOption(
-                  context: ctx,
-                  icon: Icons.person_outline_rounded,
-                  title: 'Book for myself',
-                  isSelected: _passengerMode == 'For myself',
-                  onTap: () {
-                    setState(() {
-                      _passengerMode = 'For myself';
-                      _guestName = null;
-                      _guestPhone = null;
-                    });
-                    Navigator.pop(ctx);
-                  },
-                ),
-                const SizedBox(height: 10),
-                _buildPassengerOption(
-                  context: ctx,
-                  icon: Icons.person_add_alt_1_outlined,
-                  title: _guestName != null ? 'Guest: $_guestName' : 'Add a new guest',
-                  isSelected: _passengerMode != 'For myself',
-                  showChevron: true,
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _showAddGuestDialog();
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
+                  const SizedBox(height: 20),
+                  _buildPassengerOption(
+                    context: ctx,
+                    icon: Icons.person_outline_rounded,
+                    title: 'Book for myself',
+                    isSelected: _passengerMode == 'For myself',
+                    onTap: () {
+                      setState(() {
+                        _passengerMode = 'For myself';
+                        _guestName = null;
+                        _guestPhone = null;
+                      });
+                      final bookingProv = context.read<BookingProvider>();
+                      bookingProv.setTripDetails(
+                        pickupAddress: _pickupController.text.trim(),
+                        dropoffAddress: _dropoffController.text.trim(),
+                      );
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ...savedGuests.map((g) {
+                    final fullName = (g['full_name'] as String? ?? '').isNotEmpty
+                        ? g['full_name'] as String
+                        : '${g['first_name'] ?? ''} ${g['last_name'] ?? ''}'.trim();
+                    final firstName = g['first_name'] as String? ?? fullName;
+                    final fullPhone = g['full_phone'] as String? ?? '';
+                    final isCurrent = _guestName == fullName;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: _buildPassengerOption(
+                        context: ctx,
+                        icon: Icons.person_rounded,
+                        title: 'Guest: $fullName',
+                        subtitle: fullPhone.isNotEmpty ? fullPhone : null,
+                        isSelected: isCurrent,
+                        onTap: () {
+                          setState(() {
+                            _guestName = fullName;
+                            _guestPhone = fullPhone;
+                            _passengerMode = firstName.isNotEmpty ? firstName : fullName;
+                          });
+                          final bookingProv = context.read<BookingProvider>();
+                          bookingProv.setTripDetails(
+                            pickupAddress: _pickupController.text.trim(),
+                            dropoffAddress: _dropoffController.text.trim(),
+                            passengerNote: 'Guest: $fullName ($fullPhone)',
+                          );
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                  _buildPassengerOption(
+                    context: ctx,
+                    icon: Icons.person_add_alt_1_outlined,
+                    title: 'Add a new guest',
+                    isSelected: false,
+                    showChevron: true,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _openAddGuestScreen();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         );
@@ -527,80 +571,34 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     );
   }
 
-  void _showAddGuestDialog() {
-    final cs = Theme.of(context).colorScheme;
-    final nameCtrl = TextEditingController(text: _guestName ?? '');
-    final phoneCtrl = TextEditingController(text: _guestPhone ?? '');
+  Future<void> _openAddGuestScreen() async {
+    final result = await context.push<Map<String, dynamic>>('/add-guest');
+    if (result != null && mounted) {
+      final firstName = result['first_name'] as String? ?? '';
+      final lastName = result['last_name'] as String? ?? '';
+      final fullName = result['full_name'] as String? ?? '$firstName $lastName'.trim();
+      final fullPhone = result['full_phone'] as String? ?? '';
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Guest Passenger Details',
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w500),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  hintText: 'e.g. Eleanor Vance',
-                  prefixIcon: const Icon(Icons.person_outline, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  hintText: '+1 (555) 000-0000',
-                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.poppins(color: cs.onSurfaceVariant)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final name = nameCtrl.text.trim();
-                final phone = phoneCtrl.text.trim();
-                if (name.isNotEmpty) {
-                  setState(() {
-                    _guestName = name;
-                    _guestPhone = phone;
-                    _passengerMode = name;
-                  });
-                  Navigator.pop(ctx);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: const Color(0xFF111827),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text('Save Guest', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-            ),
-          ],
-        );
-      },
-    );
+      setState(() {
+        _guestName = fullName;
+        _guestPhone = fullPhone;
+        _passengerMode = firstName.isNotEmpty ? firstName : fullName;
+      });
+
+      final bookingProv = context.read<BookingProvider>();
+      bookingProv.setTripDetails(
+        pickupAddress: _pickupController.text.trim(),
+        dropoffAddress: _dropoffController.text.trim(),
+        passengerNote: 'Guest: $fullName ($fullPhone)',
+      );
+    }
   }
 
   Widget _buildPassengerOption({
     required BuildContext context,
     required IconData icon,
     required String title,
+    String? subtitle,
     required bool isSelected,
     bool showChevron = false,
     required VoidCallback onTap,
@@ -637,17 +635,36 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w400,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             if (showChevron)
-              Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant, size: 20),
+              Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant, size: 20)
+            else if (isSelected)
+              const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
           ],
         ),
       ),

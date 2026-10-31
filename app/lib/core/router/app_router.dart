@@ -4,6 +4,7 @@ import 'package:kenick_vip/features/auth/new_password_screen.dart';
 import 'package:kenick_vip/features/auth/otp_screen.dart';
 import 'package:kenick_vip/features/auth/sign_in_screen.dart';
 import 'package:kenick_vip/features/auth/sign_up_screen.dart';
+import 'package:kenick_vip/features/booking/add_guest_screen.dart';
 import 'package:kenick_vip/features/booking/book_journey_screen.dart';
 import 'package:kenick_vip/features/booking/booking_selection_screen.dart';
 import 'package:kenick_vip/features/booking/edit_addresses_screen.dart';
@@ -390,6 +391,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/book-journey',
       builder: (context, state) => const BookJourneyScreen(),
+    ),
+    GoRoute(
+      path: '/add-guest',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return AddGuestScreen(
+          initialTitle: extra['title'] as String?,
+          initialFirstName: extra['first_name'] as String?,
+          initialLastName: extra['last_name'] as String?,
+          initialEmail: extra['email'] as String?,
+          initialPhone: extra['phone_number'] as String?,
+          initialDialCode: extra['dial_code'] as String?,
+        );
+      },
     ),
     GoRoute(
       path: '/offers',
