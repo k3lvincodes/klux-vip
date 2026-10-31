@@ -4,6 +4,7 @@ import 'package:kenick_vip/features/auth/new_password_screen.dart';
 import 'package:kenick_vip/features/auth/otp_screen.dart';
 import 'package:kenick_vip/features/auth/sign_in_screen.dart';
 import 'package:kenick_vip/features/auth/sign_up_screen.dart';
+import 'package:kenick_vip/features/booking/book_journey_screen.dart';
 import 'package:kenick_vip/features/booking/booking_selection_screen.dart';
 import 'package:kenick_vip/features/booking/edit_addresses_screen.dart';
 import 'package:kenick_vip/features/booking/instant_booking_screen.dart';
@@ -12,14 +13,17 @@ import 'package:kenick_vip/features/booking/ride_history_screen.dart';
 import 'package:kenick_vip/features/booking/ride_review_screen.dart';
 import 'package:kenick_vip/features/booking/saved_places_screen.dart';
 import 'package:kenick_vip/features/booking/schedule_booking_screen.dart';
+import 'package:kenick_vip/features/booking/set_pickup_location_screen.dart';
 import 'package:kenick_vip/features/booking/special_booking_screen.dart';
 import 'package:kenick_vip/features/booking/trip_summary_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_performance_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_ride_history_screen.dart';
 import 'package:kenick_vip/features/fleet/fleet_selection_screen.dart';
 import 'package:kenick_vip/features/legal/legal_information_screen.dart';
+import 'package:kenick_vip/features/legal/legal_notice_screen.dart';
 import 'package:kenick_vip/features/legal/privacy_policy_screen.dart';
 import 'package:kenick_vip/features/legal/terms_of_service_screen.dart';
+import 'package:kenick_vip/features/newsfeed/newsfeed_screen.dart';
 import 'package:kenick_vip/features/notifications/notifications_screen.dart';
 import 'package:kenick_vip/features/onboarding/onboarding_screen.dart';
 import 'package:kenick_vip/features/onboarding/role_selection_screen.dart';
@@ -29,12 +33,15 @@ import 'package:kenick_vip/features/payment/booking_payment_screen.dart';
 import 'package:kenick_vip/features/payment/payment_method_screen.dart';
 import 'package:kenick_vip/features/payment/payment_successful_screen.dart';
 import 'package:kenick_vip/features/payment/tip_selection_screen.dart';
+import 'package:kenick_vip/features/profile/contact_details_screen.dart';
 import 'package:kenick_vip/features/profile/driver_edit_profile_screen.dart';
 import 'package:kenick_vip/features/profile/driver_profile_screen.dart';
 import 'package:kenick_vip/features/profile/driver_profile_setup_screen.dart';
+import 'package:kenick_vip/features/profile/edit_email_screen.dart';
 import 'package:kenick_vip/features/profile/edit_profile_screen.dart';
 import 'package:kenick_vip/features/profile/passenger_profile_screen.dart';
 import 'package:kenick_vip/features/profile/passenger_profile_setup_screen.dart';
+import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
 import 'package:kenick_vip/features/ride/active_ride_screen.dart';
 import 'package:kenick_vip/features/ride/confirm_arrival_screen.dart';
 import 'package:kenick_vip/features/ride/driver_home_screen.dart';
@@ -43,8 +50,11 @@ import 'package:kenick_vip/features/ride/rate_client_screen.dart';
 import 'package:kenick_vip/features/ride/ride_payment_received_screen.dart';
 import 'package:kenick_vip/features/ride/start_ride_screen.dart';
 import 'package:kenick_vip/features/settings/settings_screen.dart';
+import 'package:kenick_vip/features/support/call_numbers_screen.dart';
+import 'package:kenick_vip/features/support/messages_screen.dart';
 import 'package:kenick_vip/features/support/support_screen.dart';
 import 'package:kenick_vip/features/support/ticket_detail_screen.dart';
+import 'package:kenick_vip/features/support/urgent_support_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_info_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_management_screen.dart';
 import 'package:kenick_vip/features/vehicle/vehicle_registration_screen.dart';
@@ -54,6 +64,7 @@ import 'package:kenick_vip/features/wallet/account_screen.dart';
 import 'package:kenick_vip/features/wallet/add_bank_account_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_method_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_to_bank_screen.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -65,7 +76,7 @@ final GoRouter appRouter = GoRouter(
     final publicRoutes = <String>{
       '/', '/onboarding', '/sign-in', '/sign-up', '/forgot-password',
       '/new-password', '/otp', '/role-selection', '/home',
-      '/privacy-policy', '/terms-of-service',
+      '/privacy-policy', '/terms-of-service', '/legal-notice', '/legal-information',
     };
 
     if (session == null && !publicRoutes.contains(location)) {
@@ -139,6 +150,26 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/passenger-profile',
       builder: (context, state) => const PassengerProfileScreen(),
+    ),
+    GoRoute(
+      path: '/passenger-profile/contact-details',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, String?>? ?? {};
+        return ContactDetailsScreen(
+          initialFirstName: extra['first_name'],
+          initialLastName:  extra['last_name'],
+          initialPhone:     extra['phone_number'],
+        );
+      },
+    ),
+    GoRoute(
+      path: '/passenger-profile/email',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, String?>? ?? {};
+        return EditEmailScreen(
+          initialEmail: extra['email'],
+        );
+      },
     ),
     GoRoute(
       path: '/driver-id-verification',
@@ -232,6 +263,22 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/support',
       builder: (context, state) => const SupportScreen(),
+    ),
+    GoRoute(
+      path: '/support/messages',
+      builder: (context, state) => const MessagesScreen(),
+    ),
+    GoRoute(
+      path: '/support/urgent',
+      builder: (context, state) => const UrgentSupportScreen(),
+    ),
+    GoRoute(
+      path: '/support/call',
+      builder: (context, state) => const UrgentSupportScreen(),
+    ),
+    GoRoute(
+      path: '/support/call-numbers',
+      builder: (context, state) => const CallNumbersScreen(),
     ),
     GoRoute(
       path: '/support/ticket/:id',
@@ -335,6 +382,38 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/legal-information',
       builder: (context, state) => const LegalInformationScreen(),
+    ),
+    GoRoute(
+      path: '/legal-notice',
+      builder: (context, state) => const LegalNoticeScreen(),
+    ),
+    GoRoute(
+      path: '/book-journey',
+      builder: (context, state) => const BookJourneyScreen(),
+    ),
+    GoRoute(
+      path: '/offers',
+      builder: (context, state) => const OffersRewardsScreen(),
+    ),
+    GoRoute(
+      path: '/newsfeed',
+      builder: (context, state) => const NewsfeedScreen(),
+    ),
+    GoRoute(
+      path: '/set-pickup-location',
+      builder: (context, state) {
+        if (state.extra is Map<String, dynamic>) {
+          final map = state.extra as Map<String, dynamic>;
+          return SetPickupLocationScreen(
+            initialLocation: map['initialLocation'] as LocationSearchResult?,
+            title: map['title'] as String? ?? 'Set pickup location',
+            label: map['label'] as String? ?? 'Pickup location',
+            confirmButtonText: map['confirmButtonText'] as String? ?? 'Confirm pickup location',
+          );
+        }
+        final initial = state.extra as LocationSearchResult?;
+        return SetPickupLocationScreen(initialLocation: initial);
+      },
     ),
   ],
 );

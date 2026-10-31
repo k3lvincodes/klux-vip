@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "project": "Kenick VIP",
+  "version": "1.0.0",
+  "rules": {
+    "bottom_sheets": {
+      "drag_handle": {
+        "rule": "Every bottom sheet / bottom card modal must have exactly ONE horizontal drag handle line at the top.",
+        "implementation": "The app-level theme in lib/app.dart already enables `showDragHandle: true` on `BottomSheetThemeData`. Therefore, modal bottom sheets should NEVER render an additional manual Container drag handle line inside their child content, ensuring there is always exactly one horizontal drag handle line at the top of every bottom sheet/card.",
+        "max_drag_handles": 1
+      }
+    },
+    "typography": {
+      "font_family": "GoogleFonts.poppins",
+      "boldness": "Restrained boldness: prefer FontWeight.w500 and FontWeight.w600 over heavy bold."
+    },
+    "branding": {
+      "primary_color": "#EAB308 (Kenick Gold / AppColors.primary)",
+      "nomenclature": "Always use the word 'ride' instead of 'journey' across all user-facing copy and booking flows."
+    }
+  }
+}

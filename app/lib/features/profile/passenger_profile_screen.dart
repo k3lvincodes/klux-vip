@@ -6,7 +6,6 @@ import 'package:kenick_vip/models/user_profile.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 class PassengerProfileScreen extends StatefulWidget {
   const PassengerProfileScreen({super.key});
 
@@ -73,240 +72,6 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showEditContactModal() {
-    final firstController = TextEditingController(
-      text: _profile?.firstName ?? 'Kelvin',
-    );
-    final lastController = TextEditingController(
-      text: _profile?.lastName ?? 'Feh',
-    );
-    final phoneController = TextEditingController(
-      text: _displayPhone,
-    );
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Edit Contact Details',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: firstController,
-                cursorColor: AppColors.primary,
-                style: GoogleFonts.poppins(color: cs.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'First Name',
-                  labelStyle: GoogleFonts.poppins(color: cs.onSurfaceVariant),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: lastController,
-                cursorColor: AppColors.primary,
-                style: GoogleFonts.poppins(color: cs.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Last Name',
-                  labelStyle: GoogleFonts.poppins(color: cs.onSurfaceVariant),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                cursorColor: AppColors.primary,
-                style: GoogleFonts.poppins(color: cs.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Mobile Number',
-                  labelStyle: GoogleFonts.poppins(color: cs.onSurfaceVariant),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final user = Supabase.instance.client.auth.currentUser;
-                    final newFirst = firstController.text.trim();
-                    final newLast = lastController.text.trim();
-                    final newPhone = phoneController.text.trim();
-
-                    if (user != null) {
-                      try {
-                        await ProfileRepository().createOrUpdatePassengerProfile(user.id, {
-                          'first_name': newFirst,
-                          'last_name': newLast,
-                          'phone_number': newPhone,
-                        });
-                      } catch (_) {}
-                    }
-
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                    }
-                    if (mounted) {
-                      setState(() {
-                        _displayName = '$newFirst $newLast'.trim();
-                        _displayPhone = newPhone;
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    'Save Details',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showEditEmailModal() {
-    final emailController = TextEditingController(text: _displayEmail);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Update Email Address',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                cursorColor: AppColors.primary,
-                style: GoogleFonts.poppins(color: cs.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: GoogleFonts.poppins(color: cs.onSurfaceVariant),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final newEmail = emailController.text.trim();
-                    if (newEmail.isNotEmpty) {
-                      try {
-                        await Supabase.instance.client.auth.updateUser(
-                          UserAttributes(email: newEmail),
-                        );
-                      } catch (_) {}
-                      if (ctx.mounted) {
-                        Navigator.pop(ctx);
-                      }
-                      if (mounted) {
-                        setState(() => _displayEmail = newEmail);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Email updated. Please check your inbox for confirmation.',
-                              style: GoogleFonts.poppins(color: Colors.white),
-                            ),
-                            backgroundColor: AppColors.darkSurface,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    'Update Email',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _showDeleteAccountConfirmation() {
@@ -439,7 +204,26 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                       children: [
                         // 1. Contact details
                         InkWell(
-                          onTap: _showEditContactModal,
+                          onTap: () async {
+                            // Navigate to full-page ContactDetailsScreen
+                            final result = await context.push<Map<String, dynamic>>(
+                              '/passenger-profile/contact-details',
+                              extra: <String, String?>{
+                                'first_name':  _profile?.firstName ?? '',
+                                'last_name':   _profile?.lastName ?? '',
+                                'phone_number': _displayPhone,
+                              },
+                            );
+                            // Refresh display values from the returned data
+                            if (result != null && mounted) {
+                              setState(() {
+                                final first = (result['first_name'] as String?)?.trim() ?? '';
+                                final last  = (result['last_name']  as String?)?.trim() ?? '';
+                                _displayName  = '$first $last'.trim();
+                                _displayPhone = (result['phone_number'] as String?)?.trim() ?? _displayPhone;
+                              });
+                            }
+                          },
                           splashColor: Colors.transparent,
                           highlightColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
                           child: Column(
@@ -530,7 +314,20 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
 
                         // 2. Email
                         InkWell(
-                          onTap: _showEditEmailModal,
+                          onTap: () async {
+                            final result = await context.push<Map<String, dynamic>>(
+                              '/passenger-profile/email',
+                              extra: <String, String?>{
+                                'email': _displayEmail,
+                              },
+                            );
+                            if (result != null && mounted) {
+                              final updatedEmail = (result['email'] as String?)?.trim();
+                              if (updatedEmail != null && updatedEmail.isNotEmpty) {
+                                setState(() => _displayEmail = updatedEmail);
+                              }
+                            }
+                          },
                           splashColor: Colors.transparent,
                           highlightColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
                           child: Column(
