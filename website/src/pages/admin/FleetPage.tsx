@@ -13,106 +13,30 @@ import {
   CheckCircle2, 
   Clock, 
   RotateCw,
-  Wand2
+  Wand2,
+  Loader2
 } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 import { AdminDrawer } from '../../components/ui/AdminDrawer';
 import { InlineConfirmButton } from '../../components/ui/InlineConfirmButton';
+import {
+  categorizeVehicleWithGemini,
+  categorizeVehicleFallback,
+} from '../../services/geminiFleetService';
+import type {
+  FleetCategory,
+  VehicleCategorizationResult
+} from '../../services/geminiFleetService';
 
 const MAX_FEATURED = 6;
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
-export type FleetCategory = 'Business Class' | 'Business Van' | 'First Class';
-
-export function autoCategorizeVehicle(make: string, model: string, year?: number): { category: FleetCategory; reason: string } {
-  const text = `${make} ${model}`.toLowerCase();
-  const y = typeof year === 'number' && !isNaN(year) && year > 1900 ? year : new Date().getFullYear();
-
-  // Criteria 2: Business Van
-  // Purpose: Group transportation, corporate travel and airport transfers
-  // Requirement: Luxury passenger van / MPV / large executive SUV (5–7 pax, 4+ medium suitcases, 2019 or newer)
-  const isVanOrMpv =
-    text.includes('van') ||
-    text.includes('v-class') ||
-    text.includes('v class') ||
-    text.includes('vclass') ||
-    text.includes('vito') ||
-    text.includes('sprinter') ||
-    text.includes('transit') ||
-    text.includes('multivan') ||
-    text.includes('caravelle') ||
-    text.includes('metris') ||
-    text.includes('alphard') ||
-    text.includes('vellfire') ||
-    text.includes('escalade') ||
-    text.includes('suburban') ||
-    text.includes('navigator') ||
-    text.includes('yukon') ||
-    text.includes('tahoe');
-
-  if (isVanOrMpv) {
-    const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
-    return {
-      category: 'Business Van',
-      reason: `Luxury passenger van / MPV • 5–7 passengers • 4+ suitcases${yearNote}`,
-    };
-  }
-
-  // Criteria 3: First Class
-  // Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
-  // Requirement: Flagship luxury sedan (max 3 pax, 4 doors, full luxury leather, 2021 or newer)
-  const isFlagshipSedan =
-    text.includes('s-class') ||
-    text.includes('s class') ||
-    text.includes('sclass') ||
-    text.includes('maybach') ||
-    text.includes('s 580') ||
-    text.includes('s 680') ||
-    text.includes('s580') ||
-    text.includes('s680') ||
-    text.includes('7 series') ||
-    text.includes('7-series') ||
-    text.includes('740') ||
-    text.includes('750') ||
-    text.includes('760') ||
-    text.includes('i7') ||
-    text.includes('a8') ||
-    text.includes('s8') ||
-    text.includes('panamera') ||
-    text.includes('flying spur') ||
-    text.includes('phantom') ||
-    text.includes('ghost') ||
-    text.includes('rolls') ||
-    text.includes('bentley') ||
-    text.includes('eqs');
-
-  if (isFlagshipSedan && y >= 2021) {
-    return {
-      category: 'First Class',
-      reason: `Flagship luxury sedan • Model year ${y} (2021+) • Max 3 passengers • Ultra-luxury`,
-    };
-  }
-
-  // Criteria 1: Business Class
-  // Purpose: Premium everyday business transportation
-  // Requirement: Executive sedan (max 3 pax, 4 doors, 2019 or newer, min 2 medium suitcases)
-  if (isFlagshipSedan && y < 2021) {
-    return {
-      category: 'Business Class',
-      reason: `Flagship sedan model year ${y} (First Class requires 2021+) • Classified as Business Class`,
-    };
-  }
-
-  const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
-  return {
-    category: 'Business Class',
-    reason: `Executive sedan • Max 3 passengers • 2 medium suitcases${yearNote}`,
-  };
-}
+export type { FleetCategory };
+export const autoCategorizeVehicle = categorizeVehicleFallback;
 
 interface FleetCar {
   id: string;
@@ -358,12 +282,39 @@ export default function FleetPage() {
     }
   };
 
-  const [aiSuggestions, setAiSuggestions] = useState<Record<string, { category: FleetCategory; reason: string }>>({});
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, VehicleCategorizationResult>>({});
+  const [loadingAiCarIds, setLoadingAiCarIds] = useState<Record<string, boolean>>({});
+  const [loadingFormAi, setLoadingFormAi] = useState(false);
 
-  const handleSuggestCategory = (car: FleetCar) => {
-    const res = autoCategorizeVehicle(car.make, car.model, car.year);
-    setAiSuggestions((prev) => ({ ...prev, [car.id]: res }));
-    toast.info(`AI suggests "${res.category}" (${res.reason})`);
+  const handleSuggestCategory = async (car: FleetCar) => {
+    setLoadingAiCarIds((prev) => ({ ...prev, [car.id]: true }));
+    try {
+      const res = await categorizeVehicleWithGemini({
+        make: car.make,
+        model: car.model,
+        year: car.year,
+        features: car.features,
+      });
+      setAiSuggestions((prev) => ({ ...prev, [car.id]: res }));
+      if (res.evaluatedByGemini) {
+        toast.info(`Gemini AI recommends "${res.category}"`);
+      } else {
+        toast.info(`AI recommends "${res.category}"`);
+      }
+    } catch {
+      const fallback = categorizeVehicleFallback(car.make, car.model, car.year);
+      setAiSuggestions((prev) => ({
+        ...prev,
+        [car.id]: { ...fallback, evaluatedByGemini: false },
+      }));
+      toast.info(`AI recommends "${fallback.category}"`);
+    } finally {
+      setLoadingAiCarIds((prev) => {
+        const next = { ...prev };
+        delete next[car.id];
+        return next;
+      });
+    }
   };
 
   const handleAcceptSuggestion = async (car: FleetCar, suggestedCat: FleetCategory) => {
@@ -811,7 +762,8 @@ export default function FleetPage() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <Wand2 size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
                                 <span style={{ color: '#e4e4e7' }}>
-                                  AI suggests: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
+                                  {aiSuggestions[car.id].evaluatedByGemini ? 'Gemini AI suggests: ' : 'AI suggests: '}
+                                  <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
                                 </span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
@@ -857,7 +809,7 @@ export default function FleetPage() {
                                 </button>
                               </div>
                             </div>
-                            <div style={{ fontSize: '0.67rem', color: '#a1a1aa', paddingLeft: '18px' }}>
+                            <div style={{ fontSize: '0.67rem', color: '#a1a1aa', paddingLeft: '18px', lineHeight: 1.4 }}>
                               {aiSuggestions[car.id].reason}
                             </div>
                           </div>
@@ -884,17 +836,24 @@ export default function FleetPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <button 
                               className="admin-icon-btn"
+                              disabled={loadingAiCarIds[car.id]}
                               style={{ 
                                 width: 28, 
                                 height: 28, 
                                 color: '#EAB308', 
                                 borderColor: 'rgba(234, 179, 8, 0.3)',
-                                background: aiSuggestions[car.id] ? 'rgba(234, 179, 8, 0.15)' : 'transparent' 
+                                background: aiSuggestions[car.id] ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
+                                opacity: loadingAiCarIds[car.id] ? 0.7 : 1,
+                                cursor: loadingAiCarIds[car.id] ? 'wait' : 'pointer'
                               }}
                               onClick={() => handleSuggestCategory(car)}
-                              title="Suggest category with AI"
+                              title={loadingAiCarIds[car.id] ? 'Analyzing with Gemini AI...' : 'Suggest category with Gemini AI'}
                             >
-                              <Wand2 size={13} />
+                              {loadingAiCarIds[car.id] ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <Wand2 size={13} />
+                              )}
                             </button>
                             <button 
                               className="admin-icon-btn"
@@ -1082,16 +1041,36 @@ export default function FleetPage() {
               </label>
               <button
                 type="button"
-                onClick={() => {
-                  const detected = autoCategorizeVehicle(form.make, form.model, form.year).category;
-                  setForm((prev: any) => ({ ...prev, category: detected }));
-                  toast.success(`AI categorized as: ${detected}`);
+                disabled={loadingFormAi}
+                onClick={async () => {
+                  setLoadingFormAi(true);
+                  try {
+                    const res = await categorizeVehicleWithGemini({
+                      make: form.make,
+                      model: form.model,
+                      year: form.year,
+                      features: form.features,
+                    });
+                    setForm((prev: any) => ({ ...prev, category: res.category }));
+                    if (res.evaluatedByGemini) {
+                      toast.success(`Gemini AI categorized as: ${res.category}`);
+                    } else {
+                      toast.success(`AI categorized as: ${res.category}`);
+                    }
+                  } catch {
+                    const detected = autoCategorizeVehicle(form.make, form.model, form.year).category;
+                    setForm((prev: any) => ({ ...prev, category: detected }));
+                    toast.success(`AI categorized as: ${detected}`);
+                  } finally {
+                    setLoadingFormAi(false);
+                  }
                 }}
                 style={{
                   background: 'none',
                   border: 'none',
                   color: '#EAB308',
-                  cursor: 'pointer',
+                  cursor: loadingFormAi ? 'wait' : 'pointer',
+                  opacity: loadingFormAi ? 0.7 : 1,
                   fontSize: '0.72rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -1099,7 +1078,15 @@ export default function FleetPage() {
                   fontWeight: 600
                 }}
               >
-                <Wand2 size={12} /> Auto-detect with AI
+                {loadingFormAi ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" /> Asking Gemini AI...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 size={12} /> Auto-detect with Gemini AI
+                  </>
+                )}
               </button>
             </div>
             <select
