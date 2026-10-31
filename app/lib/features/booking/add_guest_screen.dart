@@ -299,10 +299,24 @@ class _AddGuestScreenState extends State<AddGuestScreen> {
 
             // ── Form Content ────────────────────────────────────────────────
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                child: Column(
+              child: Theme(
+                data: theme.copyWith(
+                  inputDecorationTheme: const InputDecorationTheme(
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 1. Title selector
@@ -391,6 +405,7 @@ class _AddGuestScreenState extends State<AddGuestScreen> {
                 ),
               ),
             ),
+          ),
 
             // ── Bottom Action Button ────────────────────────────────────────
             Padding(
@@ -597,6 +612,13 @@ class _AddGuestScreenState extends State<AddGuestScreen> {
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -715,6 +737,13 @@ class _AddGuestScreenState extends State<AddGuestScreen> {
                   ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     hintText: 'Mobile number',
@@ -806,6 +835,13 @@ class _AddGuestScreenState extends State<AddGuestScreen> {
                               ),
                               decoration: InputDecoration(
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
+                                fillColor: Colors.transparent,
                                 isDense: true,
                                 hintText: 'Search',
                                 hintStyle: GoogleFonts.poppins(
