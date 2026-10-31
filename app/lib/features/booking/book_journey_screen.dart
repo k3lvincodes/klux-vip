@@ -1,3 +1,4 @@
+import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -56,13 +57,36 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
 
     // Initialize from providers if available
     final rideProv = context.read<RideProvider>();
+    final bookingProv = context.read<BookingProvider>();
+
     if (rideProv.pickupLocation != null) {
       _pickupLocation = rideProv.pickupLocation;
       _pickupController.text = _pickupLocation!.placeName;
+    } else if (bookingProv.pickupAddress != null && bookingProv.pickupAddress!.isNotEmpty) {
+      _pickupLocation = LocationSearchResult(
+        placeName: bookingProv.pickupAddress!,
+        latitude: bookingProv.pickupLat ?? 37.42796,
+        longitude: bookingProv.pickupLng ?? -122.08574,
+      );
+      _pickupController.text = _pickupLocation!.placeName;
     }
+
     if (rideProv.dropoffLocation != null) {
       _dropoffLocation = rideProv.dropoffLocation;
       _dropoffController.text = _dropoffLocation!.placeName;
+    } else if (bookingProv.dropoffAddress != null &&
+        bookingProv.dropoffAddress!.isNotEmpty &&
+        !bookingProv.dropoffAddress!.contains('Hourly Service')) {
+      _dropoffLocation = LocationSearchResult(
+        placeName: bookingProv.dropoffAddress!,
+        latitude: bookingProv.dropoffLat ?? 37.42796,
+        longitude: bookingProv.dropoffLng ?? -122.08574,
+      );
+      _dropoffController.text = _dropoffLocation!.placeName;
+    }
+
+    if (bookingProv.bookingType == 'schedule') {
+      _rideType = 'By-the-hour';
     }
 
     _pickupFocusNode.addListener(() {
@@ -92,8 +116,31 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     _loadSavedPlaces();
   }
 
+  void _saveDraft() {
+    final pText = _pickupLocation?.placeName ?? _pickupController.text.trim();
+    final dText = _dropoffLocation?.placeName ?? _dropoffController.text.trim();
+    if (pText.isNotEmpty || dText.isNotEmpty) {
+      final draft = BookingDraft(
+        pickupAddress: pText.isNotEmpty ? pText : null,
+        dropoffAddress: dText.isNotEmpty ? dText : null,
+        pickupLat: _pickupLocation?.latitude,
+        pickupLng: _pickupLocation?.longitude,
+        dropoffLat: _dropoffLocation?.latitude,
+        dropoffLng: _dropoffLocation?.longitude,
+        rideType: _rideType,
+        byTheHourDuration: _byTheHourDuration,
+        passengerMode: _passengerMode,
+        guestName: _guestName,
+        guestPhone: _guestPhone,
+        createdAt: DateTime.now(),
+      );
+      BookingDraftService.saveDraft(draft);
+    }
+  }
+
   @override
   void dispose() {
+    _saveDraft();
     _debounceTimer?.cancel();
     _pickupController.dispose();
     _dropoffController.dispose();

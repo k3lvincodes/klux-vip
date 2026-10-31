@@ -1,3 +1,4 @@
+import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -238,6 +239,7 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
       );
 
       bookingProv.setRideId(rideId);
+      await BookingDraftService.clearDraft();
 
       if (mounted) {
         CustomToast.showSuccess(context, 'Ride reserved successfully! Chauffeur dispatch initiated.');

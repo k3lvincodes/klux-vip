@@ -1,3 +1,4 @@
+import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -13,8 +14,6 @@ import 'package:kenick_vip/services/fleet_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
-import 'package:kenick_vip/widgets/inputs/location_search_field.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:kenick_vip/widgets/navigation/kenick_navigation_drawer.dart';
@@ -39,6 +38,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   );
   LatLng _currentPosition = _initialPosition;
   final GlobalKey<VipGoogleMapState> _mapKey = GlobalKey<VipGoogleMapState>();
+
+  BookingDraft? _activeDraft;
+  RecentDestination? _recentDestination;
 
   String _userName = '';
   String? _profileImageUrl;
@@ -140,6 +142,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
     if (user != null) {
       context.read<RideProvider>().restoreActiveRide(user.id).ignore();
     }
+    _loadRecommendations();
   }
 
   Future<void> _recalculateFare() async {
@@ -534,6 +537,32 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   Widget _buildPickupCard(BuildContext context, bool isDark) {
     final cs = Theme.of(context).colorScheme;
 
+    // State 1: In-progress paused booking draft (< 24 hours old)
+    if (_activeDraft != null && _activeDraft!.isFresh) {
+      return _buildPausedDraftCard(context, isDark, cs, _activeDraft!);
+    }
+
+    // State 2: Existing rider with past completed destination (Option B)
+    if (_recentDestination != null) {
+      return _buildQuickRebookCard(context, isDark, cs, _recentDestination!);
+    }
+
+    // State 3: New user with no draft and no prior rides (Option B: Welcome Guide & Offer)
+    return _buildWelcomeGuideCard(context, isDark, cs);
+  }
+
+  Widget _buildPausedDraftCard(
+    BuildContext context,
+    bool isDark,
+    ColorScheme cs,
+    BookingDraft draft,
+  ) {
+    final hasRoute = (draft.pickupAddress != null && draft.pickupAddress!.isNotEmpty) &&
+        (draft.dropoffAddress != null && draft.dropoffAddress!.isNotEmpty);
+    final pText = draft.pickupAddress?.split(',').first ?? 'Pickup';
+    final dText = draft.dropoffAddress?.split(',').first ?? 'Destination';
+    final routeText = hasRoute ? '$pText → $dText' : pText;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -548,10 +577,59 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top space (car removed, height increased)
-          const SizedBox(height: 195),
-
-          // Bottom Dark Overlay Content with padding to left, right, and bottom of the box
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.history_toggle_off_rounded,
+                        size: 13,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Booking in progress',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    await BookingDraftService.clearDraft();
+                    _loadRecommendations();
+                  },
+                  child: Text(
+                    'Discard',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 120),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Container(
@@ -574,8 +652,39 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.near_me_rounded,
+                          size: 13,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            routeText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    "You started to explore a booking, then paused before adding your destination. Simply set where you're going and let us shape the ride from there.",
+                    "You started exploring a ride. Your details are saved so you can resume your reservation within 24 hours.",
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -588,7 +697,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     width: double.infinity,
                     height: 42,
                     child: ElevatedButton(
-                      onPressed: _showLocationDialog,
+                      onPressed: () => _resumeDraftBooking(draft),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: const Color(0xFF111827),
@@ -601,7 +710,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                       ),
                       child: Center(
                         child: Text(
-                          'Start a booking',
+                          'Resume ride',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -617,6 +726,310 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickRebookCard(
+    BuildContext context,
+    bool isDark,
+    ColorScheme cs,
+    RecentDestination recent,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFD6DBE1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? AppColors.darkSurface.withValues(alpha: 0.9)
+              : cs.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.history_rounded,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Frequent destination',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 120),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF121316) : const Color(0xFF16181D),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quick rebook: ${recent.placeName}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    recent.fullAddress,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 42,
+                    child: ElevatedButton(
+                      onPressed: () => _rebookDestination(recent),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: const Color(0xFF111827),
+                        elevation: 0,
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.center,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(21),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Rebook this ride',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF111827),
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeGuideCard(
+    BuildContext context,
+    bool isDark,
+    ColorScheme cs,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFD6DBE1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? AppColors.darkSurface.withValues(alpha: 0.9)
+              : cs.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.stars_rounded,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Exclusive VIP Chauffeur',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 120),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF121316) : const Color(0xFF16181D),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome to Kenick VIP',
+                    style: GoogleFonts.poppins(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Ultra-luxury executive sedans, spacious passenger vans, and tailored chauffeur service at your disposal.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      _buildTierPill('Business Class'),
+                      const SizedBox(width: 6),
+                      _buildTierPill('Business Van'),
+                      const SizedBox(width: 6),
+                      _buildTierPill('First Class'),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: ElevatedButton(
+                            onPressed: _showLocationDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: const Color(0xFF111827),
+                              elevation: 0,
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.center,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(21),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Book a ride',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                  height: 1.15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        height: 42,
+                        child: OutlinedButton(
+                          onPressed: () => context.push('/offers'),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.25),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(21),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: Text(
+                            'Offers',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTierPill(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w500,
+          color: Colors.white.withValues(alpha: 0.85),
+        ),
       ),
     );
   }
@@ -946,10 +1359,25 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 final ride = rp.currentRide;
                 if (ride != null &&
                     ride.status != 'completed' &&
-                    ride.status != 'cancelled') {
+                    ride.status != 'cancelled' &&
+                    ride.status != 'canceled') {
                   final isPendingSearch = ride.status == 'pending' ||
                       ride.status == 'requested' ||
                       ride.status == 'searching';
+
+                  // If matching without a chauffeur for > 30 minutes, auto-cancel
+                  if (isPendingSearch) {
+                    final age = DateTime.now().toUtc().difference(ride.createdAt.toUtc());
+                    if (age.inMinutes >= 30) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        rp.cancelCurrentRide(
+                          reason: 'Auto-cancelled: No chauffeur matched within 30 minutes',
+                        );
+                      });
+                      return const SizedBox.shrink();
+                    }
+                  }
+
                   final bannerTitle = isPendingSearch
                       ? 'Chauffeur Search in Progress'
                       : (ride.status == 'arrived' || ride.status == 'accepted'
@@ -1755,172 +2183,95 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
     );
   }
 
-  void _showLocationDialog() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    _dialogFromController.text = _pickupLocation?.placeName ?? '';
-    _dialogToController.text = _dropoffLocation?.placeName ?? '';
+  void _showLocationDialog() async {
+    await context.push('/book-journey');
+    if (mounted) {
+      _loadRecommendations();
+    }
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Plan your ride',
-                        style: tt.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Stack(
-                  children: [
-                    Positioned(
-                      left: 11,
-                      top: 25,
-                      bottom: 25,
-                      child: Container(width: 2, color: cs.outlineVariant),
-                    ),
-                    Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 13.0),
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: cs.primaryContainer,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.my_location,
-                                    size: 12, color: cs.onPrimaryContainer),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: LocationSearchField(
-                                hint: 'Current Location',
-                                controller: _dialogFromController,
-                                isDark: Theme.of(context).brightness ==
-                                    Brightness.dark,
-                                countryCode: _countryCode,
-                                onSelected: (r) => _pickupLocation = r,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 13.0),
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: cs.errorContainer,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.location_on,
-                                    size: 12, color: cs.onErrorContainer),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: LocationSearchField(
-                                hint: 'Where to?',
-                                controller: _dialogToController,
-                                isDark: Theme.of(context).brightness ==
-                                    Brightness.dark,
-                                countryCode: _countryCode,
-                                onSelected: (r) => _dropoffLocation = r,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                CustomButton(
-                  title: 'Confirm Route',
-                  onPress: () async {
-                    final bookingProv = context.read<BookingProvider>();
-                    final pickup = _pickupLocation;
-                    final dropoff = _dropoffLocation;
-                    if (pickup != null && dropoff != null) {
-                      final pickupLatLng =
-                          LatLng(pickup.latitude, pickup.longitude);
-                      final dropoffLatLng =
-                          LatLng(dropoff.latitude, dropoff.longitude);
-                      Navigator.pop(context);
-                      _routeAnimController.reset();
-                      setState(() {
-                        _routePoints = null;
-                        _distanceKm = null;
-                        _durationSeconds = null;
-                        _sheetExtent = 0.48;
-                        _showDispatchView = true;
-                      });
+  Future<void> _loadRecommendations() async {
+    final draft = await BookingDraftService.getActiveDraft();
+    RecentDestination? recent;
+    if (draft == null) {
+      recent = await BookingDraftService.getRecentDestination();
+    }
+    if (mounted) {
+      setState(() {
+        _activeDraft = draft;
+        _recentDestination = recent;
+      });
+    }
+  }
 
-                      final routeResult = await LocationSearchService.getRoute(
-                          pickupLatLng, dropoffLatLng);
-                      if (!mounted) return;
-                      if (routeResult != null &&
-                          routeResult.points.length >= 2) {
-                        setState(() {
-                          _routePoints = routeResult.points;
-                          _distanceKm = routeResult.distanceKm;
-                          _durationSeconds = routeResult.durationSeconds;
-                        });
-                        bookingProv.setRoutePoints(routeResult.points);
-                        _recalculateFare();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _mapKey.currentState?.fitRouteBounds();
-                        });
-                        _routeAnimController.forward();
-                      } else {
-                        setState(() {
-                          _routePoints = [pickupLatLng, dropoffLatLng];
-                          _distanceKm = const Distance().as(
-                              LengthUnit.Kilometer, pickupLatLng, dropoffLatLng);
-                          _durationSeconds = null;
-                        });
-                        bookingProv
-                            .setRoutePoints([pickupLatLng, dropoffLatLng]);
-                        _recalculateFare();
-                        _routeAnimController.forward();
-                      }
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
+  void _resumeDraftBooking(BookingDraft draft) {
+    final bookingProv = context.read<BookingProvider>();
+    final rideProv = context.read<RideProvider>();
+
+    if (draft.pickupAddress != null) {
+      final pLoc = LocationSearchResult(
+        placeName: draft.pickupAddress!,
+        latitude: draft.pickupLat ?? _currentPosition.latitude,
+        longitude: draft.pickupLng ?? _currentPosition.longitude,
+      );
+      LocationSearchResult? dLoc;
+      if (draft.dropoffAddress != null && draft.dropoffAddress!.isNotEmpty) {
+        dLoc = LocationSearchResult(
+          placeName: draft.dropoffAddress!,
+          latitude: draft.dropoffLat ?? _currentPosition.latitude,
+          longitude: draft.dropoffLng ?? _currentPosition.longitude,
         );
-      },
+      }
+      rideProv.setPickupDropoff(pLoc, dLoc);
+
+      bookingProv.setTripDetails(
+        pickupAddress: draft.pickupAddress!,
+        dropoffAddress: draft.dropoffAddress ?? '',
+        pickupLat: draft.pickupLat ?? _currentPosition.latitude,
+        pickupLng: draft.pickupLng ?? _currentPosition.longitude,
+        dropoffLat: draft.dropoffLat ?? _currentPosition.latitude,
+        dropoffLng: draft.dropoffLng ?? _currentPosition.longitude,
+        passengerNote: draft.guestName != null
+            ? 'Guest: ${draft.guestName} (${draft.guestPhone})'
+            : null,
+      );
+    }
+
+    bookingProv.setBookingType(
+      draft.rideType == 'By-the-hour' ? 'schedule' : 'instant',
+      eventType: draft.rideType == 'By-the-hour'
+          ? 'Hourly Hire (${draft.byTheHourDuration} h)'
+          : null,
     );
+
+    _showLocationDialog();
+  }
+
+  void _rebookDestination(RecentDestination dest) {
+    final bookingProv = context.read<BookingProvider>();
+    final rideProv = context.read<RideProvider>();
+
+    final pLoc = LocationSearchResult(
+      placeName: 'Current Location',
+      latitude: _currentPosition.latitude,
+      longitude: _currentPosition.longitude,
+    );
+    final dLoc = LocationSearchResult(
+      placeName: dest.fullAddress,
+      latitude: dest.latitude,
+      longitude: dest.longitude,
+    );
+    rideProv.setPickupDropoff(pLoc, dLoc);
+
+    bookingProv.setTripDetails(
+      pickupAddress: 'Current Location',
+      dropoffAddress: dest.fullAddress,
+      pickupLat: _currentPosition.latitude,
+      pickupLng: _currentPosition.longitude,
+      dropoffLat: dest.latitude,
+      dropoffLng: dest.longitude,
+    );
+
+    _showLocationDialog();
   }
 }
