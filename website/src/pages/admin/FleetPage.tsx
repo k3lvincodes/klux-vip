@@ -13,7 +13,7 @@ import {
   CheckCircle2, 
   Clock, 
   RotateCw,
-  Sparkles
+  Wand2
 } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
@@ -809,7 +809,7 @@ export default function FleetPage() {
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '4px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <Sparkles size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
+                                <Wand2 size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
                                 <span style={{ color: '#e4e4e7' }}>
                                   AI suggests: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
                                 </span>
@@ -894,7 +894,7 @@ export default function FleetPage() {
                               onClick={() => handleSuggestCategory(car)}
                               title="Suggest category with AI"
                             >
-                              <Sparkles size={13} />
+                              <Wand2 size={13} />
                             </button>
                             <button 
                               className="admin-icon-btn"
@@ -1099,7 +1099,7 @@ export default function FleetPage() {
                   fontWeight: 600
                 }}
               >
-                <Sparkles size={12} /> Auto-detect with AI
+                <Wand2 size={12} /> Auto-detect with AI
               </button>
             </div>
             <select
