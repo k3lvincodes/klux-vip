@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -35,6 +37,10 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
   List<FleetVehicleItem> _fleetCars = [];
   bool _isLoading = true;
 
+  // Track the currently displayed car index for each category
+  final Map<String, int> _categoryCarIndex = {};
+  Timer? _carCycleTimer;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +50,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
 
   @override
   void dispose() {
+    _carCycleTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -55,8 +62,36 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
       setState(() {
         _fleetCars = cars;
         _isLoading = false;
+
+        // Initialize random car index for each category tier from real fleet
+        final random = math.Random();
+        for (final tier in FleetService.experienceCategories) {
+          final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
+          if (tierCars.isNotEmpty) {
+            _categoryCarIndex[tier.name] = random.nextInt(tierCars.length);
+          }
+        }
       });
+
+      _startCarCycleTimer();
     }
+  }
+
+  void _startCarCycleTimer() {
+    _carCycleTimer?.cancel();
+    // Smoothly cycle cars every 4 seconds to showcase real fleet options
+    _carCycleTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) return;
+      setState(() {
+        for (final tier in FleetService.experienceCategories) {
+          final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
+          if (tierCars.length > 1) {
+            final current = _categoryCarIndex[tier.name] ?? 0;
+            _categoryCarIndex[tier.name] = (current + 1) % tierCars.length;
+          }
+        }
+      });
+    });
   }
 
   double _calculateFareForTier(FleetCategoryTier tier, double baseAmount) {
@@ -67,27 +102,23 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     return (baseAmount * tier.priceMultiplier);
   }
 
-  String? _findAssignedCarName(FleetCategoryTier tier) {
-    final matched = _fleetCars.where((c) => c.category == tier.name);
-    if (matched.isNotEmpty) {
-      return '${matched.first.make} ${matched.first.model}';
-    }
-    return null;
-  }
-
-  String? _findAssignedCarImage(FleetCategoryTier tier) {
-    final matched = _fleetCars.where((c) => c.category == tier.name);
-    if (matched.isNotEmpty && matched.first.imageUrl != null && matched.first.imageUrl!.isNotEmpty) {
-      return matched.first.imageUrl;
-    }
-    return null;
+  FleetVehicleItem? _getActiveCarForTier(FleetCategoryTier tier) {
+    final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
+    if (tierCars.isEmpty) return null;
+    final idx = (_categoryCarIndex[tier.name] ?? 0) % tierCars.length;
+    return tierCars[idx];
   }
 
   void _onSelectExperience(FleetCategoryTier tier) {
     final bookingProv = context.read<BookingProvider>();
     final baseFare = bookingProv.fareAmount ?? 141.47;
     final finalFare = _calculateFareForTier(tier, baseFare);
-    final assignedImage = _findAssignedCarImage(tier) ?? tier.defaultAsset;
+    final activeCar = _getActiveCarForTier(tier);
+
+    final assignedImage = (activeCar?.imageUrl != null && activeCar!.imageUrl!.isNotEmpty)
+        ? activeCar.imageUrl!
+        : (activeCar?.localAssetPath ?? tier.defaultAsset);
+    final carDisplayName = activeCar != null ? '${activeCar.make} ${activeCar.model}' : tier.name;
 
     bookingProv.setVehicle(tier.name, assignedImage);
     bookingProv.setFare(finalFare, bookingProv.distanceKm);
@@ -95,11 +126,13 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     // Navigate to Confirm Reservation screen
     context.push('/confirm-reservation', extra: {
       'category': tier.name,
-      'subtitle': tier.subtitle,
+      'subtitle': activeCar != null ? '${activeCar.make} ${activeCar.model} or similar' : tier.subtitle,
       'fare': finalFare,
       'passengers': tier.passengers,
       'luggage': tier.luggage,
       'image': assignedImage,
+      'carId': activeCar?.id,
+      'carName': carDisplayName,
     });
   }
 
@@ -298,14 +331,20 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _findAssignedCarName(currentTier) != null
-                                    ? '${_findAssignedCarName(currentTier)} or similar'
-                                    : currentTier.subtitle,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  color: cs.onSurfaceVariant,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 350),
+                                child: Text(
+                                  _getActiveCarForTier(currentTier) != null
+                                      ? '${_getActiveCarForTier(currentTier)!.make} ${_getActiveCarForTier(currentTier)!.model} or similar'
+                                      : currentTier.subtitle,
+                                  key: ValueKey(
+                                    '${currentTier.name}_${_getActiveCarForTier(currentTier)?.id ?? ""}',
+                                  ),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: cs.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -385,7 +424,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     required bool isDark,
     required ColorScheme cs,
   }) {
-    final assignedImg = _findAssignedCarImage(tier);
+    final activeCar = _getActiveCarForTier(tier);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -409,7 +448,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            // Vehicle Image Gradient Area
+            // Vehicle Image Gradient Area with animated car transitions
             Expanded(
               flex: 5,
               child: Container(
@@ -428,19 +467,14 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                 ),
                 padding: const EdgeInsets.all(16),
                 alignment: Alignment.center,
-                child: assignedImg != null
-                    ? Image.network(
-                        assignedImg,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => Image.asset(
-                          tier.defaultAsset,
-                          fit: BoxFit.contain,
-                        ),
-                      )
-                    : Image.asset(
-                        tier.defaultAsset,
-                        fit: BoxFit.contain,
-                      ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                  child: _buildVehicleImage(activeCar, tier),
+                ),
               ),
             ),
 
@@ -513,6 +547,31 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVehicleImage(FleetVehicleItem? car, FleetCategoryTier tier) {
+    if (car != null && car.imageUrl != null && car.imageUrl!.isNotEmpty) {
+      return Image.network(
+        car.imageUrl!,
+        key: ValueKey('net_${car.id}_${car.imageUrl}'),
+        fit: BoxFit.contain,
+        errorBuilder: (ctx, err, stack) => Image.asset(
+          car.localAssetPath.isNotEmpty ? car.localAssetPath : tier.defaultAsset,
+          fit: BoxFit.contain,
+        ),
+      );
+    } else if (car != null && car.localAssetPath.isNotEmpty) {
+      return Image.asset(
+        car.localAssetPath,
+        key: ValueKey('asset_${car.id}'),
+        fit: BoxFit.contain,
+      );
+    }
+    return Image.asset(
+      tier.defaultAsset,
+      key: ValueKey('tier_${tier.name}'),
+      fit: BoxFit.contain,
     );
   }
 }

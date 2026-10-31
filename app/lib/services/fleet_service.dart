@@ -210,7 +210,7 @@ class FleetService {
       // 2. Fetch all fleet cars from admin catalog
       final fleetRows = await _supabase
           .from('fleet_cars')
-          .select('id, make, model, year, image_url, features, category, is_available, is_featured')
+          .select('id, make, model, year, image_url, features, is_available, is_featured')
           .eq('is_available', true)
           .isFilter('deleted_at', null)
           .order('is_featured', ascending: false)

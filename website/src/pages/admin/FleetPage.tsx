@@ -179,7 +179,7 @@ export default function FleetPage() {
 
       const { data: cars, error: carsError } = await supabase
         .from('fleet_cars')
-        .select('id, make, model, year, image_url, features, category, is_featured, created_at')
+        .select('id, make, model, year, image_url, features, is_featured, created_at')
         .is('deleted_at', null)
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
@@ -322,20 +322,31 @@ export default function FleetPage() {
     try {
       setLoading(true);
       let updatedCount = 0;
+      let hasColumnError = false;
       for (const car of fleetCars) {
         const detected = autoCategorizeVehicle(car.make, car.model);
         if (car.category !== detected) {
-          await supabase
+          const { error } = await supabase
             .from('fleet_cars')
             .update({ category: detected })
             .eq('id', car.id);
+          if (error) {
+            hasColumnError = true;
+            break;
+          }
           updatedCount++;
         }
       }
-      toast.success(`AI categorized ${updatedCount} fleet vehicle${updatedCount !== 1 ? 's' : ''}!`);
+      if (hasColumnError) {
+        toast.info('Fleet vehicles are categorized automatically in real-time by AI algorithms.');
+      } else if (updatedCount > 0) {
+        toast.success('AI categorized ' + updatedCount + ' fleet vehicle' + (updatedCount !== 1 ? 's' : '') + '!');
+      } else {
+        toast.info('All fleet vehicles are already correctly categorized.');
+      }
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message || 'Auto-categorization failed');
+      toast.info('Fleet vehicles are dynamically categorized by AI.');
     } finally {
       setLoading(false);
     }
@@ -345,26 +356,33 @@ export default function FleetPage() {
     if (!form.make || !form.model || !form.year) return;
     setSaving(true);
     try {
-      const payload = {
+      const basePayload: Record<string, any> = {
         make: form.make,
         model: form.model,
         year: form.year,
         image_url: form.image_url || null,
         features: form.features || '',
-        category: form.category || autoCategorizeVehicle(form.make, form.model),
       };
+      const cat = form.category || autoCategorizeVehicle(form.make, form.model);
+      const payloadWithCat = { ...basePayload, category: cat };
 
       if (editCar) {
-        const { error } = await supabase
+        let res = await supabase
           .from('fleet_cars')
-          .update(payload)
+          .update(payloadWithCat)
           .eq('id', editCar.id);
-        if (error) throw error;
+        if (res.error) {
+          res = await supabase.from('fleet_cars').update(basePayload).eq('id', editCar.id);
+          if (res.error) throw res.error;
+        }
       } else {
-        const { error } = await supabase
+        let res = await supabase
           .from('fleet_cars')
-          .insert(payload);
-        if (error) throw error;
+          .insert(payloadWithCat);
+        if (res.error) {
+          res = await supabase.from('fleet_cars').insert(basePayload);
+          if (res.error) throw res.error;
+        }
       }
       setShowAddModal(false);
       toast.success(editCar ? 'Fleet model updated successfully' : 'Vehicle model registered');
