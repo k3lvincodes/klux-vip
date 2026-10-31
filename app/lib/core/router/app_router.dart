@@ -7,6 +7,7 @@ import 'package:kenick_vip/features/auth/sign_up_screen.dart';
 import 'package:kenick_vip/features/booking/add_guest_screen.dart';
 import 'package:kenick_vip/features/booking/book_journey_screen.dart';
 import 'package:kenick_vip/features/booking/booking_selection_screen.dart';
+import 'package:kenick_vip/features/booking/confirm_reservation_screen.dart';
 import 'package:kenick_vip/features/booking/edit_addresses_screen.dart';
 import 'package:kenick_vip/features/booking/instant_booking_screen.dart';
 import 'package:kenick_vip/features/booking/passenger_home_screen.dart';
@@ -391,6 +392,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/book-journey',
       builder: (context, state) => const BookJourneyScreen(),
+    ),
+    GoRoute(
+      path: '/confirm-reservation',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return ConfirmReservationScreen(
+          category: extra['category'] as String? ?? 'Business Class',
+          subtitle: extra['subtitle'] as String? ?? 'Mercedes-Benz EQE or similar',
+          fare: (extra['fare'] as num?)?.toDouble() ?? 141.47,
+          passengers: (extra['passengers'] as num?)?.toInt() ?? 3,
+          luggage: (extra['luggage'] as num?)?.toInt() ?? 2,
+          imageUrl: extra['image'] as String?,
+        );
+      },
     ),
     GoRoute(
       path: '/add-guest',

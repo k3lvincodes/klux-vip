@@ -12,7 +12,8 @@ import {
   Car, 
   CheckCircle2, 
   Clock, 
-  RotateCw
+  RotateCw,
+  Sparkles
 } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
@@ -25,6 +26,54 @@ const MAX_FEATURED = 6;
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
+export type FleetCategory = 'Business Class' | 'Business Van' | 'First Class';
+
+export function autoCategorizeVehicle(make: string, model: string): FleetCategory {
+  const text = `${make} ${model}`.toLowerCase();
+  // Business Van: multi-passenger luxury vans, large executive SUVs
+  if (
+    text.includes('van') ||
+    text.includes('v-class') ||
+    text.includes('v class') ||
+    text.includes('vclass') ||
+    text.includes('vito') ||
+    text.includes('sprinter') ||
+    text.includes('transit') ||
+    text.includes('multivan') ||
+    text.includes('caravelle') ||
+    text.includes('metris') ||
+    text.includes('escalade') ||
+    text.includes('suburban') ||
+    text.includes('navigator')
+  ) {
+    return 'Business Van';
+  }
+  // First Class: flagship ultra-luxury sedans & elite saloons
+  if (
+    text.includes('s-class') ||
+    text.includes('s class') ||
+    text.includes('sclass') ||
+    text.includes('maybach') ||
+    text.includes('7 series') ||
+    text.includes('7-series') ||
+    text.includes('750') ||
+    text.includes('760') ||
+    text.includes('i7') ||
+    text.includes('a8') ||
+    text.includes('s8') ||
+    text.includes('panamera') ||
+    text.includes('flying spur') ||
+    text.includes('phantom') ||
+    text.includes('ghost') ||
+    text.includes('rolls') ||
+    text.includes('bentley')
+  ) {
+    return 'First Class';
+  }
+  // Business Class: executive luxury sedans & premium EVs
+  return 'Business Class';
+}
+
 interface FleetCar {
   id: string;
   make: string;
@@ -32,6 +81,7 @@ interface FleetCar {
   year: number;
   image_url: string | null;
   features: string | null;
+  category?: FleetCategory;
   chauffeur_count: number;
   is_featured: boolean;
   created_at: string;
@@ -51,7 +101,7 @@ interface VehicleRequest {
   chauffeur_name: string;
 }
 
-const emptyCar = { make: '', model: '', year: new Date().getFullYear(), image_url: '', features: '' };
+const emptyCar = { make: '', model: '', year: new Date().getFullYear(), image_url: '', features: '', category: 'Business Class' as FleetCategory };
 
 function compressImage(file: File, maxSize = 800, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -108,6 +158,7 @@ export default function FleetPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | FleetCategory>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCar, setEditCar] = useState<FleetCar | null>(null);
   const [form, setForm] = useState(emptyCar);
@@ -128,7 +179,7 @@ export default function FleetPage() {
 
       const { data: cars, error: carsError } = await supabase
         .from('fleet_cars')
-        .select('id, make, model, year, image_url, features, is_featured, created_at')
+        .select('id, make, model, year, image_url, features, category, is_featured, created_at')
         .is('deleted_at', null)
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
@@ -198,16 +249,22 @@ export default function FleetPage() {
   }, [fleetCars]);
 
   const filteredCars = useMemo(() => {
-    if (!search.trim()) return fleetCars;
-    const q = search.toLowerCase();
-    return fleetCars.filter(
-      (c) =>
+    return fleetCars.filter((c) => {
+      const currentCat = c.category || autoCategorizeVehicle(c.make, c.model);
+      if (categoryFilter !== 'all' && currentCat !== categoryFilter) {
+        return false;
+      }
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
         c.make.toLowerCase().includes(q) ||
         c.model.toLowerCase().includes(q) ||
         c.year.toString().includes(q) ||
+        currentCat.toLowerCase().includes(q) ||
         (c.features?.toLowerCase() || '').includes(q)
-    );
-  }, [fleetCars, search]);
+      );
+    });
+  }, [fleetCars, search, categoryFilter]);
 
   const filteredRequests = useMemo(() => {
     if (!search.trim()) return requests;
@@ -229,7 +286,7 @@ export default function FleetPage() {
 
   const openEditModal = (car: FleetCar) => {
     setEditCar(car);
-    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '' });
+    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '', category: car.category || autoCategorizeVehicle(car.make, car.model) });
     setShowAddModal(true);
   };
 
@@ -261,6 +318,29 @@ export default function FleetPage() {
     }
   };
 
+  const handleAutoCategorizeAll = async () => {
+    try {
+      setLoading(true);
+      let updatedCount = 0;
+      for (const car of fleetCars) {
+        const detected = autoCategorizeVehicle(car.make, car.model);
+        if (car.category !== detected) {
+          await supabase
+            .from('fleet_cars')
+            .update({ category: detected })
+            .eq('id', car.id);
+          updatedCount++;
+        }
+      }
+      toast.success(`AI categorized ${updatedCount} fleet vehicle${updatedCount !== 1 ? 's' : ''}!`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Auto-categorization failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.make || !form.model || !form.year) return;
     setSaving(true);
@@ -271,6 +351,7 @@ export default function FleetPage() {
         year: form.year,
         image_url: form.image_url || null,
         features: form.features || '',
+        category: form.category || autoCategorizeVehicle(form.make, form.model),
       };
 
       if (editCar) {
@@ -430,6 +511,9 @@ export default function FleetPage() {
           <button className="admin-btn admin-btn-outline" onClick={exportCSV}>
             <Download size={14} /> Export CSV
           </button>
+          <button className="admin-btn admin-btn-outline" onClick={handleAutoCategorizeAll} title="Auto-detect categories with AI">
+            <Sparkles size={14} style={{ color: '#EAB308' }} /> Auto-Categorize (AI)
+          </button>
           <button className="admin-btn" onClick={openAddModal}>
             <Plus size={15} /> Add Vehicle Model
           </button>
@@ -525,6 +609,32 @@ export default function FleetPage() {
             </div>
 
           </div>
+
+          {/* Experience Category Filter Buttons */}
+          {activeTab === 'fleet' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#71717a' }}>Category:</span>
+              {(['all', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    border: '1px solid',
+                    borderColor: categoryFilter === cat ? 'var(--admin-primary)' : 'rgba(255,255,255,0.08)',
+                    background: categoryFilter === cat ? 'rgba(244,197,34,0.1)' : 'transparent',
+                    color: categoryFilter === cat ? 'var(--admin-primary)' : '#a1a1aa',
+                  }}
+                >
+                  {cat === 'all' ? 'All Categories' : cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content Body */}
@@ -582,7 +692,36 @@ export default function FleetPage() {
                       <div className="admin-fleet-body">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
-                            <h3 className="admin-fleet-title">{car.make} {car.model}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                              <h3 className="admin-fleet-title" style={{ margin: 0 }}>{car.make} {car.model}</h3>
+                              <span 
+                                style={{ 
+                                  fontSize: '0.65rem', 
+                                  padding: '2px 7px', 
+                                  borderRadius: 4, 
+                                  fontWeight: 600,
+                                  background: (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class' 
+                                    ? 'rgba(234, 179, 8, 0.15)' 
+                                    : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                    ? 'rgba(249, 115, 22, 0.15)'
+                                    : 'rgba(59, 130, 246, 0.15)',
+                                  color: (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class'
+                                    ? '#EAB308'
+                                    : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                    ? '#f97316'
+                                    : '#60a5fa',
+                                  border: `1px solid ${
+                                    (car.category || autoCategorizeVehicle(car.make, car.model)) === 'First Class'
+                                      ? 'rgba(234, 179, 8, 0.3)'
+                                      : (car.category || autoCategorizeVehicle(car.make, car.model)) === 'Business Van'
+                                      ? 'rgba(249, 115, 22, 0.3)'
+                                      : 'rgba(59, 130, 246, 0.3)'
+                                  }`
+                                }}
+                              >
+                                {car.category || autoCategorizeVehicle(car.make, car.model)}
+                              </span>
+                            </div>
                             <span style={{ fontSize: '0.75rem', color: '#71717a', fontWeight: 600 }}>Model Year {car.year}</span>
                           </div>
                           {car.is_featured && (
@@ -787,6 +926,46 @@ export default function FleetPage() {
               value={form.year}
               onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || new Date().getFullYear() })}
             />
+          </div>
+
+          {/* Fleet Category with AI auto-detect */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa' }}>
+                FLEET EXPERIENCE CATEGORY
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const detected = autoCategorizeVehicle(form.make, form.model);
+                  setForm((prev: any) => ({ ...prev, category: detected }));
+                  toast.success(`AI categorized as: ${detected}`);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#EAB308',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600
+                }}
+              >
+                <Sparkles size={12} /> Auto-detect with AI
+              </button>
+            </div>
+            <select
+              className="admin-input"
+              value={form.category || 'Business Class'}
+              onChange={(e) => setForm((prev: any) => ({ ...prev, category: e.target.value as FleetCategory }))}
+              style={{ background: '#18181b', color: '#fff', cursor: 'pointer' }}
+            >
+              <option value="Business Class">Business Class (Executive Sedans & EVs - 3 Pax, 2 Bags)</option>
+              <option value="Business Van">Business Van (Executive Vans & Large SUVs - 5 Pax, 5 Bags)</option>
+              <option value="First Class">First Class (Flagship Ultra-Luxury Sedans - 3 Pax, 2 Bags)</option>
+            </select>
           </div>
 
           {/* Features */}

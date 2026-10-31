@@ -6,6 +6,7 @@ class FleetCar {
     required this.year,
     this.imageUrl,
     this.features,
+    this.category = 'Business Class',
     this.isAvailable = true,
     this.isFeatured = false,
     required this.createdAt,
@@ -19,6 +20,7 @@ class FleetCar {
       year: json['year'] as int? ?? DateTime.now().year,
       imageUrl: json['image_url'] as String?,
       features: json['features'] as String?,
+      category: json['category'] as String? ?? 'Business Class',
       isAvailable: json['is_available'] as bool? ?? true,
       isFeatured: json['is_featured'] as bool? ?? false,
       createdAt: json['created_at'] != null
@@ -33,6 +35,7 @@ class FleetCar {
   final int year;
   final String? imageUrl;
   final String? features;
+  final String category;
   final bool isAvailable;
   final bool isFeatured;
   final DateTime createdAt;

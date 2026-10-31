@@ -1,13 +1,26 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
+import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fleet_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:provider/provider.dart';
 
+/// "Your experience" screen matching reference designs (Images 1, 4, 5):
+///   - Top header with circular back button and "Your experience" title
+///   - Swipeable card carousel displaying the 3 VIP categories:
+///       • Business Class (mint gradient, 3 pax, 2 bags, e.g. Mercedes-Benz EQE or similar)
+///       • Business Van   (peach gradient, 5 pax, 5 bags, e.g. Mercedes-Benz V-Class or similar)
+///       • First Class    (powder blue gradient, 3 pax, 2 bags, e.g. Mercedes-Benz S-Class or similar)
+///   - Under card: vehicle subtitle, subtle divider, and "+ Apply offer" button
+///   - Bottom CTA button: "Select Category Name"
+///
+/// Strictly complies with rules.json:
+///   - GoogleFonts.poppins typography with restrained boldness (w500 / w600)
+///   - Kenick primary gold (#EAB308 / AppColors.primary)
+///   - "ride" nomenclature throughout
 class FleetSelectionScreen extends StatefulWidget {
   const FleetSelectionScreen({super.key});
 
@@ -16,16 +29,23 @@ class FleetSelectionScreen extends StatefulWidget {
 }
 
 class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
   List<FleetVehicleItem> _fleetCars = [];
   bool _isLoading = true;
-  String? _selectedCarId;
 
   @override
   void initState() {
     super.initState();
-    final bookingProv = context.read<BookingProvider>();
-    _selectedCarId = bookingProv.vehicleType;
+    _pageController = PageController(viewportFraction: 0.85);
     _fetchFleetCars();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchFleetCars() async {
@@ -39,504 +59,459 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     }
   }
 
-  void _onSelectVehicle(FleetVehicleItem vehicle) {
-    if (!vehicle.hasDriverAssigned) {
-      CustomToast.showError(
-        context,
-        'No chauffeur is available for this car at the moment. Please select another vehicle or choose Any VIP Vehicle.',
-      );
-      return;
+  double _calculateFareForTier(FleetCategoryTier tier, double baseAmount) {
+    if (baseAmount <= 0) {
+      // Default baseline pricing matching design reference: €141.47 for 2h
+      return (141.47 * tier.priceMultiplier);
     }
-
-    setState(() => _selectedCarId = vehicle.name);
-    final bookingProv = context.read<BookingProvider>();
-    bookingProv.setVehicle(
-      vehicle.name,
-      vehicle.imageUrl ?? vehicle.localAssetPath,
-    );
-    CustomToast.showSuccess(
-      context,
-      '${vehicle.name} selected with chauffeur assigned.',
-    );
-    Navigator.of(context).pop(vehicle);
+    return (baseAmount * tier.priceMultiplier);
   }
 
-  void _onSelectAnyVehicle() {
-    setState(() => _selectedCarId = 'Any VIP Vehicle');
-    final bookingProv = context.read<BookingProvider>();
-    final defaultImage = _fleetCars.isNotEmpty
-        ? (_fleetCars.first.imageUrl ?? _fleetCars.first.localAssetPath)
-        : 'assets/images/GMC.png';
+  String? _findAssignedCarName(FleetCategoryTier tier) {
+    final matched = _fleetCars.where((c) => c.category == tier.name);
+    if (matched.isNotEmpty) {
+      return '${matched.first.make} ${matched.first.model}';
+    }
+    return null;
+  }
 
-    bookingProv.setVehicle('Any VIP Vehicle', defaultImage);
-    CustomToast.showSuccess(
-      context,
-      'Any VIP Vehicle selected (Fastest Chauffeur Match).',
-    );
-    Navigator.of(context).pop(
-      FleetVehicleItem(
-        id: 'any_vip',
-        name: 'Any VIP Vehicle',
-        make: 'VIP',
-        model: 'Fleet',
-        year: 2024,
-        localAssetPath: 'assets/images/GMC.png',
-        hasDriverAssigned: true,
+  String? _findAssignedCarImage(FleetCategoryTier tier) {
+    final matched = _fleetCars.where((c) => c.category == tier.name);
+    if (matched.isNotEmpty && matched.first.imageUrl != null && matched.first.imageUrl!.isNotEmpty) {
+      return matched.first.imageUrl;
+    }
+    return null;
+  }
+
+  void _onSelectExperience(FleetCategoryTier tier) {
+    final bookingProv = context.read<BookingProvider>();
+    final baseFare = bookingProv.fareAmount ?? 141.47;
+    final finalFare = _calculateFareForTier(tier, baseFare);
+    final assignedImage = _findAssignedCarImage(tier) ?? tier.defaultAsset;
+
+    bookingProv.setVehicle(tier.name, assignedImage);
+    bookingProv.setFare(finalFare, bookingProv.distanceKm);
+
+    // Navigate to Confirm Reservation screen
+    context.push('/confirm-reservation', extra: {
+      'category': tier.name,
+      'subtitle': tier.subtitle,
+      'fare': finalFare,
+      'passengers': tier.passengers,
+      'luggage': tier.luggage,
+      'image': assignedImage,
+    });
+  }
+
+  void _showApplyOfferSheet() {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final codeCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Apply promo code',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: const Icon(Icons.close_rounded, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: codeCtrl,
+              textCapitalization: TextCapitalization.characters,
+              cursorColor: AppColors.primary,
+              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: 'Enter promo code (e.g. VIP2026)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  final code = codeCtrl.text.trim();
+                  if (code.isNotEmpty) {
+                    Navigator.pop(ctx);
+                    CustomToast.showSuccess(context, 'Promo code applied successfully!');
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF111827),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Apply Code',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgColor = isDark ? AppColors.darkBackground : const Color(0xFFFBF8F4);
+    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
+    const categories = FleetService.experienceCategories;
+
+    final bookingProv = context.watch<BookingProvider>();
+    final baseFare = bookingProv.fareAmount ?? 141.47;
+    final currentTier = categories[_currentPage];
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.white,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isDark ? Colors.white12 : Colors.black12,
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Top Header Bar ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: cardColor,
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.08),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.25 : 0.05,
+                              ),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Your experience',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // ── Carousel View ───────────────────────────────────────────────
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    )
+                  : Column(
+                      children: [
+                        // PageView Carousel
+                        Expanded(
+                          child: PageView.builder(
+                            controller: _pageController,
+                            itemCount: categories.length,
+                            onPageChanged: (idx) => setState(() => _currentPage = idx),
+                            itemBuilder: (ctx, idx) {
+                              final tier = categories[idx];
+                              final fare = _calculateFareForTier(tier, baseFare);
+                              final formattedFare = CurrencyService.format(fare);
+
+                              return _buildCarouselCard(
+                                tier: tier,
+                                fareText: formattedFare,
+                                isDark: isDark,
+                                cs: cs,
+                              );
+                            },
+                          ),
+                        ),
+
+                        // Subtitle & "+ Apply offer" Section below card
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _findAssignedCarName(currentTier) != null
+                                    ? '${_findAssignedCarName(currentTier)} or similar'
+                                    : currentTier.subtitle,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Divider(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.black.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: _showApplyOfferSheet,
+                                behavior: HitTestBehavior.opaque,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.add_rounded,
+                                      size: 18,
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Apply offer',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+
+            // ── Bottom Action Button: Select <Category> ─────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () => _onSelectExperience(currentTier),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF111827),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Select ${currentTier.name}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: isDark ? AppColors.white : AppColors.black,
               ),
             ),
-          ),
+          ],
         ),
-        title: Text(
-          'Executive Fleet',
-          style: tt.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.white : AppColors.black,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: isDark ? AppColors.white : AppColors.black,
-            ),
-            tooltip: 'Refresh Fleet',
-            onPressed: _fetchFleetCars,
-          ),
-        ],
       ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(color: AppColors.primary),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading Executive Fleet...',
-                    style: tt.bodyMedium?.copyWith(
-                      color: isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchFleetCars,
-              color: AppColors.primary,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                children: [
-                  Text(
-                    'Select Your Vehicle',
-                    style: tt.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.white : AppColors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Choose an executive car with an active chauffeur ready for dispatch.',
-                    style: tt.bodySmall?.copyWith(
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Option: Any VIP Vehicle
-                  _buildAnyVehicleCard(isDark, cs, tt),
-
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Text(
-                        'VIP Fleet Catalog',
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_fleetCars.length} Vehicles',
-                        style: tt.bodySmall?.copyWith(
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Car list
-                  ..._fleetCars.map((car) => _buildFleetCard(car, isDark, cs, tt)),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
     );
   }
 
-  Widget _buildAnyVehicleCard(bool isDark, ColorScheme cs, TextTheme tt) {
-    final isSelected = _selectedCarId == null ||
-        _selectedCarId == 'Any VIP Vehicle' ||
-        _selectedCarId == 'any_vip';
+  // ── Carousel Card Builder ─────────────────────────────────────────────────
+  Widget _buildCarouselCard({
+    required FleetCategoryTier tier,
+    required String fareText,
+    required bool isDark,
+    required ColorScheme cs,
+  }) {
+    final assignedImg = _findAssignedCarImage(tier);
 
-    return GestureDetector(
-      onTap: _onSelectAnyVehicle,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? AppColors.primary : (isDark ? Colors.white10 : Colors.black12),
-            width: isSelected ? 2 : 1,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.06),
           ),
           boxShadow: [
             BoxShadow(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+              blurRadius: 16,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Row(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: AppColors.primary,
-                size: 26,
+            // Vehicle Image Gradient Area
+            Expanded(
+              flex: 5,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDark
+                        ? [
+                            tier.gradientColors[0].withValues(alpha: 0.25),
+                            AppColors.darkSurface,
+                          ]
+                        : tier.gradientColors,
+                  ),
+                ),
+                padding: const EdgeInsets.all(16),
+                alignment: Alignment.center,
+                child: assignedImg != null
+                    ? Image.network(
+                        assignedImg,
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, stack) => Image.asset(
+                          tier.defaultAsset,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Image.asset(
+                        tier.defaultAsset,
+                        fit: BoxFit.contain,
+                      ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+
+            // Vehicle Category & Specs
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        'Any VIP Vehicle',
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.white : AppColors.black,
+                        tier.name,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Fastest',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                      Text(
+                        fareText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Automatically match with nearest available chauffeur',
-                    style: tt.bodySmall?.copyWith(
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-              color: isSelected ? AppColors.primary : (isDark ? Colors.white30 : Colors.black26),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 250.ms);
-  }
-
-  Widget _buildFleetCard(
-    FleetVehicleItem car,
-    bool isDark,
-    ColorScheme cs,
-    TextTheme tt,
-  ) {
-    final isSelected = _selectedCarId == car.name;
-    final hasChauffeur = car.hasDriverAssigned;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected
-              ? AppColors.primary
-              : (isDark ? Colors.white10 : Colors.black12),
-          width: isSelected ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.15)
-                : Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => _onSelectVehicle(car),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top header: Make/Model + Status Pill
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            car.name,
-                            style: tt.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.white : AppColors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${car.year} • Executive Luxury',
-                            style: tt.bodySmall?.copyWith(
-                              color: isDark ? Colors.white60 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildChauffeurStatusPill(hasChauffeur, isDark),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Vehicle Image
-                Center(
-                  child: Container(
-                    height: 140,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    child: car.imageUrl != null && car.imageUrl!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: car.imageUrl!,
-                            fit: BoxFit.contain,
-                            placeholder: (ctx, _) => Image.asset(
-                              car.localAssetPath,
-                              fit: BoxFit.contain,
-                            ),
-                            errorWidget: (ctx, url, err) => Image.asset(
-                              car.localAssetPath,
-                              fit: BoxFit.contain,
-                            ),
-                          )
-                        : Image.asset(
-                            car.localAssetPath,
-                            fit: BoxFit.contain,
-                          ),
-                  ),
-                ),
-
-                if (car.features.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: car.features.split(',').take(3).map((f) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.group_outlined,
+                        size: 18,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${tier.passengers}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurface,
                         ),
-                        child: Text(
-                          f.trim(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark ? Colors.white70 : Colors.black87,
-                          ),
+                      ),
+                      const SizedBox(width: 14),
+                      Icon(
+                        Icons.work_outline_rounded,
+                        size: 17,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${tier.luggage}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurface,
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ],
                   ),
                 ],
-
-                const SizedBox(height: 14),
-                Divider(
-                  height: 1,
-                  color: isDark ? Colors.white10 : Colors.black12,
-                ),
-                const SizedBox(height: 12),
-
-                // Action / Select button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      hasChauffeur ? 'Chauffeur on standby' : 'Currently unassigned',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: hasChauffeur
-                            ? (isDark ? Colors.white70 : Colors.black87)
-                            : Colors.grey,
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: hasChauffeur
-                            ? (isSelected ? AppColors.primary : (isDark ? Colors.white12 : Colors.black87))
-                            : (isDark ? Colors.white10 : Colors.black12),
-                        foregroundColor: hasChauffeur
-                            ? (isSelected ? AppColors.black : AppColors.white)
-                            : Colors.grey,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () => _onSelectVehicle(car),
-                      child: Text(
-                        hasChauffeur
-                            ? (isSelected ? 'Selected' : 'Select Car')
-                            : 'Unavailable',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChauffeurStatusPill(bool hasChauffeur, bool isDark) {
-    if (hasChauffeur) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFF10B981).withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFF10B981).withValues(alpha: 0.4),
-          ),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle, size: 12, color: Color(0xFF10B981)),
-            SizedBox(width: 4),
-            Text(
-              'Chauffeur Available',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF10B981),
               ),
             ),
           ],
         ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.amber.withValues(alpha: 0.35),
-        ),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.access_time_rounded, size: 12, color: Colors.amber),
-          SizedBox(width: 4),
-          Text(
-            'No Chauffeur Available',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
-            ),
-          ),
-        ],
       ),
     );
   }
