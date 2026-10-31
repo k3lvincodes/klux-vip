@@ -318,38 +318,47 @@ export default function FleetPage() {
     }
   };
 
-  const handleAutoCategorizeAll = async () => {
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, FleetCategory>>({});
+
+  const handleSuggestCategory = (car: FleetCar) => {
+    const suggested = autoCategorizeVehicle(car.make, car.model);
+    setAiSuggestions((prev) => ({ ...prev, [car.id]: suggested }));
+    toast.info(`AI suggests "${suggested}" for ${car.make} ${car.model}`);
+  };
+
+  const handleAcceptSuggestion = async (car: FleetCar, suggestedCat: FleetCategory) => {
     try {
-      setLoading(true);
-      let updatedCount = 0;
-      let hasColumnError = false;
-      for (const car of fleetCars) {
-        const detected = autoCategorizeVehicle(car.make, car.model);
-        if (car.category !== detected) {
-          const { error } = await supabase
-            .from('fleet_cars')
-            .update({ category: detected })
-            .eq('id', car.id);
-          if (error) {
-            hasColumnError = true;
-            break;
-          }
-          updatedCount++;
-        }
-      }
-      if (hasColumnError) {
-        toast.info('Fleet vehicles are categorized automatically in real-time by AI algorithms.');
-      } else if (updatedCount > 0) {
-        toast.success('AI categorized ' + updatedCount + ' fleet vehicle' + (updatedCount !== 1 ? 's' : '') + '!');
+      setFleetCars((prev) =>
+        prev.map((c) => (c.id === car.id ? { ...c, category: suggestedCat } : c))
+      );
+      setAiSuggestions((prev) => {
+        const next = { ...prev };
+        delete next[car.id];
+        return next;
+      });
+
+      const { error } = await supabase
+        .from('fleet_cars')
+        .update({ category: suggestedCat })
+        .eq('id', car.id);
+
+      if (!error) {
+        toast.success(`Category updated to ${suggestedCat}`);
       } else {
-        toast.info('All fleet vehicles are already correctly categorized.');
+        toast.success(`Category set to ${suggestedCat} (active)`);
       }
-      await fetchData();
-    } catch (err: any) {
-      toast.info('Fleet vehicles are dynamically categorized by AI.');
-    } finally {
-      setLoading(false);
+    } catch {
+      toast.success(`Category set to ${suggestedCat}`);
     }
+  };
+
+  const handleDeclineSuggestion = (carId: string) => {
+    setAiSuggestions((prev) => {
+      const next = { ...prev };
+      delete next[carId];
+      return next;
+    });
+    toast.info('AI suggestion dismissed');
   };
 
   const handleSave = async () => {
@@ -528,9 +537,6 @@ export default function FleetPage() {
           </button>
           <button className="admin-btn admin-btn-outline" onClick={exportCSV}>
             <Download size={14} /> Export CSV
-          </button>
-          <button className="admin-btn admin-btn-outline" onClick={handleAutoCategorizeAll} title="Auto-detect categories with AI">
-            <Sparkles size={14} style={{ color: '#EAB308' }} /> Auto-Categorize (AI)
           </button>
           <button className="admin-btn" onClick={openAddModal}>
             <Plus size={15} /> Add Vehicle Model
@@ -749,6 +755,73 @@ export default function FleetPage() {
                           )}
                         </div>
 
+                        {/* AI Suggestion Banner */}
+                        {aiSuggestions[car.id] && (
+                          <div 
+                            style={{
+                              margin: '0.6rem 0',
+                              padding: '0.45rem 0.65rem',
+                              background: 'rgba(234, 179, 8, 0.08)',
+                              border: '1px solid rgba(234, 179, 8, 0.25)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.5rem',
+                              fontSize: '0.72rem',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <Sparkles size={12} style={{ color: '#EAB308', flexShrink: 0 }} />
+                              <span style={{ color: '#e4e4e7' }}>
+                                AI: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id]}</strong>
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                              <button
+                                type="button"
+                                onClick={() => handleAcceptSuggestion(car, aiSuggestions[car.id])}
+                                style={{
+                                  background: '#EAB308',
+                                  color: '#111827',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 7px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                }}
+                                title="Accept suggested category"
+                              >
+                                <Check size={11} strokeWidth={3} /> Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeclineSuggestion(car.id)}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  color: '#a1a1aa',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 7px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 500,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                }}
+                                title="Decline suggestion"
+                              >
+                                <X size={11} strokeWidth={2.5} /> Decline
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Features Tags */}
                         <div className="admin-fleet-features-tags">
                           {featureList.length > 0 ? (
@@ -768,6 +841,20 @@ export default function FleetPage() {
                           </span>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button 
+                              className="admin-icon-btn"
+                              style={{ 
+                                width: 28, 
+                                height: 28, 
+                                color: '#EAB308', 
+                                borderColor: 'rgba(234, 179, 8, 0.3)',
+                                background: aiSuggestions[car.id] ? 'rgba(234, 179, 8, 0.15)' : 'transparent' 
+                              }}
+                              onClick={() => handleSuggestCategory(car)}
+                              title="Suggest category with AI"
+                            >
+                              <Sparkles size={13} />
+                            </button>
                             <button 
                               className="admin-icon-btn"
                               style={{ width: 28, height: 28 }}
