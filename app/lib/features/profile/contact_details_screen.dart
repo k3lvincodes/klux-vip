@@ -312,6 +312,27 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'Complete your profile to keep your account up to date and secure.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: cs.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Contact details',
+                      style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
                     // Title / Salutation dropdown
                     _SectionLabel(label: 'Title', cs: cs),
                     const SizedBox(height: 6),
