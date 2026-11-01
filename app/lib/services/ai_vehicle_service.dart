@@ -27,8 +27,11 @@ class VehicleEvaluationResult {
 }
 
 class AiVehicleService {
-  static const String _geminiEndpoint =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  static const List<String> _geminiModels = [
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+  ];
 
   /// Evaluates a vehicle proposal submitted by a chauffeur using VIP Fleet AI.
   /// Strictly enforces:
@@ -90,8 +93,6 @@ class AiVehicleService {
     required int year,
     required String color,
   }) async {
-    final uri = Uri.parse('$_geminiEndpoint?key=$apiKey');
-
     final prompt = '''
 You are the Chief Fleet Inspection AI for Kenick VIP, a world-class executive luxury chauffeur service.
 Analyze the following proposed vehicle to determine whether it qualifies for executive VIP chauffeur service.
@@ -133,25 +134,39 @@ Respond ONLY with a valid JSON object in this exact schema (no markdown, no back
       },
     });
 
-    final response = await http
-        .post(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-          body: body,
-        )
-        .timeout(const Duration(seconds: 8));
+    for (final modelName in _geminiModels) {
+      try {
+        final uri = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey',
+        );
+        final response = await http
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final candidates = json['candidates'] as List?;
-      if (candidates != null && candidates.isNotEmpty) {
-        final content = candidates[0]['content'];
-        final parts = content['parts'] as List?;
-        if (parts != null && parts.isNotEmpty) {
-          final text = parts[0]['text'] as String;
-          final parsed = jsonDecode(text.trim()) as Map<String, dynamic>;
-          return VehicleEvaluationResult.fromJson(parsed);
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          final candidates = json['candidates'] as List?;
+          if (candidates != null && candidates.isNotEmpty) {
+            final content = candidates[0]['content'];
+            final parts = content['parts'] as List?;
+            if (parts != null && parts.isNotEmpty) {
+              final rawText = (parts[0]['text'] as String)
+                  .replaceAll('```json', '')
+                  .replaceAll('```', '')
+                  .trim();
+              final parsed = jsonDecode(rawText) as Map<String, dynamic>;
+              return VehicleEvaluationResult.fromJson(parsed);
+            }
+          }
+        } else {
+          debugPrint('[Kenick AI] Model $modelName returned status ${response.statusCode}');
         }
+      } catch (e) {
+        debugPrint('[Kenick AI] Error evaluating with $modelName: $e');
       }
     }
     return null;

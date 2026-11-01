@@ -182,6 +182,7 @@ Respond ONLY with valid JSON in this exact structure:
 
   for (const modelName of modelsToTry) {
     try {
+      console.log(`[Kenick AI] Evaluating ${vehicle.make} ${vehicle.model} (${vehicle.year}) using ${modelName}...`);
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(
         apiKey
       )}`;
@@ -205,7 +206,8 @@ Respond ONLY with valid JSON in this exact structure:
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        console.warn(`[Gemini AI] Model ${modelName} returned status ${response.status}`);
+        const errorText = await response.text();
+        console.warn(`[Kenick AI] Model ${modelName} returned status ${response.status}: ${errorText}`);
         continue;
       }
 
@@ -231,6 +233,12 @@ Respond ONLY with valid JSON in this exact structure:
             ? parsed.reason.trim()
             : `Classified by Kenick AI as ${validatedCategory}.`;
 
+        console.log(`[Kenick AI] Live AI classification complete for ${vehicle.make} ${vehicle.model}:`, {
+          category: validatedCategory,
+          reason,
+          model: modelName
+        });
+
         return {
           category: validatedCategory,
           reason,
@@ -238,7 +246,7 @@ Respond ONLY with valid JSON in this exact structure:
         };
       }
     } catch (err) {
-      console.warn(`[Gemini AI] Request to ${modelName} failed:`, err);
+      console.warn(`[Kenick AI] Request to ${modelName} failed:`, err);
     }
   }
 
