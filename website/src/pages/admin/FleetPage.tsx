@@ -14,7 +14,10 @@ import {
   Clock, 
   RotateCw,
   Wand2,
-  Loader2
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  Tag
 } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
@@ -1086,80 +1089,122 @@ export default function FleetPage() {
       <AdminDrawer
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        width={500}
+        width={560}
         title={editCar ? 'Edit Fleet Model' : 'Register Vehicle Model'}
-        subtitle="Manage luxury platform specs, amenities, and media"
+        subtitle="Platform luxury specs, experience tier classification & vehicle photography"
         footer={
           <>
             <button 
-              className="admin-btn admin-btn-outline" 
+              type="button"
+              className="drawer-btn-outline" 
               onClick={() => setShowAddModal(false)}
               disabled={saving}
             >
               Cancel
             </button>
             <button 
-              className="admin-btn"
+              type="button"
+              className="drawer-btn-primary"
               onClick={handleSave}
               disabled={saving || !form.make || !form.model}
             >
-              {saving ? 'Saving...' : editCar ? 'Save Changes' : 'Register Vehicle'}
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={16} />
+                  <span>{editCar ? 'Save Changes' : 'Register Vehicle'}</span>
+                </>
+              )}
             </button>
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Make & Model Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', marginBottom: 4 }}>
-                MAKE (MANUFACTURER)
-              </label>
-              <input 
-                type="text"
-                className="admin-input"
-                placeholder="e.g. Mercedes-Benz"
-                value={form.make}
-                onChange={(e) => setForm({ ...form, make: e.target.value })}
-              />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Section 1: Vehicle Specifications */}
+          <div className="drawer-section-card">
+            <div className="drawer-section-header">
+              <span className="drawer-section-title">Vehicle Specifications</span>
+              <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Make & Model Identity</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div>
+                <label className="drawer-label">
+                  Manufacturer (Make)
+                </label>
+                <input 
+                  type="text"
+                  className="drawer-input"
+                  placeholder="e.g. Mercedes-Benz"
+                  value={form.make}
+                  onChange={(e) => setForm({ ...form, make: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="drawer-label">
+                  Vehicle Model
+                </label>
+                <input 
+                  type="text"
+                  className="drawer-input"
+                  placeholder="e.g. S-Class Maybach"
+                  value={form.model}
+                  onChange={(e) => setForm({ ...form, model: e.target.value })}
+                />
+              </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', marginBottom: 4 }}>
-                MODEL
+              <label className="drawer-label">
+                Manufacture Year
               </label>
-              <input 
-                type="text"
-                className="admin-input"
-                placeholder="e.g. S-Class Maybach"
-                value={form.model}
-                onChange={(e) => setForm({ ...form, model: e.target.value })}
-              />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input 
+                  type="number"
+                  className="drawer-input"
+                  placeholder="2024"
+                  value={form.year}
+                  onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || new Date().getFullYear() })}
+                  style={{ width: 140 }}
+                />
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => setForm({ ...form, year: y })}
+                      style={{
+                        background: form.year === y ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                        border: `1px solid ${form.year === y ? '#EAB308' : '#27272A'}`,
+                        color: form.year === y ? '#EAB308' : '#A1A1AA',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Year */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', marginBottom: 4 }}>
-              MANUFACTURE YEAR
-            </label>
-            <input 
-              type="number"
-              className="admin-input"
-              placeholder="2024"
-              value={form.year}
-              onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || new Date().getFullYear() })}
-            />
-          </div>
-
-          {/* Fleet Category with AI auto-detect */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa' }}>
-                FLEET EXPERIENCE CATEGORY
-              </label>
+          {/* Section 2: Fleet Category with Kenick AI */}
+          <div className="drawer-section-card">
+            <div className="drawer-section-header">
+              <span className="drawer-section-title">Fleet Experience Tier</span>
               <button
                 type="button"
+                className="drawer-ai-pill"
                 disabled={loadingFormAi}
                 onClick={async () => {
                   setLoadingFormAi(true);
@@ -1171,11 +1216,7 @@ export default function FleetPage() {
                       features: form.features,
                     });
                     setForm((prev: any) => ({ ...prev, category: res.category }));
-                    if (res.evaluatedByGemini) {
-                      toast.success(`Kenick AI categorized as: ${res.category}`);
-                    } else {
-                      toast.success(`Kenick AI categorized as: ${res.category}`);
-                    }
+                    toast.success(`Kenick AI categorized as: ${res.category}`);
                   } catch {
                     const detected = autoCategorizeVehicle(form.make, form.model, form.year).category;
                     setForm((prev: any) => ({ ...prev, category: detected }));
@@ -1184,84 +1225,263 @@ export default function FleetPage() {
                     setLoadingFormAi(false);
                   }
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#EAB308',
-                  cursor: loadingFormAi ? 'wait' : 'pointer',
-                  opacity: loadingFormAi ? 0.7 : 1,
-                  fontSize: '0.72rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontWeight: 600
-                }}
               >
                 {loadingFormAi ? (
                   <>
-                    <Loader2 size={12} className="animate-spin" /> Asking Kenick AI...
+                    <Loader2 size={13} className="animate-spin" /> Asking Kenick AI...
                   </>
                 ) : (
                   <>
-                    <Wand2 size={12} /> Auto-detect with Kenick AI
+                    <Wand2 size={13} /> Auto-detect with Kenick AI
                   </>
                 )}
               </button>
             </div>
-            <select
-              className="admin-input"
-              value={form.category || 'None'}
-              onChange={(e) => setForm((prev: any) => ({ ...prev, category: e.target.value as FleetCategory }))}
-              style={{ background: '#18181b', color: '#fff', cursor: 'pointer' }}
-            >
-              <option value="None">None (Unassigned)</option>
-              <option value="Business Class">Business Class (Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80)</option>
-              <option value="Business Van">Business Van (Mercedes-Benz V-Class, VW Multivan, Toyota Alphard, Lexus LM)</option>
-              <option value="First Class">First Class (Mercedes-Benz S-Class, Maybach, BMW 7 Series, Audi A8, Lexus LS, Panamera)</option>
-            </select>
+
+            <div>
+              <label className="drawer-label">
+                Assigned Platform Category
+              </label>
+              <select
+                className="drawer-input"
+                value={form.category || 'None'}
+                onChange={(e) => setForm((prev: any) => ({ ...prev, category: e.target.value as FleetCategory }))}
+                style={{ cursor: 'pointer', background: '#121316', color: '#fff' }}
+              >
+                <option value="None">None (Unassigned — No badge shown to clients)</option>
+                <option value="Business Class">Business Class (Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80)</option>
+                <option value="Business Van">Business Van (Mercedes-Benz V-Class, VW Multivan, Toyota Alphard, Lexus LM)</option>
+                <option value="First Class">First Class (Mercedes-Benz S-Class, Maybach, BMW 7 Series, Audi A8, Lexus LS, Panamera)</option>
+              </select>
+            </div>
+
+            {/* Contextual Tier Guide Box */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid #27272A',
+              borderRadius: 10,
+              padding: '0.75rem 0.9rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.65rem'
+            }}>
+              <Sparkles size={16} style={{ color: form.category === 'First Class' ? '#EAB308' : form.category === 'Business Class' ? '#60A5FA' : form.category === 'Business Van' ? '#A78BFA' : '#71717A', marginTop: 2, flexShrink: 0 }} />
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.45 }}>
+                <span style={{ fontWeight: 600, color: '#fff' }}>
+                  {form.category === 'First Class' ? 'First Class Standard:' :
+                   form.category === 'Business Class' ? 'Business Class Standard:' :
+                   form.category === 'Business Van' ? 'Business Van Standard:' :
+                   'Unassigned Category:'}
+                </span>{' '}
+                <span style={{ color: '#A1A1AA' }}>
+                  {form.category === 'First Class' ? 'Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.' :
+                   form.category === 'Business Class' ? 'Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.' :
+                   form.category === 'Business Van' ? 'Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.' :
+                   'Vehicle will not show a tier badge on customer dispatch and search results.'}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Features */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', marginBottom: 4 }}>
-              LUXURY AMENITIES (COMMA SEPARATED)
-            </label>
-            <input 
-              type="text"
-              className="admin-input"
-              placeholder="e.g. Leather Seats, Wi-Fi, Panoramic Roof, Refreshments"
-              value={form.features}
-              onChange={(e) => setForm({ ...form, features: e.target.value })}
-            />
+          {/* Section 3: Luxury Amenities & Features */}
+          <div className="drawer-section-card">
+            <div className="drawer-section-header">
+              <span className="drawer-section-title">Luxury Amenities</span>
+              <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>In-Cabin Comforts</span>
+            </div>
+
+            <div>
+              <label className="drawer-label">
+                Amenities List (Comma-Separated)
+              </label>
+              <input 
+                type="text"
+                className="drawer-input"
+                placeholder="e.g. Leather Seats, Wi-Fi 5G, Panoramic Roof, Chilled Refreshments"
+                value={form.features}
+                onChange={(e) => setForm({ ...form, features: e.target.value })}
+              />
+            </div>
+
+            {/* Quick-add recommendation chips */}
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6 }}>
+                Quick Suggestions:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {[
+                  'Leather Seats',
+                  'Wi-Fi 5G',
+                  'Panoramic Roof',
+                  'Chilled Refreshments',
+                  'Massage Seats',
+                  'Privacy Glass',
+                  'Rear Climate Control',
+                  'Burmester Sound'
+                ].map(amenity => {
+                  const existingList = form.features.split(',').map((s: string) => s.trim().toLowerCase());
+                  const isSelected = existingList.includes(amenity.toLowerCase());
+                  return (
+                    <button
+                      key={amenity}
+                      type="button"
+                      onClick={() => {
+                        const items = form.features ? form.features.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                        const idx = items.findIndex((i: string) => i.toLowerCase() === amenity.toLowerCase());
+                        if (idx >= 0) {
+                          items.splice(idx, 1);
+                        } else {
+                          items.push(amenity);
+                        }
+                        setForm({ ...form, features: items.join(', ') });
+                      }}
+                      style={{
+                        background: isSelected ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        border: `1px solid ${isSelected ? '#EAB308' : '#27272A'}`,
+                        color: isSelected ? '#EAB308' : '#A1A1AA',
+                        borderRadius: 9999,
+                        padding: '3px 9px',
+                        fontSize: '0.7rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {isSelected ? <Check size={11} /> : <Plus size={11} />}
+                      {amenity}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Live parsed badges */}
+            {form.features && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', paddingTop: '0.35rem', borderTop: '1px solid #27272A' }}>
+                {form.features.split(',').map((s: string) => s.trim()).filter(Boolean).map((tag: string, i: number) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid #27272A',
+                      color: '#E4E4E7',
+                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      padding: '2px 8px',
+                      borderRadius: 6
+                    }}
+                  >
+                    <Tag size={10} style={{ color: '#EAB308' }} />
+                    {tag}
+                    <X
+                      size={11}
+                      style={{ cursor: 'pointer', marginLeft: 2, color: '#71717A' }}
+                      onClick={() => {
+                        const items = form.features.split(',').map((s: string) => s.trim()).filter(Boolean);
+                        items.splice(i, 1);
+                        setForm({ ...form, features: items.join(', ') });
+                      }}
+                    />
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Image Upload */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', marginBottom: 4 }}>
-              VEHICLE PHOTOGRAPHY
-            </label>
+          {/* Section 4: Vehicle Photography */}
+          <div className="drawer-section-card">
+            <div className="drawer-section-header">
+              <span className="drawer-section-title">Vehicle Photography</span>
+              <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Editorial Asset</span>
+            </div>
             
             {form.image_url ? (
-              <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', marginBottom: 8 }}>
+              <div style={{ position: 'relative', width: '100%', height: 180, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(234, 179, 8, 0.3)', background: '#0a0a0c' }}>
                 <img src={form.image_url} alt="Vehicle preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, image_url: '' })}
-                  style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                  <X size={14} />
-                </button>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)',
+                  pointerEvents: 'none'
+                }} />
+                
+                <div style={{ position: 'absolute', bottom: 10, left: 12, color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {form.make} {form.model} ({form.year})
+                </div>
+
+                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      background: 'rgba(20, 20, 22, 0.85)',
+                      border: '1px solid #27272A',
+                      color: '#EAB308',
+                      borderRadius: '50%',
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(8px)'
+                    }}
+                    title="Replace Photo"
+                  >
+                    <Upload size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, image_url: '' })}
+                    style={{
+                      background: 'rgba(20, 20, 22, 0.85)',
+                      border: '1px solid #27272A',
+                      color: '#EF4444',
+                      borderRadius: '50%',
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(8px)'
+                    }}
+                    title="Remove Photo"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
             ) : (
               <div 
+                className="drawer-upload-zone"
                 onClick={() => fileInputRef.current?.click()}
-                style={{ border: '2px dashed rgba(255,255,255,0.1)', borderRadius: 8, padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.01)' }}
               >
-                <Upload size={24} style={{ color: '#71717a', margin: '0 auto 6px', display: 'block' }} />
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#fff', fontWeight: 500 }}>
-                  {uploading ? 'Compressing and uploading...' : 'Click to select vehicle photo'}
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: 'rgba(234, 179, 8, 0.1)',
+                  color: '#EAB308',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px'
+                }}>
+                  {uploading ? <Loader2 size={22} className="animate-spin" /> : <Upload size={20} />}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#FFFFFF', fontWeight: 600, fontFamily: 'Poppins, sans-serif' }}>
+                  {uploading ? 'Compressing and uploading image...' : 'Select high-resolution photo'}
                 </p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#71717a' }}>PNG, JPG up to 10MB</p>
+                <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: '#A1A1AA', lineHeight: 1.4 }}>
+                  PNG, JPG or WebP up to 10MB • Recommended 16:9 ratio
+                </p>
               </div>
             )}
 
@@ -1280,16 +1500,21 @@ export default function FleetPage() {
       <AdminDrawer
         isOpen={!!rejectingId}
         onClose={() => setRejectingId(null)}
-        width={440}
+        width={480}
         title="Reject Vehicle Application"
-        subtitle="Provide feedback for the applicant"
+        subtitle="Provide structured compliance feedback for the chauffeur"
         footer={
           <>
-            <button className="admin-btn admin-btn-outline" onClick={() => setRejectingId(null)}>
+            <button 
+              type="button" 
+              className="drawer-btn-outline" 
+              onClick={() => setRejectingId(null)}
+            >
               Cancel
             </button>
             <button 
-              className="admin-btn admin-btn-danger"
+              type="button"
+              className="drawer-btn-danger"
               onClick={() => handleRejectRequest(rejectingId!)}
             >
               Confirm Rejection
@@ -1297,17 +1522,69 @@ export default function FleetPage() {
           </>
         }
       >
-        <p style={{ margin: '0 0 0.85rem', fontSize: '0.84rem', color: '#a1a1aa' }}>
-          Please provide a note for the chauffeur detailing why this vehicle does not meet platform standards:
-        </p>
-        <textarea 
-          className="admin-input"
-          rows={5}
-          placeholder="e.g. Vehicle year is outside acceptable limits or insurance documentation incomplete..."
-          value={rejectNote}
-          onChange={(e) => setRejectNote(e.target.value)}
-          style={{ resize: 'vertical', width: '100%' }}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.06)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 12,
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem'
+          }}>
+            <AlertCircle size={18} style={{ color: '#EF4444', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: '0.78rem', color: '#FCA5A5', lineHeight: 1.45 }}>
+              Rejecting this vehicle application will notify the chauffeur. Please specify the compliance deficiency clearly:
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.7rem', color: '#A1A1AA', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6 }}>
+              Quick Compliance Feedback:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {[
+                'Vehicle age exceeds platform limit for luxury registration.',
+                'Missing or unverified commercial livery insurance document.',
+                'Vehicle exterior or interior does not meet Kenick VIP quality standards.',
+                'Mandatory safety inspection certification is missing or expired.'
+              ].map((reason, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setRejectNote(reason)}
+                  style={{
+                    textAlign: 'left',
+                    background: rejectNote === reason ? 'rgba(234, 179, 8, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                    border: `1px solid ${rejectNote === reason ? '#EAB308' : '#27272A'}`,
+                    color: rejectNote === reason ? '#EAB308' : '#D4D4D8',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  • {reason}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="drawer-label">
+              Detailed Chauffeur Feedback Note
+            </label>
+            <textarea 
+              className="drawer-input"
+              rows={5}
+              placeholder="Detail reasons why this vehicle does not meet Kenick standards or steps required to re-apply..."
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              style={{ resize: 'vertical', width: '100%', minHeight: 110 }}
+            />
+          </div>
+        </div>
       </AdminDrawer>
 
     </div>
