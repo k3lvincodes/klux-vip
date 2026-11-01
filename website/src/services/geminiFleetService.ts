@@ -1,4 +1,4 @@
-export type FleetCategory = 'Business Class' | 'Business Van' | 'First Class';
+export type FleetCategory = 'None' | 'Business Class' | 'Business Van' | 'First Class';
 
 export interface VehicleCategorizationResult {
   category: FleetCategory;
@@ -18,19 +18,26 @@ export function categorizeVehicleFallback(
   const text = `${make} ${model}`.toLowerCase();
   const y = typeof year === 'number' && !isNaN(year) && year > 1900 ? year : new Date().getFullYear();
 
+  // 2. Business Van
+  // Examples: Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.
   const isVanOrMpv =
     text.includes('van') ||
     text.includes('v-class') ||
     text.includes('v class') ||
     text.includes('vclass') ||
+    text.includes('multivan') ||
+    text.includes('alphard') ||
+    text.includes('lexus lm') ||
+    text.includes('lm 350') ||
+    text.includes('lm 500') ||
+    text.includes('lm350') ||
+    text.includes('lm500') ||
+    text.includes('vellfire') ||
     text.includes('vito') ||
     text.includes('sprinter') ||
     text.includes('transit') ||
-    text.includes('multivan') ||
     text.includes('caravelle') ||
     text.includes('metris') ||
-    text.includes('alphard') ||
-    text.includes('vellfire') ||
     text.includes('escalade') ||
     text.includes('suburban') ||
     text.includes('navigator') ||
@@ -45,6 +52,8 @@ export function categorizeVehicleFallback(
     };
   }
 
+  // 3. First Class
+  // Examples: Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.
   const isFlagshipSedan =
     text.includes('s-class') ||
     text.includes('s class') ||
@@ -62,6 +71,10 @@ export function categorizeVehicleFallback(
     text.includes('i7') ||
     text.includes('a8') ||
     text.includes('s8') ||
+    text.includes('lexus ls') ||
+    text.includes('ls 500') ||
+    text.includes('ls500') ||
+    text.includes('ls 600') ||
     text.includes('panamera') ||
     text.includes('flying spur') ||
     text.includes('phantom') ||
@@ -84,6 +97,8 @@ export function categorizeVehicleFallback(
     };
   }
 
+  // 1. Business Class
+  // Examples: Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.
   const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
   return {
     category: 'Business Class',
@@ -118,33 +133,36 @@ Categorize the given vehicle into exactly ONE of these 3 VIP categories based st
 
 1. Business Class
 - Purpose: Premium everyday business transportation
-- Vehicle type: Executive sedan (e.g. Mercedes E-Class, BMW 5 Series, Audi A6, Genesis G80)
+- Vehicle type: Executive sedan
 - Seating: 3 passengers maximum
 - Doors: 4
 - Model year: 2019 or newer
 - Luggage: Minimum 2 medium suitcases
 - Safety: Functional airbags, ABS, stability control
 - Appearance: Excellent condition
+- Examples: Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.
 
 2. Business Van
 - Purpose: Group transportation, corporate travel and airport transfers
-- Vehicle type: Luxury passenger van / MPV / large executive SUV (e.g. Mercedes V-Class, Vito, Sprinter, Multivan, Cadillac Escalade, Lincoln Navigator)
+- Vehicle type: Luxury passenger van / MPV
 - Seating: 5–7 passengers
 - Doors: 4 or more
 - Model year: 2019 or newer
 - Luggage: Minimum 4 medium suitcases
 - Safety: Functional airbags, ABS, stability control
 - Appearance: Excellent exterior and interior condition
+- Examples: Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.
 
 3. First Class
 - Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
-- Vehicle type: Flagship luxury sedan (e.g. Mercedes S-Class, Mercedes-Maybach, BMW 7 Series / i7, Audi A8, Bentley Flying Spur, Rolls-Royce Ghost)
+- Vehicle type: Flagship luxury sedan
 - Seating: 3 passengers maximum
 - Doors: 4
 - Model year: 2021 or newer (Strict: If a flagship sedan is older than 2021, categorize as Business Class instead)
 - Interior: Full luxury/premium leather, exceptional passenger comfort, multi-zone climate control
 - Safety: Advanced driver assistance systems
 - Appearance: Immaculate condition
+- Examples: Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.
 
 VEHICLE TO CATEGORIZE:
 - Make: ${vehicle.make || 'Unknown'}

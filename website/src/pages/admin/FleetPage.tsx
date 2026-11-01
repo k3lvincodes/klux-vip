@@ -65,7 +65,37 @@ interface VehicleRequest {
   chauffeur_name: string;
 }
 
-const emptyCar = { make: '', model: '', year: new Date().getFullYear(), image_url: '', features: '', category: 'Business Class' as FleetCategory };
+const emptyCar = { make: '', model: '', year: new Date().getFullYear(), image_url: '', features: '', category: 'None' as FleetCategory };
+
+function getCategoryBadgeStyle(cat?: FleetCategory | string) {
+  switch (cat) {
+    case 'First Class':
+      return {
+        background: 'rgba(234, 179, 8, 0.15)',
+        color: '#EAB308',
+        border: '1px solid rgba(234, 179, 8, 0.3)',
+      };
+    case 'Business Van':
+      return {
+        background: 'rgba(249, 115, 22, 0.15)',
+        color: '#f97316',
+        border: '1px solid rgba(249, 115, 22, 0.3)',
+      };
+    case 'Business Class':
+      return {
+        background: 'rgba(59, 130, 246, 0.15)',
+        color: '#60a5fa',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+      };
+    case 'None':
+    default:
+      return {
+        background: 'rgba(255, 255, 255, 0.05)',
+        color: '#a1a1aa',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+      };
+  }
+}
 
 function compressImage(file: File, maxSize = 800, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -164,9 +194,18 @@ export default function FleetPage() {
         }
       });
 
+      const localCatMap: Record<string, FleetCategory> = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
+        } catch {
+          return {};
+        }
+      })();
+
       setFleetCars(
         (cars || []).map((c) => ({
           ...c,
+          category: localCatMap[c.id] || ((c as any).category as FleetCategory) || 'None',
           chauffeur_count: chauffeurCountMap.get(c.id) || 0,
         }))
       );
@@ -214,7 +253,7 @@ export default function FleetPage() {
 
   const filteredCars = useMemo(() => {
     return fleetCars.filter((c) => {
-      const currentCat = c.category || autoCategorizeVehicle(c.make, c.model, c.year).category;
+      const currentCat = c.category || 'None';
       if (categoryFilter !== 'all' && currentCat !== categoryFilter) {
         return false;
       }
@@ -250,7 +289,7 @@ export default function FleetPage() {
 
   const openEditModal = (car: FleetCar) => {
     setEditCar(car);
-    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '', category: car.category || autoCategorizeVehicle(car.make, car.model, car.year).category });
+    setForm({ make: car.make, model: car.model, year: car.year, image_url: car.image_url || '', features: car.features || '', category: car.category || 'None' });
     setShowAddModal(true);
   };
 
@@ -317,6 +356,14 @@ export default function FleetPage() {
     }
   };
 
+  const handleSetAllToNone = () => {
+    setFleetCars((prev) => prev.map((c) => ({ ...c, category: 'None' })));
+    try {
+      localStorage.removeItem('kenick_fleet_car_categories');
+    } catch {}
+    toast.info('All vehicles set to "None" category');
+  };
+
   const handleAcceptSuggestion = async (car: FleetCar, suggestedCat: FleetCategory) => {
     try {
       setFleetCars((prev) =>
@@ -327,6 +374,12 @@ export default function FleetPage() {
         delete next[car.id];
         return next;
       });
+
+      try {
+        const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
+        currentLocal[car.id] = suggestedCat;
+        localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
+      } catch {}
 
       const { error } = await supabase
         .from('fleet_cars')
@@ -363,10 +416,15 @@ export default function FleetPage() {
         image_url: form.image_url || null,
         features: form.features || '',
       };
-      const cat = form.category || autoCategorizeVehicle(form.make, form.model, form.year).category;
+      const cat = form.category || 'None';
       const payloadWithCat = { ...basePayload, category: cat };
 
       if (editCar) {
+        try {
+          const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
+          currentLocal[editCar.id] = cat;
+          localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
+        } catch {}
         let res = await supabase
           .from('fleet_cars')
           .update(payloadWithCat)
@@ -378,10 +436,19 @@ export default function FleetPage() {
       } else {
         let res = await supabase
           .from('fleet_cars')
-          .insert(payloadWithCat);
+          .insert(payloadWithCat)
+          .select()
+          .single();
         if (res.error) {
-          res = await supabase.from('fleet_cars').insert(basePayload);
+          res = await supabase.from('fleet_cars').insert(basePayload).select().single();
           if (res.error) throw res.error;
+        }
+        if (res.data?.id) {
+          try {
+            const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
+            currentLocal[res.data.id] = cat;
+            localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
+          } catch {}
         }
       }
       setShowAddModal(false);
@@ -629,7 +696,7 @@ export default function FleetPage() {
           {activeTab === 'fleet' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#71717a' }}>Category:</span>
-              {(['all', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => (
+              {(['all', 'None', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
@@ -648,6 +715,28 @@ export default function FleetPage() {
                   {cat === 'all' ? 'All Categories' : cat}
                 </button>
               ))}
+
+              <button
+                type="button"
+                onClick={handleSetAllToNone}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '3px 9px',
+                  borderRadius: 5,
+                  fontSize: '0.7rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'transparent',
+                  color: '#71717a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+                title="Reset all fleet vehicle categories to None"
+              >
+                Set All to None
+              </button>
             </div>
           )}
         </div>
@@ -715,26 +804,10 @@ export default function FleetPage() {
                                   padding: '2px 7px', 
                                   borderRadius: 4, 
                                   fontWeight: 600,
-                                  background: (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class' 
-                                    ? 'rgba(234, 179, 8, 0.15)' 
-                                    : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
-                                    ? 'rgba(249, 115, 22, 0.15)'
-                                    : 'rgba(59, 130, 246, 0.15)',
-                                  color: (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class'
-                                    ? '#EAB308'
-                                    : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
-                                    ? '#f97316'
-                                    : '#60a5fa',
-                                  border: `1px solid ${
-                                    (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'First Class'
-                                      ? 'rgba(234, 179, 8, 0.3)'
-                                      : (car.category || autoCategorizeVehicle(car.make, car.model, car.year).category) === 'Business Van'
-                                      ? 'rgba(249, 115, 22, 0.3)'
-                                      : 'rgba(59, 130, 246, 0.3)'
-                                  }`
+                                  ...getCategoryBadgeStyle(car.category || 'None')
                                 }}
                               >
-                                {car.category || autoCategorizeVehicle(car.make, car.model, car.year).category}
+                                {car.category || 'None'}
                               </span>
                             </div>
                             <span style={{ fontSize: '0.75rem', color: '#71717a', fontWeight: 600 }}>Model Year {car.year}</span>
@@ -1091,13 +1164,14 @@ export default function FleetPage() {
             </div>
             <select
               className="admin-input"
-              value={form.category || 'Business Class'}
+              value={form.category || 'None'}
               onChange={(e) => setForm((prev: any) => ({ ...prev, category: e.target.value as FleetCategory }))}
               style={{ background: '#18181b', color: '#fff', cursor: 'pointer' }}
             >
-              <option value="Business Class">Business Class (Executive Sedans & EVs - 3 Pax, 2 Bags)</option>
-              <option value="Business Van">Business Van (Executive Vans & Large SUVs - 5 Pax, 5 Bags)</option>
-              <option value="First Class">First Class (Flagship Ultra-Luxury Sedans - 3 Pax, 2 Bags)</option>
+              <option value="None">None (Unassigned)</option>
+              <option value="Business Class">Business Class (Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80)</option>
+              <option value="Business Van">Business Van (Mercedes-Benz V-Class, VW Multivan, Toyota Alphard, Lexus LM)</option>
+              <option value="First Class">First Class (Mercedes-Benz S-Class, Maybach, BMW 7 Series, Audi A8, Lexus LS, Panamera)</option>
             </select>
           </div>
 
