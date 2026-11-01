@@ -71,29 +71,24 @@ function getCategoryBadgeStyle(cat?: FleetCategory | string) {
   switch (cat) {
     case 'First Class':
       return {
-        background: 'rgba(234, 179, 8, 0.15)',
+        background: 'rgba(234, 179, 8, 0.12)',
         color: '#EAB308',
-        border: '1px solid rgba(234, 179, 8, 0.3)',
+        border: '1px solid rgba(234, 179, 8, 0.35)',
       };
     case 'Business Van':
       return {
-        background: 'rgba(249, 115, 22, 0.15)',
+        background: 'rgba(249, 115, 22, 0.12)',
         color: '#f97316',
-        border: '1px solid rgba(249, 115, 22, 0.3)',
+        border: '1px solid rgba(249, 115, 22, 0.35)',
       };
     case 'Business Class':
       return {
-        background: 'rgba(59, 130, 246, 0.15)',
+        background: 'rgba(59, 130, 246, 0.12)',
         color: '#60a5fa',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '1px solid rgba(59, 130, 246, 0.35)',
       };
-    case 'None':
     default:
-      return {
-        background: 'rgba(255, 255, 255, 0.05)',
-        color: '#a1a1aa',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-      };
+      return {};
   }
 }
 
@@ -694,48 +689,75 @@ export default function FleetPage() {
 
           {/* Experience Category Filter Buttons */}
           {activeTab === 'fleet' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#71717a' }}>Category:</span>
-              {(['all', 'None', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: categoryFilter === cat ? 'var(--admin-primary)' : 'rgba(255,255,255,0.08)',
-                    background: categoryFilter === cat ? 'rgba(244,197,34,0.1)' : 'transparent',
-                    color: categoryFilter === cat ? 'var(--admin-primary)' : '#a1a1aa',
-                  }}
-                >
-                  {cat === 'all' ? 'All Categories' : cat}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', paddingTop: '0.35rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Category:
+              </span>
+              {(['all', 'None', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => {
+                const isSelected = categoryFilter === cat;
+                const count = cat === 'all'
+                  ? fleetCars.length
+                  : cat === 'None'
+                  ? fleetCars.filter(c => !c.category || c.category === 'None').length
+                  : fleetCars.filter(c => c.category === cat).length;
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 9999,
+                      fontSize: '0.75rem',
+                      fontWeight: isSelected ? 600 : 500,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: isSelected ? '#EAB308' : 'rgba(255, 255, 255, 0.08)',
+                      background: isSelected ? 'rgba(234, 179, 8, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      color: isSelected ? '#EAB308' : '#a1a1aa',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <span>{cat === 'all' ? 'All Models' : cat === 'None' ? 'Unassigned' : cat}</span>
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        borderRadius: 9999,
+                        background: isSelected ? 'rgba(234, 179, 8, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                        color: isSelected ? '#EAB308' : '#71717a',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
 
               <button
                 type="button"
                 onClick={handleSetAllToNone}
                 style={{
                   marginLeft: 'auto',
-                  padding: '3px 9px',
-                  borderRadius: 5,
-                  fontSize: '0.7rem',
+                  padding: '5px 12px',
+                  borderRadius: 9999,
+                  fontSize: '0.72rem',
                   fontWeight: 500,
                   cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(255, 255, 255, 0.02)',
                   color: '#71717a',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 5,
+                  transition: 'all 0.18s ease'
                 }}
                 title="Reset all fleet vehicle categories to None"
               >
-                Set All to None
+                <RotateCw size={11} /> Reset All to None
               </button>
             </div>
           )}
@@ -794,27 +816,46 @@ export default function FleetPage() {
 
                       {/* Vehicle Body Info */}
                       <div className="admin-fleet-body">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                               <h3 className="admin-fleet-title" style={{ margin: 0 }}>{car.make} {car.model}</h3>
-                              <span 
-                                style={{ 
-                                  fontSize: '0.65rem', 
-                                  padding: '2px 7px', 
-                                  borderRadius: 4, 
-                                  fontWeight: 600,
-                                  ...getCategoryBadgeStyle(car.category || 'None')
-                                }}
-                              >
-                                {car.category || 'None'}
-                              </span>
+                              {car.category && car.category !== 'None' && (
+                                <span 
+                                  style={{ 
+                                    fontSize: '0.67rem', 
+                                    padding: '2px 9px', 
+                                    borderRadius: 9999, 
+                                    fontWeight: 600,
+                                    letterSpacing: '0.02em',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    ...getCategoryBadgeStyle(car.category)
+                                  }}
+                                >
+                                  {car.category}
+                                </span>
+                              )}
                             </div>
-                            <span style={{ fontSize: '0.75rem', color: '#71717a', fontWeight: 600 }}>Model Year {car.year}</span>
+                            <span style={{ fontSize: '0.74rem', color: '#71717a', fontWeight: 500, letterSpacing: '0.01em' }}>Model Year {car.year}</span>
                           </div>
                           {car.is_featured && (
-                            <span className="admin-badge admin-badge-warning" style={{ fontSize: '0.65rem' }}>
-                              Featured
+                            <span 
+                              style={{ 
+                                fontSize: '0.65rem', 
+                                padding: '3px 8px', 
+                                borderRadius: 9999, 
+                                fontWeight: 600,
+                                background: 'rgba(234, 179, 8, 0.12)',
+                                border: '1px solid rgba(234, 179, 8, 0.35)',
+                                color: '#EAB308',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                flexShrink: 0
+                              }}
+                            >
+                              <Star size={10} fill="#EAB308" /> Featured
                             </span>
                           )}
                         </div>
@@ -823,19 +864,22 @@ export default function FleetPage() {
                         {aiSuggestions[car.id] && (
                           <div 
                             style={{
-                              margin: '0.6rem 0',
-                              padding: '0.55rem 0.75rem',
-                              background: 'rgba(234, 179, 8, 0.09)',
-                              border: '1px solid rgba(234, 179, 8, 0.28)',
-                              borderRadius: '8px',
+                              margin: '0.75rem 0 0.5rem',
+                              padding: '0.7rem 0.85rem',
+                              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(20, 20, 22, 0.95) 100%)',
+                              border: '1px solid rgba(234, 179, 8, 0.3)',
+                              borderRadius: '14px',
                               fontSize: '0.72rem',
+                              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '4px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <Wand2 size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
-                                <span style={{ color: '#e4e4e7' }}>
-                                  Kenick AI suggests: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '5px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(234, 179, 8, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Wand2 size={11} style={{ color: '#EAB308' }} />
+                                </div>
+                                <span style={{ color: '#e4e4e7', fontWeight: 500 }}>
+                                  Kenick AI suggests: <strong style={{ color: '#EAB308', fontWeight: 600 }}>{aiSuggestions[car.id].category}</strong>
                                 </span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
@@ -846,14 +890,15 @@ export default function FleetPage() {
                                     background: '#EAB308',
                                     color: '#111827',
                                     border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '2px 8px',
-                                    fontSize: '0.68rem',
+                                    borderRadius: 9999,
+                                    padding: '3px 10px',
+                                    fontSize: '0.7rem',
                                     fontWeight: 600,
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '3px',
+                                    boxShadow: '0 2px 6px rgba(234, 179, 8, 0.25)'
                                   }}
                                   title="Accept suggested category"
                                 >
@@ -863,12 +908,12 @@ export default function FleetPage() {
                                   type="button"
                                   onClick={() => handleDeclineSuggestion(car.id)}
                                   style={{
-                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    background: 'rgba(255, 255, 255, 0.06)',
                                     color: '#a1a1aa',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '2px 8px',
-                                    fontSize: '0.68rem',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: 9999,
+                                    padding: '3px 9px',
+                                    fontSize: '0.7rem',
                                     fontWeight: 500,
                                     cursor: 'pointer',
                                     display: 'flex',
@@ -881,7 +926,7 @@ export default function FleetPage() {
                                 </button>
                               </div>
                             </div>
-                            <div style={{ fontSize: '0.67rem', color: '#a1a1aa', paddingLeft: '18px', lineHeight: 1.4 }}>
+                            <div style={{ fontSize: '0.68rem', color: '#a1a1aa', paddingLeft: '26px', lineHeight: 1.45 }}>
                               {aiSuggestions[car.id].reason}
                             </div>
                           </div>
@@ -900,9 +945,9 @@ export default function FleetPage() {
 
                         {/* Footer Controls */}
                         <div className="admin-fleet-footer">
-                          <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <CheckCircle2 size={13} color="var(--admin-success)" />
-                            {car.chauffeur_count} Chauffeur{car.chauffeur_count !== 1 ? 's' : ''} active
+                          <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: car.chauffeur_count > 0 ? '#10b981' : '#52525b' }} />
+                            <span>{car.chauffeur_count} Chauffeur{car.chauffeur_count !== 1 ? 's' : ''} assigned</span>
                           </span>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -910,13 +955,15 @@ export default function FleetPage() {
                               className="admin-icon-btn"
                               disabled={loadingAiCarIds[car.id]}
                               style={{ 
-                                width: 28, 
-                                height: 28, 
+                                width: 30, 
+                                height: 30, 
+                                borderRadius: 8,
                                 color: '#EAB308', 
-                                borderColor: 'rgba(234, 179, 8, 0.3)',
-                                background: aiSuggestions[car.id] ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
+                                borderColor: aiSuggestions[car.id] ? '#EAB308' : 'rgba(234, 179, 8, 0.3)',
+                                background: aiSuggestions[car.id] ? 'rgba(234, 179, 8, 0.15)' : 'rgba(234, 179, 8, 0.04)',
                                 opacity: loadingAiCarIds[car.id] ? 0.7 : 1,
-                                cursor: loadingAiCarIds[car.id] ? 'wait' : 'pointer'
+                                cursor: loadingAiCarIds[car.id] ? 'wait' : 'pointer',
+                                transition: 'all 0.18s ease'
                               }}
                               onClick={() => handleSuggestCategory(car)}
                               title={loadingAiCarIds[car.id] ? 'Analyzing with Kenick AI...' : 'Suggest category with Kenick AI'}
@@ -929,7 +976,7 @@ export default function FleetPage() {
                             </button>
                             <button 
                               className="admin-icon-btn"
-                              style={{ width: 28, height: 28 }}
+                              style={{ width: 30, height: 30, borderRadius: 8 }}
                               onClick={() => openEditModal(car)}
                               title="Edit model"
                             >
@@ -940,7 +987,7 @@ export default function FleetPage() {
                               confirmLabel="Delete?"
                               className="admin-icon-btn"
                               confirmClassName="admin-btn admin-btn-danger"
-                              style={{ color: '#ef4444' }}
+                              style={{ width: 30, height: 30, borderRadius: 8, color: '#ef4444' }}
                               title="Delete model"
                               onConfirm={() => handleDelete(car.id)}
                             />
