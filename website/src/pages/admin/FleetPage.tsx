@@ -813,7 +813,7 @@ export default function FleetPage() {
                           onClick={() => handleToggleFeatured(car)}
                           title={car.is_featured ? 'Featured on customer booking app' : 'Click to feature on customer booking app'}
                         >
-                          <Star size={15} fill={car.is_featured ? '#F4C522' : 'none'} />
+                          <Star size={15} fill={car.is_featured ? '#EAB308' : 'none'} color={car.is_featured ? '#EAB308' : '#71717A'} />
                         </button>
                       </div>
 

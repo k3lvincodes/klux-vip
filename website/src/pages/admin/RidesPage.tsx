@@ -268,7 +268,7 @@ export default function RidesPage() {
             <span className="admin-kpi-label">Completed Fares Gross</span>
             <div className="admin-kpi-value">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
-          <div className="admin-kpi-icon" style={{ background: 'rgba(244, 197, 34, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(234, 179, 8, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
             <CircleDollarSign size={18} />
           </div>
         </div>
@@ -409,7 +409,7 @@ export default function RidesPage() {
                     <td data-label="Chauffeur">
                       {r.driver_name ? (
                         <div className="admin-table-user-cell">
-                          <div className="admin-avatar-small" style={{ background: 'rgba(244, 197, 34, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+                          <div className="admin-avatar-small" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
                             <CarFront size={14} />
                           </div>
                           <div>
@@ -452,71 +452,74 @@ export default function RidesPage() {
       <AdminDrawer
         isOpen={!!selectedRide}
         onClose={() => setSelectedRide(null)}
-        width={480}
+        width={520}
         title={selectedRide ? `Journey #${shortId(selectedRide.id)}` : ''}
         subtitle={selectedRide ? `Logged on ${new Date(selectedRide.created_at).toLocaleString()}` : ''}
         headerAction={selectedRide ? statusBadge(selectedRide.status) : undefined}
         footer={
-          <button className="admin-btn admin-btn-outline" onClick={() => setSelectedRide(null)}>
+          <button type="button" className="drawer-btn-outline" onClick={() => setSelectedRide(null)}>
             Done
           </button>
         }
       >
         {selectedRide && (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Route Card */}
-            <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '1rem', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Itinerary Route
-              </span>
+            <div className="drawer-section-card">
+              <div className="drawer-section-header">
+                <span className="drawer-section-title">Itinerary Route</span>
+                <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>GPS Waypoints</span>
+              </div>
               
-              <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--admin-success)', marginTop: 4, flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: '#121316', border: '1px solid #27272A', borderRadius: 12, padding: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981', marginTop: 4, flexShrink: 0, boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#71717a' }}>Pickup Location</div>
-                    <div style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 500 }}>{selectedRide.pickup_address}</div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pickup Point</div>
+                    <div style={{ fontSize: '0.88rem', color: '#FFFFFF', fontWeight: 500, marginTop: 2 }}>{selectedRide.pickup_address}</div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--admin-warning)', marginTop: 4, flexShrink: 0 }} />
+                <div style={{ marginLeft: 4, width: 2, height: 16, background: '#27272A' }} />
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EAB308', marginTop: 4, flexShrink: 0, boxShadow: '0 0 8px rgba(234, 179, 8, 0.5)' }} />
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#71717a' }}>Destination Location</div>
-                    <div style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 500 }}>{selectedRide.dropoff_address}</div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Destination</div>
+                    <div style={{ fontSize: '0.88rem', color: '#FFFFFF', fontWeight: 500, marginTop: 2 }}>{selectedRide.dropoff_address}</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Passenger & Chauffeur Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Client Passenger
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.5rem' }}>
-                  <div className="admin-avatar-small">
-                    <User size={14} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="drawer-section-card">
+                <div className="drawer-section-header">
+                  <span className="drawer-section-title">Client Passenger</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: '0.25rem' }}>
+                  <div className="admin-avatar-small" style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid #27272A' }}>
+                    <User size={15} />
                   </div>
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedRide.passenger_name}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#71717a' }}>Passenger Account</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#FFFFFF', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedRide.passenger_name}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#71717A' }}>Client Account</div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Assigned Chauffeur
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.5rem' }}>
-                  <div className="admin-avatar-small" style={{ background: 'rgba(244, 197, 34, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
-                    <CarFront size={14} />
+              <div className="drawer-section-card">
+                <div className="drawer-section-header">
+                  <span className="drawer-section-title">Chauffeur</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: '0.25rem' }}>
+                  <div className="admin-avatar-small" style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(234, 179, 8, 0.1)', color: '#EAB308', border: '1px solid rgba(234, 179, 8, 0.25)' }}>
+                    <CarFront size={15} />
                   </div>
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedRide.driver_name || 'Unassigned'}</div>
-                    <div style={{ fontSize: '0.7rem', color: selectedRide.driver_name ? '#10b981' : '#71717a' }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#FFFFFF', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedRide.driver_name || 'Unassigned'}</div>
+                    <div style={{ fontSize: '0.7rem', color: selectedRide.driver_name ? '#10B981' : '#71717A' }}>
                       {selectedRide.driver_name ? 'Certified Chauffeur' : 'Awaiting Assignment'}
                     </div>
                   </div>
@@ -525,21 +528,22 @@ export default function RidesPage() {
             </div>
 
             {/* Fare Summary */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Trip Total Fare
-                </span>
-                <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Billed upon trip completion</div>
-              </div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                ${Number(selectedRide.fare_amount).toFixed(2)}
+            <div className="drawer-section-card" style={{ background: '#18181b', border: '1px solid rgba(234, 179, 8, 0.25)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span className="drawer-section-title">Trip Total Fare</span>
+                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', marginTop: 2 }}>Billed upon journey completion</div>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#EAB308', fontVariantNumeric: 'tabular-nums' }}>
+                  ${Number(selectedRide.fare_amount).toFixed(2)}
+                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </AdminDrawer>
 
     </div>
   );
 }
+

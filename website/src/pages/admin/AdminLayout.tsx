@@ -284,7 +284,7 @@ export default function AdminLayout() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>Operational Alerts</span>
                       {totalUnread > 0 ? (
-                        <span style={{ fontSize: '0.68rem', color: 'var(--admin-primary)', background: 'rgba(244, 197, 34, 0.12)', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.68rem', color: '#EAB308', background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.25)', padding: '2px 8px', borderRadius: 9999, fontWeight: 600 }}>
                           {totalUnread} unread
                         </span>
                       ) : (

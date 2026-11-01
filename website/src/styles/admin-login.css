@@ -6,9 +6,9 @@
 .al-page {
   display: flex;
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #09090b;
-  color: #fafafa;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #000000;
+  color: #FFFFFF;
   position: relative;
   overflow: hidden;
 }
@@ -33,7 +33,7 @@
 .al-orb-1 {
   width: 520px;
   height: 520px;
-  background: radial-gradient(circle, #F4C522 0%, rgba(244, 197, 34, 0) 70%);
+  background: radial-gradient(circle, #EAB308 0%, rgba(234, 179, 8, 0) 70%);
   top: -120px;
   left: -100px;
   animation: floatOrb1 18s ease-in-out infinite alternate;
@@ -150,15 +150,15 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(244, 197, 34, 0.08);
-  border: 1px solid rgba(244, 197, 34, 0.22);
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.22);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #F4C522;
+  color: #EAB308;
   margin-bottom: 1.5rem;
 }
 
@@ -166,7 +166,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #F4C522;
+  background: #EAB308;
 }
 
 .al-brand-title {
@@ -179,7 +179,7 @@
 }
 
 .al-brand-title span {
-  color: #F4C522;
+  color: #EAB308;
 }
 
 .al-brand-desc {
@@ -348,13 +348,13 @@
 }
 
 .al-field input:focus {
-  border-color: #F4C522;
+  border-color: #EAB308;
   background: #151518;
 }
 
 .al-field input:focus ~ .al-input-icon,
 .al-input-wrap:focus-within .al-input-icon {
-  color: #F4C522;
+  color: #EAB308;
 }
 
 /* ---- Password Wrapper ---- */
@@ -398,7 +398,7 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  background: #F4C522;
+  background: #EAB308;
   color: #09090b;
   transition: all 0.2s ease;
 }
@@ -453,7 +453,7 @@
 }
 
 .al-footer a:hover {
-  color: #F4C522;
+  color: #EAB308;
 }
 
 /* =============================================
@@ -518,3 +518,4 @@
     left: 1.5rem;
   }
 }
+

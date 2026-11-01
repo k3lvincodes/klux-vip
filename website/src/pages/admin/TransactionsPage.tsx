@@ -247,7 +247,7 @@ export default function TransactionsPage() {
             <span className="admin-kpi-label">Net Platform Margin</span>
             <div className="admin-kpi-value">${aggregates.netRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
-          <div className="admin-kpi-icon" style={{ background: 'rgba(244, 197, 34, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(234, 179, 8, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
             <CircleDollarSign size={18} />
           </div>
         </div>
@@ -403,7 +403,7 @@ export default function TransactionsPage() {
                       </td>
                       <td data-label="Linked Reference">
                         {t.ride_ref ? (
-                          <span style={{ fontSize: '0.78rem', color: 'var(--admin-primary)', background: 'rgba(244, 197, 34, 0.08)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(244, 197, 34, 0.18)', fontFamily: 'monospace' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--admin-primary)', background: 'rgba(234, 179, 8, 0.08)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(234, 179, 8, 0.18)', fontFamily: 'monospace' }}>
                             {t.ride_ref}
                           </span>
                         ) : (
@@ -447,87 +447,96 @@ export default function TransactionsPage() {
       <AdminDrawer
         isOpen={!!selectedTx}
         onClose={() => setSelectedTx(null)}
-        width={480}
+        width={520}
         title={selectedTx ? `Ledger Entry #${shortId(selectedTx.id)}` : ''}
         subtitle={selectedTx ? `Recorded on ${new Date(selectedTx.created_at).toLocaleString()}` : ''}
         headerAction={selectedTx ? statusBadge(selectedTx.status) : undefined}
         footer={
-          <button className="admin-btn admin-btn-outline" onClick={() => setSelectedTx(null)}>
+          <button type="button" className="drawer-btn-outline" onClick={() => setSelectedTx(null)}>
             Done
           </button>
         }
       >
         {selectedTx && (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Amount Display */}
-            <div style={{ textAlign: 'center', padding: '1.25rem', background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="drawer-section-card" style={{ textAlign: 'center', padding: '1.5rem', background: '#18181b', border: '1px solid #27272A' }}>
+              <span className="drawer-label" style={{ marginBottom: 4 }}>
                 Transaction Settlement Value
               </span>
               <div style={{ 
-                fontSize: '2rem', 
-                fontWeight: 800, 
+                fontSize: '2.4rem', 
+                fontWeight: 700, 
                 fontVariantNumeric: 'tabular-nums', 
-                marginTop: 6,
-                color: selectedTx.type === 'ride_payment' || selectedTx.amount > 0 ? 'var(--admin-success)' : '#ffffff'
+                marginTop: 4,
+                color: selectedTx.type === 'ride_payment' || selectedTx.amount > 0 ? '#10B981' : '#FFFFFF',
+                fontFamily: 'Poppins, sans-serif'
               }}>
                 {selectedTx.type === 'ride_payment' || selectedTx.amount > 0 ? '+' : '-'}${Math.abs(selectedTx.amount).toFixed(2)}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#a1a1aa', marginTop: 4 }}>
+              <div style={{ fontSize: '0.78rem', color: '#A1A1AA', marginTop: 4 }}>
                 {typeLabel(selectedTx.type)} · Currency USD
               </div>
             </div>
 
             {/* Details Rows */}
-            <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.84rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ color: '#71717a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={14} /> Participant
-                </span>
-                <span style={{ color: '#fff', fontWeight: 600 }}>{selectedTx.user_name}</span>
+            <div className="drawer-section-card">
+              <div className="drawer-section-header">
+                <span className="drawer-section-title">Ledger Entry Audit</span>
+                <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Immutable Record</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ color: '#71717a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <WalletCards size={14} /> Operation Classification
-                </span>
-                <span style={{ color: '#fff' }}>{typeLabel(selectedTx.type)}</span>
-              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: '#121316', border: '1px solid #27272A', borderRadius: 12, padding: '1rem', fontSize: '0.84rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid #27272A' }}>
+                  <span style={{ color: '#71717A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <User size={15} /> Account Holder
+                  </span>
+                  <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{selectedTx.user_name}</span>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ color: '#71717a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MapPin size={14} /> Linked Journey Reference
-                </span>
-                {selectedTx.ride_ref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedTx.ride_ref!);
-                      toast.success('Journey ID copied to clipboard');
-                    }}
-                    style={{ background: 'none', border: 'none', color: 'var(--admin-primary)', fontFamily: 'monospace', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-                    title="Click to copy journey reference"
-                  >
-                    {selectedTx.ride_ref}
-                  </button>
-                ) : (
-                  <span style={{ color: '#71717a' }}>Direct Platform Settlement</span>
-                )}
-              </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid #27272A' }}>
+                  <span style={{ color: '#71717A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <WalletCards size={15} /> Classification
+                  </span>
+                  <span style={{ color: '#FFFFFF' }}>{typeLabel(selectedTx.type)}</span>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#71717a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={14} /> Timestamp
-                </span>
-                <span style={{ color: '#e4e4e7' }}>
-                  {new Date(selectedTx.created_at).toLocaleString()}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottom: '1px solid #27272A' }}>
+                  <span style={{ color: '#71717A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <MapPin size={15} /> Linked Journey Ref
+                  </span>
+                  {selectedTx.ride_ref ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedTx.ride_ref!);
+                        toast.success('Journey ID copied to clipboard');
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#EAB308', fontFamily: 'monospace', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontWeight: 600 }}
+                      title="Click to copy journey reference"
+                    >
+                      {selectedTx.ride_ref}
+                    </button>
+                  ) : (
+                    <span style={{ color: '#71717A' }}>Direct Settlement</span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#71717A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Calendar size={15} /> Timestamp
+                  </span>
+                  <span style={{ color: '#A1A1AA', fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                    {new Date(selectedTx.created_at).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </AdminDrawer>
 
     </div>
   );
 }
+

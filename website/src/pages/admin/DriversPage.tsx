@@ -463,7 +463,7 @@ export default function DriversPage() {
                   <tr key={d.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedDriver(d)}>
                     <td data-label="Chauffeur">
                       <div className="admin-table-user-cell">
-                        <div className="admin-avatar-small" style={{ background: 'rgba(244, 197, 34, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+                        <div className="admin-avatar-small" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
                           {fullName(d).charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -488,7 +488,7 @@ export default function DriversPage() {
                     </td>
                     <td data-label="Rating">
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: 6, padding: '2px 7px' }}>
-                        <Star size={12} fill="#F4C522" color="#F4C522" />
+                        <Star size={12} fill="#EAB308" color="#EAB308" />
                         <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.8rem', fontVariantNumeric: 'tabular-nums' }}>
                           {d.driver_details?.rating != null ? d.driver_details.rating.toFixed(1) : '0.0'}
                         </span>
@@ -538,111 +538,122 @@ export default function DriversPage() {
       <AdminDrawer
         isOpen={!!selectedDriver}
         onClose={() => setSelectedDriver(null)}
-        width={480}
+        width={520}
         title={selectedDriver ? fullName(selectedDriver) : ''}
         subtitle={selectedDriver ? selectedDriver.email : ''}
         headerAction={selectedDriver ? statusBadge(selectedDriver) : undefined}
         footer={
-          <button className="admin-btn admin-btn-outline" onClick={() => setSelectedDriver(null)}>
+          <button className="drawer-btn-outline" onClick={() => setSelectedDriver(null)}>
             Done
           </button>
         }
       >
         {selectedDriver && (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Performance Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Performance Rating
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: '0.4rem' }}>
-                  <Star size={16} fill="#F4C522" color="#F4C522" />
-                  <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                    {selectedDriver.driver_details?.rating != null ? selectedDriver.driver_details.rating.toFixed(1) : '0.0'}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', color: '#71717a' }}>
-                    ({selectedDriver.driver_details?.rating_count || 0} reviews)
-                  </span>
-                </div>
+            <div className="drawer-section-card">
+              <div className="drawer-section-header">
+                <span className="drawer-section-title">Performance Analytics</span>
+                <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Live Telemetry</span>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div style={{ background: '#121316', border: '1px solid #27272A', borderRadius: 12, padding: '0.85rem 1rem' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Customer Rating
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: '0.4rem' }}>
+                    <Star size={18} fill="#EAB308" color="#EAB308" />
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                      {selectedDriver.driver_details?.rating != null ? selectedDriver.driver_details.rating.toFixed(1) : '0.0'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#A1A1AA' }}>
+                      ({selectedDriver.driver_details?.rating_count || 0} reviews)
+                    </span>
+                  </div>
+                </div>
 
-              <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '0.85rem' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Completed Trips
-                </span>
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums', marginTop: '0.4rem' }}>
-                  {selectedDriver.completed_rides} Trips
+                <div style={{ background: '#121316', border: '1px solid #27272A', borderRadius: 12, padding: '0.85rem 1rem' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Completed Trips
+                  </span>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums', marginTop: '0.4rem' }}>
+                    {selectedDriver.completed_rides} Journeys
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Vehicle Assignment */}
-            <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '1rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Assigned Vehicle Specification
-              </span>
+            <div className="drawer-section-card">
+              <div className="drawer-section-header">
+                <span className="drawer-section-title">Assigned Vehicle</span>
+                <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Fleet Registry</span>
+              </div>
               {selectedDriver.vehicle ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#121316', border: '1px solid #27272A', borderRadius: 12, padding: '0.9rem 1rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#fff' }}>
                       {selectedDriver.vehicle.year} {selectedDriver.vehicle.make} {selectedDriver.vehicle.model}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#71717a', marginTop: 2 }}>
-                      Color: {selectedDriver.vehicle.color || 'Unspecified'}
+                    <div style={{ fontSize: '0.75rem', color: '#A1A1AA', marginTop: 3 }}>
+                      Exterior Color: <span style={{ color: '#fff' }}>{selectedDriver.vehicle.color || 'Unspecified'}</span>
                     </div>
                   </div>
-                  <span className="admin-plate-badge" style={{ fontSize: '0.8rem', padding: '3px 8px' }}>
+                  <span className="admin-plate-badge" style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: 6 }}>
                     {selectedDriver.vehicle.license_plate}
                   </span>
                 </div>
               ) : (
-                <div style={{ marginTop: '0.5rem', color: '#71717a', fontSize: '0.82rem', fontStyle: 'italic' }}>
+                <div style={{ color: '#71717A', fontSize: '0.82rem', fontStyle: 'italic', padding: '0.5rem 0' }}>
                   No vehicle currently registered or assigned.
                 </div>
               )}
             </div>
 
-            {/* Quick Status Toggles */}
-            <div style={{ background: '#0e0e11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '1rem' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Administrative Actions
-              </span>
+            {/* Quick Administrative Actions */}
+            <div className="drawer-section-card">
+              <div className="drawer-section-header">
+                <span className="drawer-section-title">Administrative Actions</span>
+                <span style={{ fontSize: '0.7rem', color: '#71717A', fontWeight: 500 }}>Compliance & Access</span>
+              </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <button
-                  className="admin-btn admin-btn-outline"
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  type="button"
+                  className="drawer-btn-outline"
+                  style={{ width: '100%' }}
                   onClick={() => navigate(`/admin/documents?driver=${selectedDriver.id}`)}
                 >
-                  <FileText size={14} /> View Documents & Compliance
+                  <FileText size={15} /> View Chauffeur Compliance Documents
                 </button>
                 {selectedDriver.driver_details?.status !== 'approved' ? (
                   <button 
-                    className="admin-btn" 
-                    style={{ width: '100%', justifyContent: 'center' }}
+                    type="button"
+                    className="drawer-btn-primary" 
+                    style={{ width: '100%' }}
                     disabled={actionLoading}
                     onClick={() => handleStatusChange(selectedDriver.id, 'approved')}
                   >
-                    <UserCheck size={14} /> Approve Chauffeur
+                    <UserCheck size={16} /> Approve & Activate Chauffeur
                   </button>
                 ) : (
                   <InlineConfirmButton
-                    label={<><UserX size={14} style={{ marginRight: 6 }} /> Suspend Chauffeur</>}
-                    confirmLabel="Confirm Suspension?"
+                    label={<><UserX size={15} style={{ marginRight: 6 }} /> Suspend Chauffeur Access</>}
+                    confirmLabel="Confirm Chauffeur Suspension?"
                     disabled={actionLoading}
-                    className="admin-btn admin-btn-outline"
-                    confirmClassName="admin-btn admin-btn-danger"
-                    style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                    className="drawer-btn-outline"
+                    confirmClassName="drawer-btn-danger"
+                    style={{ width: '100%', justifyContent: 'center', color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                     onConfirm={() => handleStatusChange(selectedDriver.id, 'suspended')}
                   />
                 )}
               </div>
             </div>
-          </>
+          </div>
         )}
       </AdminDrawer>
 
     </div>
   );
 }
+

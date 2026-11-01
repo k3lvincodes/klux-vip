@@ -495,8 +495,8 @@ export default function DocumentsPage() {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0.75rem 1rem',
-            background: 'rgba(244, 197, 34, 0.08)',
-            border: '1px solid rgba(244, 197, 34, 0.25)',
+            background: 'rgba(234, 179, 8, 0.08)',
+            border: '1px solid rgba(234, 179, 8, 0.25)',
             borderRadius: 8,
             marginBottom: '1rem'
           }}>
@@ -903,7 +903,7 @@ export default function DocumentsPage() {
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
                                     {img.title}
                                   </span>
-                                  <span style={{ fontSize: '0.68rem', color: 'var(--admin-primary)', background: 'rgba(244, 197, 34, 0.1)', padding: '1px 6px', borderRadius: 4 }}>
+                                  <span style={{ fontSize: '0.68rem', color: 'var(--admin-primary)', background: 'rgba(234, 179, 8, 0.1)', padding: '1px 6px', borderRadius: 4 }}>
                                     {img.tag}
                                   </span>
                                 </div>
@@ -1026,3 +1026,4 @@ export default function DocumentsPage() {
     </div>
   );
 }
+

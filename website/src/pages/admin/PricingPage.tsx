@@ -521,7 +521,7 @@ export default function PricingPage() {
             <span className="admin-kpi-label">Configured Jurisdictions</span>
             <div className="admin-kpi-value">{selectedCountries.length}</div>
           </div>
-          <div className="admin-kpi-icon" style={{ background: 'rgba(244, 197, 34, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+          <div className="admin-kpi-icon" style={{ background: 'rgba(234, 179, 8, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
             <Globe size={18} />
           </div>
         </div>
@@ -788,73 +788,86 @@ export default function PricingPage() {
       <AdminDrawer
         isOpen={showModal}
         onClose={() => { setShowModal(false); setSearchQuery(''); }}
-        width={480}
+        width={520}
         title="Add Operating Jurisdiction"
         subtitle={`${filteredCountries.length} countries available for platform provisioning`}
         footer={
           <button 
-            className="admin-btn admin-btn-outline" 
+            type="button"
+            className="drawer-btn-outline" 
             onClick={() => { setShowModal(false); setSearchQuery(''); }}
           >
             Close
           </button>
         }
       >
-        {/* Search */}
-        <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#71717a' }} />
-          <input
-            type="text"
-            placeholder="Search jurisdiction by country name or code..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="admin-search-input"
-            style={{ paddingLeft: '2.4rem' }}
-            autoFocus
-          />
-        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#71717A' }} />
+            <input
+              type="text"
+              placeholder="Search jurisdiction by country name or code..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="drawer-input"
+              style={{ paddingLeft: '2.5rem' }}
+              autoFocus
+            />
+          </div>
 
-        {modalError && (
-          <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.85rem' }}>{modalError}</div>
-        )}
-
-        {/* Country Picker List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {filteredCountries.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#71717a', fontSize: '0.85rem' }}>
-              {searchQuery ? 'No countries match your search.' : 'All supported territories are already configured.'}
-            </div>
-          ) : (
-            filteredCountries.map(c => (
-              <button
-                key={c.code}
-                onClick={() => addCountry(c.code)}
-                disabled={adding}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '0.75rem 1rem', 
-                  background: '#0e0e11', 
-                  border: '1px solid rgba(255,255,255,0.05)', 
-                  borderRadius: 8, 
-                  color: '#fff', 
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background-color 0.15s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '1.25rem' }}>{c.flag}</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{c.name}</span>
-                </div>
-                <span style={{ fontSize: '0.75rem', color: '#71717a', fontFamily: 'monospace' }}>{c.code}</span>
-              </button>
-            ))
+          {modalError && (
+            <div style={{ color: '#EF4444', fontSize: '0.8rem', padding: '0.5rem 0.75rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 8 }}>{modalError}</div>
           )}
+
+          {/* Country Picker List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
+            {filteredCountries.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#71717A', fontSize: '0.85rem' }}>
+                {searchQuery ? 'No countries match your search.' : 'All supported territories are already configured.'}
+              </div>
+            ) : (
+              filteredCountries.map(c => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => addCountry(c.code)}
+                  disabled={adding}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '0.85rem 1.15rem', 
+                    background: '#18181b', 
+                    border: '1px solid #27272A', 
+                    borderRadius: 12, 
+                    color: '#fff', 
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#27272A';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: '1.35rem' }}>{c.flag}</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#FFFFFF' }}>{c.name}</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#EAB308', background: 'rgba(234, 179, 8, 0.1)', padding: '2px 8px', borderRadius: 9999, border: '1px solid rgba(234, 179, 8, 0.2)', fontFamily: 'monospace', fontWeight: 600 }}>{c.code}</span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       </AdminDrawer>
 
     </div>
   );
 }
+

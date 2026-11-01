@@ -469,22 +469,24 @@ export default function Overview() {
           </div>
 
           {/* Interactive Period Selector */}
-          <div className="admin-period-tabs" style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, padding: 2, border: '1px solid var(--admin-border)' }}>
+          <div className="admin-period-tabs" style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 9999, padding: '3px 4px', border: '1px solid #27272A' }}>
             {(['7d', '14d', '30d'] as PeriodOption[]).map((period) => (
               <button
                 key={period}
                 type="button"
                 onClick={() => setSelectedPeriod(period)}
                 style={{
-                  background: selectedPeriod === period ? 'rgba(244, 197, 34, 0.15)' : 'transparent',
-                  color: selectedPeriod === period ? 'var(--admin-primary)' : 'var(--admin-text-muted)',
-                  border: selectedPeriod === period ? '1px solid rgba(244, 197, 34, 0.3)' : '1px solid transparent',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.72rem',
-                  fontWeight: selectedPeriod === period ? 700 : 500,
+                  background: selectedPeriod === period ? '#EAB308' : 'transparent',
+                  color: selectedPeriod === period ? '#111827' : '#A1A1AA',
+                  border: 'none',
+                  borderRadius: 9999,
+                  padding: '5px 12px',
+                  fontSize: '0.74rem',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontWeight: selectedPeriod === period ? 600 : 500,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: selectedPeriod === period ? '0 2px 8px rgba(234, 179, 8, 0.25)' : 'none',
                 }}
               >
                 {period === '7d' ? '7 Days' : period === '14d' ? '14 Days' : '30 Days'}
@@ -521,7 +523,7 @@ export default function Overview() {
               <p className="admin-stat-subtext">{daysCount}d gross: ${currentPeriodRevenueTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
           </div>
-          <div className="admin-stat-icon" style={{ background: 'rgba(244, 197, 34, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+          <div className="admin-stat-icon" style={{ background: 'rgba(234, 179, 8, 0.08)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
             <CircleDollarSign size={20} />
           </div>
         </div>
@@ -632,15 +634,15 @@ export default function Overview() {
                 />
                 <RechartsTooltip 
                   content={<CleanTooltip isCurrency={true} />} 
-                  cursor={{ stroke: 'rgba(244, 197, 34, 0.25)', strokeWidth: 1, strokeDasharray: '4 4' }} 
+                  cursor={{ stroke: 'rgba(234, 179, 8, 0.25)', strokeWidth: 1, strokeDasharray: '4 4' }} 
                 />
                 <Area 
                   type="monotone" 
                   dataKey="amount" 
-                  stroke="#F4C522" 
+                  stroke="#EAB308" 
                   strokeWidth={2} 
-                  fill="rgba(244, 197, 34, 0.06)" 
-                  activeDot={{ r: 4, fill: '#F4C522', stroke: '#09090b', strokeWidth: 2 }}
+                  fill="rgba(234, 179, 8, 0.06)" 
+                  activeDot={{ r: 4, fill: '#EAB308', stroke: '#09090b', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -766,7 +768,7 @@ export default function Overview() {
                     <td data-label="Chauffeur">
                       {ride.driver_name ? (
                         <div className="admin-table-user-cell">
-                          <div className="admin-avatar-small" style={{ background: 'rgba(244, 197, 34, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(244, 197, 34, 0.2)' }}>
+                          <div className="admin-avatar-small" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
                             <CarFront size={13} />
                           </div>
                           <span style={{ color: '#fff', fontSize: '0.82rem' }}>{ride.driver_name}</span>
@@ -776,7 +778,7 @@ export default function Overview() {
                       )}
                     </td>
                     <td data-label="Fare">
-                      <span style={{ fontWeight: 600, color: '#F4C522', fontSize: '0.86rem' }}>
+                      <span style={{ fontWeight: 600, color: '#EAB308', fontSize: '0.86rem' }}>
                         ${ride.fare_amount.toFixed(2)}
                       </span>
                     </td>
@@ -1005,3 +1007,4 @@ export default function Overview() {
     </div>
   );
 }
+
