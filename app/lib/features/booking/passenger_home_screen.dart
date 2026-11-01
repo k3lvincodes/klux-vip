@@ -423,15 +423,20 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Welcome, $_displayName',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w400,
-                        color: cs.onSurface,
-                        letterSpacing: -0.2,
+                    Expanded(
+                      child: Text(
+                        'Welcome, $_displayName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w400,
+                          color: cs.onSurface,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _openNavigationMenu,
                       behavior: HitTestBehavior.opaque,
@@ -936,12 +941,12 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
                       _buildTierPill('Business Class'),
-                      const SizedBox(width: 6),
                       _buildTierPill('Business Van'),
-                      const SizedBox(width: 6),
                       _buildTierPill('First Class'),
                     ],
                   ),
@@ -1014,7 +1019,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
 
   Widget _buildTierPill(String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
@@ -1026,7 +1031,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       child: Text(
         title,
         style: GoogleFonts.poppins(
-          fontSize: 10.5,
+          fontSize: 10,
           fontWeight: FontWeight.w500,
           color: Colors.white.withValues(alpha: 0.85),
         ),
