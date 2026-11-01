@@ -336,9 +336,9 @@ export default function FleetPage() {
       });
       setAiSuggestions((prev) => ({ ...prev, [car.id]: res }));
       if (res.evaluatedByGemini) {
-        toast.info(`Gemini AI recommends "${res.category}"`);
+        toast.info(`Kenick AI recommends "${res.category}"`);
       } else {
-        toast.info(`AI recommends "${res.category}"`);
+        toast.info(`Kenick AI recommends "${res.category}"`);
       }
     } catch {
       const fallback = categorizeVehicleFallback(car.make, car.model, car.year);
@@ -835,8 +835,7 @@ export default function FleetPage() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <Wand2 size={13} style={{ color: '#EAB308', flexShrink: 0 }} />
                                 <span style={{ color: '#e4e4e7' }}>
-                                  {aiSuggestions[car.id].evaluatedByGemini ? 'Gemini AI suggests: ' : 'AI suggests: '}
-                                  <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
+                                  Kenick AI suggests: <strong style={{ color: '#EAB308' }}>{aiSuggestions[car.id].category}</strong>
                                 </span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
@@ -920,7 +919,7 @@ export default function FleetPage() {
                                 cursor: loadingAiCarIds[car.id] ? 'wait' : 'pointer'
                               }}
                               onClick={() => handleSuggestCategory(car)}
-                              title={loadingAiCarIds[car.id] ? 'Analyzing with Gemini AI...' : 'Suggest category with Gemini AI'}
+                              title={loadingAiCarIds[car.id] ? 'Analyzing with Kenick AI...' : 'Suggest category with Kenick AI'}
                             >
                               {loadingAiCarIds[car.id] ? (
                                 <Loader2 size={13} className="animate-spin" />
@@ -1126,14 +1125,14 @@ export default function FleetPage() {
                     });
                     setForm((prev: any) => ({ ...prev, category: res.category }));
                     if (res.evaluatedByGemini) {
-                      toast.success(`Gemini AI categorized as: ${res.category}`);
+                      toast.success(`Kenick AI categorized as: ${res.category}`);
                     } else {
-                      toast.success(`AI categorized as: ${res.category}`);
+                      toast.success(`Kenick AI categorized as: ${res.category}`);
                     }
                   } catch {
                     const detected = autoCategorizeVehicle(form.make, form.model, form.year).category;
                     setForm((prev: any) => ({ ...prev, category: detected }));
-                    toast.success(`AI categorized as: ${detected}`);
+                    toast.success(`Kenick AI categorized as: ${detected}`);
                   } finally {
                     setLoadingFormAi(false);
                   }
@@ -1153,11 +1152,11 @@ export default function FleetPage() {
               >
                 {loadingFormAi ? (
                   <>
-                    <Loader2 size={12} className="animate-spin" /> Asking Gemini AI...
+                    <Loader2 size={12} className="animate-spin" /> Asking Kenick AI...
                   </>
                 ) : (
                   <>
-                    <Wand2 size={12} /> Auto-detect with Gemini AI
+                    <Wand2 size={12} /> Auto-detect with Kenick AI
                   </>
                 )}
               </button>

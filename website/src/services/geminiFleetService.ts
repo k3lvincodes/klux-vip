@@ -128,7 +128,7 @@ export async function categorizeVehicleWithGemini(vehicle: {
   }
 
   const systemInstructions = `
-You are the Chief Fleet Inspection AI for Kenick VIP, a world-class luxury chauffeur service.
+You are Kenick AI, the Chief Fleet Inspection AI for Kenick VIP, a world-class luxury chauffeur service.
 Categorize the given vehicle into exactly ONE of these 3 VIP categories based strictly on these criteria:
 
 1. Business Class
@@ -229,7 +229,7 @@ Respond ONLY with valid JSON in this exact structure:
         const reason =
           typeof parsed.reason === 'string' && parsed.reason.trim()
             ? parsed.reason.trim()
-            : `Classified by Gemini AI as ${validatedCategory}.`;
+            : `Classified by Kenick AI as ${validatedCategory}.`;
 
         return {
           category: validatedCategory,
