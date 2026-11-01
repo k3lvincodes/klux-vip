@@ -570,12 +570,27 @@
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+}
+
+.admin-table-fixed {
+  table-layout: fixed;
+  width: 100%;
 }
 
 .admin-table th {
@@ -586,12 +601,13 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 1.15rem 1.4rem;
+  padding: 0.95rem 1rem;
   border-bottom: 1px solid #27272A;
+  white-space: nowrap;
 }
 
 .admin-table td {
-  padding: 1.15rem 1.4rem;
+  padding: 0.95rem 1rem;
   border-bottom: 1px solid rgba(39, 39, 42, 0.6);
   color: #FFFFFF;
   font-family: 'Poppins', sans-serif;
@@ -745,15 +761,19 @@
   display: none;
 }
 
-/* Table horizontal scroll — only on larger screens; below 768px we use card layout */
+/* Table container on larger screens — wrapper does not scroll; only table container if ever needed */
 @media (min-width: 769px) {
   .admin-table-wrapper {
+    overflow: hidden;
+  }
+
+  .admin-table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .admin-table {
-    min-width: 600px;
+    min-width: 0;
   }
 }
 
@@ -2729,9 +2749,9 @@
 .admin-filter-tabs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.35rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .admin-filter-tab {
@@ -2839,18 +2859,29 @@
 .admin-route-preview {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   font-size: 0.8rem;
-  max-width: 320px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .admin-route-stop {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.admin-route-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  display: block;
 }
 
 .admin-route-dot {

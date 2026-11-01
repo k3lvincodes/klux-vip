@@ -352,98 +352,100 @@ export default function RidesPage() {
             <button className="admin-btn" onClick={fetchRides}>Try Again</button>
           </div>
         ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th scope="col" style={{ width: '120px' }}>Journey ID</th>
-                <th scope="col">Client</th>
-                <th scope="col">Itinerary Route</th>
-                <th scope="col">Chauffeur</th>
-                <th scope="col" style={{ width: '110px' }}>Fare</th>
-                <th scope="col" style={{ width: '140px' }}>Status</th>
-                <th scope="col" style={{ width: '60px', textAlign: 'right' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
+          <div className="admin-table-container">
+            <table className="admin-table admin-table-fixed">
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#71717a' }}>
-                    {search ? 'No journeys match your search query.' : 'No journeys found in this view.'}
-                  </td>
+                  <th scope="col" style={{ width: 115 }}>Journey ID</th>
+                  <th scope="col" style={{ width: '16%' }}>Client</th>
+                  <th scope="col" style={{ width: '33%' }}>Itinerary Route</th>
+                  <th scope="col" style={{ width: '17%' }}>Chauffeur</th>
+                  <th scope="col" style={{ width: 90 }}>Fare</th>
+                  <th scope="col" style={{ width: 115 }}>Status</th>
+                  <th scope="col" style={{ width: 45, textAlign: 'right' }}></th>
                 </tr>
-              ) : (
-                filtered.map((r) => (
-                  <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedRide(r)}>
-                    <td data-label="Journey ID">
-                      <div style={{ fontFamily: 'monospace', color: '#a1a1aa', fontSize: '0.82rem' }}>
-                        #{shortId(r.id)}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#52525b', marginTop: 2 }}>
-                        {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </div>
-                    </td>
-                    <td data-label="Client">
-                      <div className="admin-table-user-cell">
-                        <div className="admin-avatar-small">
-                          {r.passenger_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.85rem' }}>{r.passenger_name}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#71717a' }}>Passenger</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Route">
-                      <div className="admin-route-preview">
-                        <div className="admin-route-stop" title={r.pickup_address}>
-                          <span className="admin-route-dot pickup" />
-                          <span style={{ color: '#e4e4e7' }}>{r.pickup_address || 'Pickup Point'}</span>
-                        </div>
-                        <div className="admin-route-connector" />
-                        <div className="admin-route-stop" title={r.dropoff_address}>
-                          <span className="admin-route-dot dropoff" />
-                          <span style={{ color: '#a1a1aa' }}>{r.dropoff_address || 'Destination'}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Chauffeur">
-                      {r.driver_name ? (
-                        <div className="admin-table-user-cell">
-                          <div className="admin-avatar-small" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--admin-primary)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
-                            <CarFront size={14} />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 500, color: '#fff', fontSize: '0.85rem' }}>{r.driver_name}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Assigned</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#71717a', fontSize: '0.82rem', fontStyle: 'italic' }}>Pending Assignment</span>
-                      )}
-                    </td>
-                    <td data-label="Fare">
-                      <span style={{ fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums', fontSize: '0.9rem' }}>
-                        ${Number(r.fare_amount).toFixed(2)}
-                      </span>
-                    </td>
-                    <td data-label="Status">
-                      {statusBadge(r.status)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button 
-                        className="admin-icon-btn" 
-                        style={{ width: 28, height: 28 }}
-                        onClick={(e) => { e.stopPropagation(); setSelectedRide(r); }}
-                        title="View details"
-                      >
-                        <Eye size={13} />
-                      </button>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#71717a' }}>
+                      {search ? 'No journeys match your search query.' : 'No journeys found in this view.'}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map((r) => (
+                    <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedRide(r)}>
+                      <td data-label="Journey ID">
+                        <div style={{ fontFamily: 'monospace', color: '#a1a1aa', fontSize: '0.82rem' }}>
+                          #{shortId(r.id)}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#52525b', marginTop: 2 }}>
+                          {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </div>
+                      </td>
+                      <td data-label="Client" style={{ overflow: 'hidden' }}>
+                        <div className="admin-table-user-cell">
+                          <div className="admin-avatar-small" style={{ flexShrink: 0 }}>
+                            {r.passenger_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.passenger_name}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#71717a' }}>Passenger</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Route" style={{ overflow: 'hidden' }}>
+                        <div className="admin-route-preview">
+                          <div className="admin-route-stop" title={r.pickup_address}>
+                            <span className="admin-route-dot pickup" />
+                            <span className="admin-route-text" style={{ color: '#e4e4e7' }}>{r.pickup_address || 'Pickup Point'}</span>
+                          </div>
+                          <div className="admin-route-connector" />
+                          <div className="admin-route-stop" title={r.dropoff_address}>
+                            <span className="admin-route-dot dropoff" />
+                            <span className="admin-route-text" style={{ color: '#a1a1aa' }}>{r.dropoff_address || 'Destination'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Chauffeur" style={{ overflow: 'hidden' }}>
+                        {r.driver_name ? (
+                          <div className="admin-table-user-cell">
+                            <div className="admin-avatar-small" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#EAB308', borderColor: 'rgba(234, 179, 8, 0.25)', flexShrink: 0 }}>
+                              <CarFront size={14} />
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                              <div style={{ fontWeight: 500, color: '#fff', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.driver_name}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Assigned</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#71717a', fontSize: '0.82rem', fontStyle: 'italic', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Pending Assignment</span>
+                        )}
+                      </td>
+                      <td data-label="Fare">
+                        <span style={{ fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums', fontSize: '0.9rem' }}>
+                          ${Number(r.fare_amount).toFixed(2)}
+                        </span>
+                      </td>
+                      <td data-label="Status">
+                        {statusBadge(r.status)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="admin-icon-btn" 
+                          style={{ width: 28, height: 28 }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedRide(r); }}
+                          title="View details"
+                        >
+                          <Eye size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
 
       </div>
