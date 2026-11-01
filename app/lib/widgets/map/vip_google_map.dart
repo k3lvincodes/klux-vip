@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:kenick_vip/theme/app_colors.dart';
@@ -20,6 +22,7 @@ class VipGoogleMap extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.myLocationEnabled = false,
     this.myLocationButtonEnabled = false,
+    this.gestureRecognizers,
   });
 
   final ll.LatLng initialCenter;
@@ -35,6 +38,7 @@ class VipGoogleMap extends StatefulWidget {
   final EdgeInsets padding;
   final bool myLocationEnabled;
   final bool myLocationButtonEnabled;
+  final Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
 
   @override
   State<VipGoogleMap> createState() => VipGoogleMapState();
@@ -316,11 +320,15 @@ class VipGoogleMapState extends State<VipGoogleMap> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return gmaps.GoogleMap(
+      gestureRecognizers: widget.gestureRecognizers ??
+          <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+          },
       initialCameraPosition: gmaps.CameraPosition(
         target: gmaps.LatLng(widget.initialCenter.latitude, widget.initialCenter.longitude),
         zoom: widget.initialZoom,
       ),
-      style: isDark ? _darkMapStyle : null,
+      style: isDark ? _darkMapStyle : _lightMapStyle,
       onMapCreated: (ctrl) {
         _controller = ctrl;
         widget.onMapCreated?.call(ctrl);

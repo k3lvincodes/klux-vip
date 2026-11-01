@@ -58,6 +58,7 @@ dependencies:
   didit_sdk: ^3.6.0
   cached_network_image: ^3.4.1
   flutter_stripe: ^13.0.0
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

@@ -348,6 +348,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildListTile(
+                  title: 'Legal Notice',
+                  icon: Icons.gavel_outlined,
+                  onTap: () => context.push('/legal-notice'),
+                ),
+                const Divider(height: 1, indent: 56),
+                _buildListTile(
                   title: 'Privacy Policy',
                   icon: Icons.privacy_tip_outlined,
                   onTap: () => context.push('/privacy-policy'),

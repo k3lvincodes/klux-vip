@@ -2,13 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kenick_vip/features/booking/ride_history_screen.dart';
 import 'package:kenick_vip/features/booking/saved_places_screen.dart';
-import 'package:kenick_vip/features/booking/special_booking_screen.dart';
 import 'package:kenick_vip/features/legal/legal_information_screen.dart';
+import 'package:kenick_vip/features/newsfeed/newsfeed_screen.dart';
 import 'package:kenick_vip/features/notifications/notifications_screen.dart';
 import 'package:kenick_vip/features/payment/payment_method_screen.dart';
 import 'package:kenick_vip/features/profile/passenger_profile_screen.dart';
+import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -125,7 +125,7 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
                     _buildPrimaryItem(
                       title: 'Newsfeed',
                       textColor: textPrimary,
-                      onTap: () => _navigateTo(const RideHistoryScreen()),
+                      onTap: () => _navigateTo(const NewsfeedScreen()),
                     ),
 
                     const SizedBox(height: 20),
@@ -134,7 +134,7 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
                     _buildPrimaryItem(
                       title: 'Offers',
                       textColor: textPrimary,
-                      onTap: () => _navigateTo(const SpecialBookingScreen()),
+                      onTap: () => _navigateTo(const OffersRewardsScreen()),
                     ),
 
                     const SizedBox(height: 20),

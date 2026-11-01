@@ -12,10 +12,14 @@ class ActiveTripChatSheet extends StatefulWidget {
   final String recipientName;
 
   static void show(BuildContext context, String recipientName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (context) => ActiveTripChatSheet(recipientName: recipientName),
     );
@@ -171,7 +175,7 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
 
   Widget _buildHeader(bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -179,20 +183,8 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
           ),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 4,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
               CircleAvatar(
                 radius: 18,
                 backgroundColor: isDark ? Colors.grey.shade800 : const Color(0xFFF5F0EF),
@@ -240,10 +232,8 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        );
+      }
 
   Widget _buildMessageItem(Map<String, dynamic> msg, Animation<double> animation, bool isDark) {
     final isMe = msg['isMe'] as bool;

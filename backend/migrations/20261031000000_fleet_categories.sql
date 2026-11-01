@@ -19,3 +19,4 @@ WHERE category IS NULL OR category = 'Business Class';
 
 -- 4. Create an index on fleet category for fast filtering
 CREATE INDEX IF NOT EXISTS idx_fleet_cars_category ON public.fleet_cars(category) WHERE deleted_at IS NULL;
+

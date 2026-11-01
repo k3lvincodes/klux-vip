@@ -182,12 +182,17 @@ class RideRepository {
 
   Future<Ride?> getPassengerActiveRide(String passengerId) async {
     try {
-      // 1. Check in active rides first
+      final now = DateTime.now().toUtc();
+
+      // 1. Check in active rides first (accepted, arrived, in_progress)
+      // Only consider rides created within the last 24 hours to prevent stale ghost rides
+      final oneDayAgo = now.subtract(const Duration(hours: 24)).toIso8601String();
       final activeRides = await _supabase
           .from('rides')
           .select()
           .eq('passenger_id', passengerId)
           .inFilter('status', ['accepted', 'arrived', 'in_progress'])
+          .gte('created_at', oneDayAgo)
           .order('created_at', ascending: false)
           .limit(1);
 
@@ -195,14 +200,14 @@ class RideRepository {
         return Ride.fromJson(activeRides.first);
       }
 
-      // 2. Check in pending ride requests (only if created within last 5 minutes)
-      final fiveMinutesAgo = DateTime.now().toUtc().subtract(const Duration(minutes: 5)).toIso8601String();
+      // 2. Check in pending ride requests (matching window: strictly max 30 minutes)
+      final thirtyMinutesAgo = now.subtract(const Duration(minutes: 30)).toIso8601String();
       final pendingReqs = await _supabase
           .from('ride_requests')
           .select()
           .eq('passenger_id', passengerId)
-          .eq('status', 'pending')
-          .gte('created_at', fiveMinutesAgo)
+          .inFilter('status', ['pending', 'requested', 'searching'])
+          .gte('created_at', thirtyMinutesAgo)
           .order('created_at', ascending: false)
           .limit(1);
 

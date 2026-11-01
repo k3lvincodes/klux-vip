@@ -249,33 +249,22 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: cs.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      backgroundColor: cs.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Contact Passenger',
+                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-            ),
-            Text(
-              'Contact Passenger',
-              style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
             const SizedBox(height: 4),
             Text(
               'Reach out to $_passengerName regarding this assignment',
@@ -324,6 +313,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

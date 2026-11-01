@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/features/support/new_chat_sheet.dart';
 import 'package:kenick_vip/models/support_ticket.dart';
 import 'package:kenick_vip/repositories/support_repository.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/widgets/navigation/kenick_bottom_nav_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupportScreen extends StatefulWidget {
@@ -14,34 +17,46 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  final _subjectController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  String _selectedCategory = '';
-  bool _isLoading = false;
-  bool _showForm = false;
   final SupportRepository _supportRepo = SupportRepository();
   List<SupportTicket> _tickets = [];
-  bool _loadingTickets = true;
 
-  final List<Map<String, String>> _categories = [
-    {'value': 'ride_issue', 'label': 'Ride Issue'},
-    {'value': 'payment_issue', 'label': 'Payment Issue'},
-    {'value': 'safety_concern', 'label': 'Safety Concern'},
-    {'value': 'account_issue', 'label': 'Account Issue'},
-    {'value': 'other', 'label': 'Other'},
+  final List<Map<String, String>> _faqTopics = [
+    {
+      'question': 'How can I make changes to my booking?',
+      'answer':
+          'You can modify your pickup address, scheduled time, or vehicle preference directly from the ride details before a chauffeur is dispatched. For modifications within 1 hour of pickup, our 24/7 Care Team can assist you immediately via chat or phone.',
+    },
+    {
+      'question': 'Cancellation policy & how can I cancel?',
+      'answer':
+          'Complimentary cancellation is available up to 1 hour before scheduled pickup for One-way rides, and up to 24 hours for By-the-hour and Special Event bookings. You can cancel with one tap from the Rides tab.',
+    },
+    {
+      'question': 'Where do I see a ride that was booked for me?',
+      'answer':
+          'When an executive assistant, travel coordinator, or friend books a ride for you using your phone number or email, it immediately syncs and appears in your "Upcoming" tab in the Rides section.',
+    },
+    {
+      'question': 'Where is my chauffeur?',
+      'answer':
+          'Once your chauffeur is assigned, you can track their real-time vehicle GPS position, estimated arrival time, and contact details directly on the live map.',
+    },
+    {
+      'question': 'What vehicles does Kenick use?',
+      'answer':
+          'Kenick VIP operates a handpicked luxury fleet including the GMC Yukon Denali, Cadillac Escalade, Mercedes-Benz S-Class, BMW 7 Series, and executive VIP Sprinters. Every vehicle is thoroughly inspected, sanitized, and chauffeur-driven.',
+    },
+    {
+      'question': 'Explore other help topics',
+      'answer':
+          'Have questions regarding corporate billing, airport flight tracking, lost property, or child safety seats? Our concierge desk is standing by 24/7.',
+    },
   ];
 
   @override
   void initState() {
     super.initState();
     _loadTickets();
-  }
-
-  @override
-  void dispose() {
-    _subjectController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadTickets() async {
@@ -52,232 +67,365 @@ class _SupportScreenState extends State<SupportScreen> {
         if (mounted) {
           setState(() {
             _tickets = tickets;
-            _loadingTickets = false;
           });
         }
       }
-    } catch (e) {
-      if (mounted) setState(() => _loadingTickets = false);
-    }
+    } catch (_) {}
   }
 
-  Future<void> _handleSubmit() async {
-    if (_selectedCategory.isEmpty ||
-        _subjectController.text.trim().isEmpty ||
-        _descriptionController.text.trim().isEmpty) {
-      CustomToast.showError(context, 'Please fill all fields');
-      return;
-    }
+  void _showTopicDetail(String question, String answer) {
+    HapticFeedback.lightImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        await _supportRepo.createTicket(
-          userId: user.id,
-          category: _selectedCategory,
-          subject: _subjectController.text.trim(),
-          description: _descriptionController.text.trim(),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  question,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  answer,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w400,
+                    color: cs.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _startNewChat(initialSubject: question);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: const Color(0xFF111827),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Still need help? Message Care Team',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
-      }
-
-      if (mounted) {
-        CustomToast.showSuccess(context, 'Ticket submitted successfully!');
-        _subjectController.clear();
-        _descriptionController.clear();
-        setState(() {
-          _selectedCategory = '';
-          _showForm = false;
-        });
-        _loadTickets();
-      }
-    } catch (e) {
-      if (mounted) CustomToast.showError(context, 'Failed to submit ticket');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      },
+    );
   }
 
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'open': return 'Open';
-      case 'in_progress': return 'In Progress';
-      case 'resolved': return 'Resolved';
-      case 'closed': return 'Closed';
-      default: return status;
-    }
-  }
 
-  Color _statusColor(String status, bool isDark) {
-    switch (status) {
-      case 'open': return isDark ? const Color(0xFFEF4444) : Colors.red;
-      case 'in_progress': return isDark ? const Color(0xFFEAB308) : Colors.orange;
-      case 'resolved': return isDark ? const Color(0xFF22C55E) : Colors.green;
-      case 'closed': return isDark ? const Color(0xFF71717A) : Colors.grey;
-      default: return isDark ? const Color(0xFFA1A1AA) : Colors.grey;
-    }
+
+  void _startNewChat({String? initialSubject}) {
+    showNewChatSheet(
+      context,
+      initialSubject: initialSubject,
+      onTicketCreated: _loadTickets,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final canPop = Navigator.of(context).canPop();
+
+    final subtleDivider = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+
+    final openTicketsCount =
+        _tickets.where((t) => t.status.toLowerCase() != 'closed').length;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Support'),
-        actions: [
-          IconButton(
-            icon: Icon(_showForm ? Icons.list : Icons.add),
-            onPressed: () => setState(() => _showForm = !_showForm),
-          ),
-        ],
-      ),
-      body: _showForm ? _buildForm(isDark) : _buildTicketList(isDark),
-    );
-  }
-
-  Widget _buildTicketList(bool isDark) {
-    if (_loadingTickets) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_tickets.isEmpty) {
-      return Center(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: SafeArea(
+        bottom: false,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.support_agent, size: 48, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text('No tickets yet', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 16)),
-            const SizedBox(height: 8),
-            Text('Tap + to create a support ticket', style: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 13)),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadTickets,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _tickets.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final ticket = _tickets[index];
-          return Card(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              title: Text(
-                ticket.subject,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
+            // Top Bar: Back button (if pushed) + Title "How can we help?"
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (canPop)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: GestureDetector(
+                        onTap: () => context.pop(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 16,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    'How can we help?',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
+            ),
+
+            // Scrollable Topics and Options
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _statusColor(ticket.status, isDark).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        _statusLabel(ticket.status),
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(ticket.status, isDark)),
-                      ),
+                    const SizedBox(height: 8),
+
+                    // Care team conversation
+                    _buildRowItem(
+                      title: 'Care team conversation',
+                      trailingBadge: openTicketsCount > 0
+                          ? '$openTicketsCount active'
+                          : null,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/support/messages');
+                      },
+                      isDark: isDark,
+                      cs: cs,
                     ),
-                    const SizedBox(width: 8),
+
+                    Divider(height: 1, thickness: 1, color: subtleDivider),
+
+                    const SizedBox(height: 32),
+
+                    // Section: Explore help topics
                     Text(
-                      _formatDate(ticket.createdAt),
-                      style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500),
+                      'Explore help topics',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: cs.onSurface,
+                        letterSpacing: -0.2,
+                      ),
                     ),
+
+                    const SizedBox(height: 14),
+
+                    // FAQ Topics list
+                    for (int i = 0; i < _faqTopics.length; i++) ...[
+                      _buildRowItem(
+                        title: _faqTopics[i]['question']!,
+                        onTap: () => _showTopicDetail(
+                          _faqTopics[i]['question']!,
+                          _faqTopics[i]['answer']!,
+                        ),
+                        isDark: isDark,
+                        cs: cs,
+                      ),
+                      if (i < _faqTopics.length - 1)
+                        Divider(height: 1, color: subtleDivider),
+                    ],
+
+                    const SizedBox(height: 32),
+
+                    // Footer notes with "Reach out to our Care Team" button
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            "Still can't find a solution?",
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              context.push('/support/call');
+                            },
+                            icon: Icon(
+                              Icons.phone_in_talk_rounded,
+                              size: 17,
+                              color: isDark ? AppColors.primary : cs.onSurface,
+                            ),
+                            label: Text(
+                              'Reach out to our Care Team',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.primary : cs.onSurface,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor:
+                                  isDark ? AppColors.primary : cs.onSurface,
+                              side: BorderSide(
+                                color: isDark
+                                    ? AppColors.primary.withValues(alpha: 0.4)
+                                    : cs.outlineVariant,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-              trailing: Icon(Icons.chevron_right, color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-              onTap: () {
-                context.push(
-                  '/support/ticket/${ticket.id}',
-                  extra: {'subject': ticket.subject, 'status': ticket.status},
-                );
-              },
             ),
-          );
-        },
+
+            // Floating "Start chat" CTA above bottom nav bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () => _startNewChat(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF111827),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Text(
+                    'Start chat',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Floating Bottom Navigation Pill with Circular Car FAB
+            const KenickBottomNavBar(currentIndex: 2),
+          ],
+        ),
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${date.month}/${date.day}/${date.year}';
-  }
-
-  Widget _buildForm(bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('How can we help?',
-              style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 24),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedCategory.isEmpty ? null : _selectedCategory,
-            hint: const Text('Select a category'),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  Widget _buildRowItem({
+    required String title,
+    String? trailingBadge,
+    required VoidCallback onTap,
+    required bool isDark,
+    required ColorScheme cs,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w400,
+                  color: cs.onSurface,
+                  height: 1.35,
+                ),
+              ),
             ),
-            items: _categories
-                .map((cat) => DropdownMenuItem(
-                      value: cat['value'],
-                      child: Text(cat['label']!),
-                    ))
-                .toList(),
-            onChanged: (val) => setState(() => _selectedCategory = val ?? ''),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _subjectController,
-            decoration: const InputDecoration(
-              hintText: 'Subject',
-              prefixIcon: Icon(Icons.subject),
+            if (trailingBadge != null) ...[
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  trailingBadge,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+            Icon(
+              Icons.chevron_right_rounded,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+              size: 20,
             ),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 5,
-            decoration: const InputDecoration(
-              hintText: 'Describe your issue...',
-              alignLabelWithHint: true,
-            ),
-          ),
-          const SizedBox(height: 40),
-          CustomButton(
-            title: _isLoading ? 'Submitting...' : 'Submit Ticket',
-            onPress: _isLoading ? () {} : _handleSubmit,
-            variant: ButtonVariant.primary,
-            height: 48,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

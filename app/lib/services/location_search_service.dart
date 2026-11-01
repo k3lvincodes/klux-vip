@@ -93,55 +93,22 @@ class LocationSearchService {
     };
   }
 
-  /// Searches places starting from 1 character query with instant cache lookup.
+  /// Searches places starting from 1 character query with up to 8 comprehensive results.
   static Future<List<LocationSearchResult>> search(String query, {String? countryCode}) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return [];
 
     final key = '${trimmed.toLowerCase()}_${countryCode ?? ''}';
 
-    // 1. Direct cache match
+    // 1. Direct cache match (if it already has 5 or more comprehensive results)
     final cached = _searchCache[key];
-    if (cached != null) return cached;
+    if (cached != null && cached.length >= 5) return cached;
 
     // 2. Inflight deduplication
     final inflight = _inflight[key];
     if (inflight != null) return inflight.future;
 
-    // 3. Instant prefix match while fresh query is inflight
-    final prefixResults = _filterFromPrefixCache(trimmed.toLowerCase(), countryCode);
-
-    if (prefixResults.isNotEmpty) {
-      // Return prefix results immediately for zero UI latency, fetch fresh in background
-      _fetchAndCache(trimmed, countryCode);
-      return prefixResults;
-    }
-
     return await _fetchAndCache(trimmed, countryCode);
-  }
-
-  static List<LocationSearchResult> _filterFromPrefixCache(String query, String? countryCode) {
-    final suffix = '_${countryCode ?? ''}';
-    String? longestPrefixKey;
-    int longestPrefixLength = 0;
-
-    for (final cachedKey in _searchCache.keys) {
-      if (!cachedKey.endsWith(suffix)) continue;
-      final cachedQuery = cachedKey.substring(0, cachedKey.length - suffix.length);
-      if (query.startsWith(cachedQuery) && cachedQuery.length > longestPrefixLength) {
-        longestPrefixKey = cachedKey;
-        longestPrefixLength = cachedQuery.length;
-      }
-    }
-
-    if (longestPrefixKey == null) return [];
-
-    final parentResults = _searchCache[longestPrefixKey]!;
-    return parentResults.where((r) {
-      final matchName = r.placeName.toLowerCase().contains(query);
-      final matchMain = r.mainText?.toLowerCase().contains(query) ?? false;
-      return matchName || matchMain;
-    }).toList();
   }
 
   static Future<List<LocationSearchResult>> _fetchAndCache(String query, String? countryCode) async {
@@ -155,8 +122,22 @@ class LocationSearchService {
     final completer = Completer<List<LocationSearchResult>>();
     _inflight[key] = completer;
 
+    final List<LocationSearchResult> combinedResults = [];
+    final Set<String> seenNames = {};
+
+    void addUnique(LocationSearchResult item) {
+      final nameKey = item.placeName.trim().toLowerCase();
+      final mainKey = (item.mainText ?? '').trim().toLowerCase();
+      if (nameKey.isNotEmpty && !seenNames.contains(nameKey)) {
+        seenNames.add(nameKey);
+        if (mainKey.isNotEmpty) seenNames.add(mainKey);
+        combinedResults.add(item);
+      }
+    }
+
     try {
       final googleKey = EnvConfig.googleMapsApiKey;
+      final token = EnvConfig.mapboxAccessToken;
 
       // ── PRIMARY PROVIDER: Google Places Autocomplete API ──
       if (googleKey.isNotEmpty) {
@@ -181,26 +162,22 @@ class LocationSearchService {
             final predictions = data['predictions'] as List? ?? [];
 
             if ((status == 'OK' || status == 'ZERO_RESULTS') && predictions.isNotEmpty) {
-              final results = predictions.map<LocationSearchResult>((p) {
+              for (final p in predictions) {
                 final desc = p['description'] as String? ?? '';
                 final formatting = p['structured_formatting'] as Map? ?? {};
                 final main = formatting['main_text'] as String? ?? desc.split(',').first.trim();
                 final secondary = formatting['secondary_text'] as String?;
                 final placeId = p['place_id'] as String?;
 
-                return LocationSearchResult(
+                addUnique(LocationSearchResult(
                   placeName: desc,
                   latitude: 0.0,
                   longitude: 0.0,
                   mainText: main,
                   secondaryText: secondary,
                   placeId: placeId,
-                );
-              }).toList();
-
-              _searchCache[key] = results;
-              completer.complete(results);
-              return results;
+                ));
+              }
             }
           }
         } catch (_) {
@@ -208,10 +185,8 @@ class LocationSearchService {
         }
       }
 
-      final token = EnvConfig.mapboxAccessToken;
-
-      // ── SECONDARY PROVIDER: Mapbox Places Geocoding API ──
-      if (token.isNotEmpty && token.startsWith('pk.')) {
+      // ── SECONDARY PROVIDER: Mapbox Places (supplements up to 8 results) ──
+      if (combinedResults.length < 8 && token.isNotEmpty && token.startsWith('pk.')) {
         try {
           final countryParam = countryCode != null && countryCode.isNotEmpty
               ? '&country=${Uri.encodeComponent(countryCode.toLowerCase())}'
@@ -231,79 +206,78 @@ class LocationSearchService {
             final data = jsonDecode(response.body);
             final features = data['features'] as List? ?? [];
 
-            if (features.isNotEmpty) {
-              final results = features.map<LocationSearchResult>((f) {
-                final center = f['center'] as List? ?? [0.0, 0.0];
-                final lng = (center[0] as num).toDouble();
-                final lat = (center[1] as num).toDouble();
-                final placeName = f['place_name'] as String? ?? '';
-                final text = f['text'] as String? ?? '';
-                final contextList = f['context'] as List? ?? [];
-                final secondary = contextList.map((c) => c['text'] ?? '').where((s) => s.toString().isNotEmpty).join(', ');
+            for (final f in features) {
+              if (combinedResults.length >= 8) break;
+              final center = f['center'] as List? ?? [0.0, 0.0];
+              final lng = (center[0] as num).toDouble();
+              final lat = (center[1] as num).toDouble();
+              final placeName = f['place_name'] as String? ?? '';
+              final text = f['text'] as String? ?? '';
+              final contextList = f['context'] as List? ?? [];
+              final secondary = contextList.map((c) => c['text'] ?? '').where((s) => s.toString().isNotEmpty).join(', ');
 
-                return LocationSearchResult(
-                  placeName: placeName,
-                  latitude: lat,
-                  longitude: lng,
-                  mainText: text.isNotEmpty ? text : placeName.split(',').first.trim(),
-                  secondaryText: secondary.isNotEmpty
-                      ? secondary
-                      : (placeName.contains(',') ? placeName.substring(placeName.indexOf(',') + 1).trim() : null),
-                );
-              }).toList();
-
-              _searchCache[key] = results;
-              completer.complete(results);
-              return results;
+              addUnique(LocationSearchResult(
+                placeName: placeName,
+                latitude: lat,
+                longitude: lng,
+                mainText: text.isNotEmpty ? text : placeName.split(',').first.trim(),
+                secondaryText: secondary.isNotEmpty
+                    ? secondary
+                    : (placeName.contains(',') ? placeName.substring(placeName.indexOf(',') + 1).trim() : null),
+              ));
             }
           }
         } catch (_) {
-          // Fall through to Nominatim fallback
+          // Fall through to Nominatim
         }
       }
 
-      // ── SECONDARY FALLBACK: OpenStreetMap Nominatim ──
-      final codes = countryCode != null && countryCode.isNotEmpty
-          ? countryCode.toLowerCase()
-          : '';
-      final countryFilter = codes.isNotEmpty ? '&countrycodes=$codes' : '';
+      // ── TERTIARY FALLBACK: OpenStreetMap Nominatim ──
+      if (combinedResults.length < 6) {
+        try {
+          final codes = countryCode != null && countryCode.isNotEmpty
+              ? countryCode.toLowerCase()
+              : '';
+          final countryFilter = codes.isNotEmpty ? '&countrycodes=$codes' : '';
 
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/search'
-        '?q=${Uri.encodeComponent(query)}'
-        '&format=json'
-        '&addressdetails=1'
-        '&limit=8$countryFilter',
-      );
+          final uri = Uri.parse(
+            'https://nominatim.openstreetmap.org/search'
+            '?q=${Uri.encodeComponent(query)}'
+            '&format=json'
+            '&addressdetails=1'
+            '&limit=8$countryFilter',
+          );
 
-      final response = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 4));
-      if (response.statusCode != 200) {
-        completer.complete([]);
-        return [];
+          final response = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 4));
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body) as List? ?? [];
+            for (final f in data) {
+              if (combinedResults.length >= 8) break;
+              final displayName = f['display_name'] as String? ?? '';
+              final parts = displayName.split(',').map((s) => s.trim()).toList();
+              final main = parts.isNotEmpty ? parts.first : displayName;
+              final secondary = parts.length > 1 ? parts.sublist(1, parts.length > 4 ? 4 : parts.length).join(', ') : null;
+
+              addUnique(LocationSearchResult(
+                placeName: displayName,
+                latitude: double.tryParse(f['lat'] as String? ?? '0') ?? 0.0,
+                longitude: double.tryParse(f['lon'] as String? ?? '0') ?? 0.0,
+                mainText: main,
+                secondaryText: secondary,
+              ));
+            }
+          }
+        } catch (_) {}
       }
 
-      final data = jsonDecode(response.body) as List? ?? [];
-      final results = data.map<LocationSearchResult>((f) {
-        final displayName = f['display_name'] as String? ?? '';
-        final parts = displayName.split(',').map((s) => s.trim()).toList();
-        final main = parts.isNotEmpty ? parts.first : displayName;
-        final secondary = parts.length > 1 ? parts.sublist(1, parts.length > 4 ? 4 : parts.length).join(', ') : null;
-
-        return LocationSearchResult(
-          placeName: displayName,
-          latitude: double.parse(f['lat'] as String),
-          longitude: double.parse(f['lon'] as String),
-          mainText: main,
-          secondaryText: secondary,
-        );
-      }).toList();
-
+      final results = combinedResults.take(8).toList();
       _searchCache[key] = results;
       completer.complete(results);
       return results;
     } catch (_) {
-      completer.complete([]);
-      return [];
+      final results = combinedResults.take(8).toList();
+      completer.complete(results);
+      return results;
     } finally {
       _inflight.remove(key);
     }

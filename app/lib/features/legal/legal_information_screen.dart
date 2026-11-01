@@ -6,81 +6,6 @@ import 'package:kenick_vip/theme/app_colors.dart';
 class LegalInformationScreen extends StatelessWidget {
   const LegalInformationScreen({super.key});
 
-  void _showLegalNotice(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            MediaQuery.of(ctx).viewInsets.bottom + 32,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Legal Notice',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Kenick VIP Mobility & Chauffeur Services Ltd.\n\n'
-                'Registered in England and Wales / Federal Republic of Nigeria.\n'
-                'All trademarks, logos, and service marks displayed in the Kenick application are the property of Kenick VIP or respective partners.\n\n'
-                'Licensed Private Hire Operator.\n'
-                'Contact: legal@kenickvip.com\n'
-                'Support: support@kenickvip.com',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  height: 1.6,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: Text(
-                    'Close',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildLegalItem({
     required BuildContext context,
     required String title,
@@ -194,7 +119,7 @@ class LegalInformationScreen extends StatelessWidget {
                   _buildLegalItem(
                     context: context,
                     title: 'Legal notice',
-                    onTap: () => _showLegalNotice(context),
+                    onTap: () => context.push('/legal-notice'),
                     cs: cs,
                   ),
                   _buildLegalItem(
