@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fleet_service.dart';
@@ -137,7 +140,28 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
   }
 
   void _showApplyOfferSheet() async {
-    final code = await context.push<String>('/offers');
+    final code = await Navigator.of(context).push<String>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const OffersRewardsScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
     if (code != null && code.isNotEmpty && mounted) {
       CustomToast.showSuccess(context, 'Offer code "$code" applied!');
     }
@@ -472,28 +496,94 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     );
   }
 
+  Widget _featherImageEdges(Widget child) {
+    return ShaderMask(
+      shaderCallback: (Rect rect) {
+        return const LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.black,
+            Colors.black,
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.10, 0.90, 1.0],
+        ).createShader(rect);
+      },
+      blendMode: BlendMode.dstIn,
+      child: ShaderMask(
+        shaderCallback: (Rect rect) {
+          return const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.black,
+              Colors.black,
+              Colors.transparent,
+            ],
+            stops: [0.0, 0.10, 0.90, 1.0],
+          ).createShader(rect);
+        },
+        blendMode: BlendMode.dstIn,
+        child: ShaderMask(
+          shaderCallback: (Rect rect) {
+            return const RadialGradient(
+              radius: 0.94,
+              colors: [
+                Colors.black,
+                Colors.black,
+                Colors.black54,
+                Colors.transparent,
+              ],
+              stops: [0.0, 0.60, 0.85, 1.0],
+            ).createShader(rect);
+          },
+          blendMode: BlendMode.dstIn,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildVehicleImage(FleetVehicleItem? car, FleetCategoryTier tier) {
+    Widget imageWidget;
     if (car != null && car.imageUrl != null && car.imageUrl!.isNotEmpty) {
-      return Image.network(
-        car.imageUrl!,
+      imageWidget = CachedNetworkImage(
+        imageUrl: car.imageUrl!,
         key: ValueKey('net_${car.id}_${car.imageUrl}'),
         fit: BoxFit.contain,
-        errorBuilder: (ctx, err, stack) => Image.asset(
+        placeholder: (ctx, url) => Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        errorWidget: (ctx, err, stack) => Image.asset(
           car.localAssetPath.isNotEmpty ? car.localAssetPath : tier.defaultAsset,
           fit: BoxFit.contain,
         ),
       );
     } else if (car != null && car.localAssetPath.isNotEmpty) {
-      return Image.asset(
+      imageWidget = Image.asset(
         car.localAssetPath,
         key: ValueKey('asset_${car.id}'),
         fit: BoxFit.contain,
       );
+    } else {
+      imageWidget = Image.asset(
+        tier.defaultAsset,
+        key: ValueKey('tier_${tier.name}'),
+        fit: BoxFit.contain,
+      );
     }
-    return Image.asset(
-      tier.defaultAsset,
-      key: ValueKey('tier_${tier.name}'),
-      fit: BoxFit.contain,
-    );
+
+    return _featherImageEdges(imageWidget);
   }
 }
