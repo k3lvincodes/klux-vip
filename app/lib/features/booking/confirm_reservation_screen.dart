@@ -1,12 +1,15 @@
-import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:kenick_vip/features/booking/add_guest_screen.dart';
 import 'package:kenick_vip/features/booking/pickup_notes_sheet.dart';
+import 'package:kenick_vip/features/payment/payment_method_screen.dart';
+import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
@@ -63,10 +66,33 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
   String? _promoCode;
   bool _isSubmitting = false;
 
+  String _passengerMode = 'For myself';
+  String? _guestName;
+  String? _guestPhone;
+
   @override
   void initState() {
     super.initState();
     _loadDefaultPaymentMethod();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bookingProv = context.read<BookingProvider>();
+      if (bookingProv.passengerNote != null &&
+          bookingProv.passengerNote!.startsWith('Guest:')) {
+        final match =
+            RegExp(r'Guest:\s*([^(\n]+)').firstMatch(bookingProv.passengerNote!);
+        if (match != null && match.group(1)?.trim().isNotEmpty == true) {
+          final gName = match.group(1)!.trim();
+          final phoneMatch =
+              RegExp(r'\(([^)]+)\)').firstMatch(bookingProv.passengerNote!);
+          setState(() {
+            _guestName = gName;
+            _guestPhone = phoneMatch?.group(1)?.trim();
+            _passengerMode = gName.split(' ').first;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadDefaultPaymentMethod() async {
@@ -104,86 +130,332 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
   }
 
   void _openApplyOfferModal() async {
-    final code = await context.push<String>('/offers');
+    final code = await Navigator.of(context).push<String>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const OffersRewardsScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
     if (code != null && code.isNotEmpty && mounted) {
       setState(() => _promoCode = code);
       CustomToast.showSuccess(context, 'Offer code "$code" applied!');
     }
   }
 
-  void _openPaymentMethodSheet() {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  void _openPaymentMethodScreen() async {
+    final result = await Navigator.of(context).push<dynamic>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const PaymentMethodScreen(isSelectionMode: true),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
 
-    final methods = [
-      {'title': 'Credit Card •••• 4242', 'icon': Icons.credit_card_rounded},
-      {'title': 'Apple Pay', 'icon': Icons.apple_rounded},
-      {'title': 'Google Pay', 'icon': Icons.g_mobiledata_rounded},
-      {'title': 'Cash / Corporate Account', 'icon': Icons.account_balance_wallet_outlined},
-    ];
+    if (result != null && mounted) {
+      if (result is Map && result['display'] != null) {
+        setState(() => _paymentMethod = result['display'] as String);
+      } else if (result is String) {
+        setState(() => _paymentMethod = result);
+      }
+    } else {
+      _loadDefaultPaymentMethod();
+    }
+  }
+
+  Future<void> _openGuestSelectionSheet() async {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final savedGuests = await GuestStorageService.getSavedGuests();
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select payment method',
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              ...methods.map((m) {
-                final isSelected = _paymentMethod == m['title'];
-                return InkWell(
-                  onTap: () {
-                    setState(() => _paymentMethod = m['title'] as String);
-                    Navigator.pop(ctx);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : cs.outlineVariant.withValues(alpha: 0.3),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(m['icon'] as IconData, size: 22, color: AppColors.primary),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            m['title'] as String,
-                            style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                        if (isSelected)
-                          const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
-                      ],
+                  ),
+                  Text(
+                    'Book for another passenger',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                );
-              }),
-            ],
+                  const SizedBox(height: 10),
+                  Text(
+                    "Arrange their ride in a few taps, and we'll keep them informed every step of the way.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: cs.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildPassengerOption(
+                    context: ctx,
+                    icon: Icons.person_outline_rounded,
+                    title: 'Book for myself',
+                    isSelected: _passengerMode == 'For myself' && _guestName == null,
+                    onTap: () {
+                      setState(() {
+                        _passengerMode = 'For myself';
+                        _guestName = null;
+                        _guestPhone = null;
+                      });
+                      final bookingProv = context.read<BookingProvider>();
+                      bookingProv.setTripDetails(
+                        pickupAddress: bookingProv.pickupAddress ?? '',
+                        dropoffAddress: bookingProv.dropoffAddress ?? '',
+                      );
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ...savedGuests.map((g) {
+                    final fullName = (g['full_name'] as String? ?? '').isNotEmpty
+                        ? g['full_name'] as String
+                        : '${g['first_name'] ?? ''} ${g['last_name'] ?? ''}'.trim();
+                    final firstName = g['first_name'] as String? ?? fullName;
+                    final fullPhone = g['full_phone'] as String? ?? '';
+                    final isCurrent = _guestName == fullName;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: _buildPassengerOption(
+                        context: ctx,
+                        icon: Icons.person_rounded,
+                        title: 'Guest: $fullName',
+                        subtitle: fullPhone.isNotEmpty ? fullPhone : null,
+                        isSelected: isCurrent,
+                        onTap: () {
+                          setState(() {
+                            _guestName = fullName;
+                            _guestPhone = fullPhone;
+                            _passengerMode = firstName.isNotEmpty ? firstName : fullName;
+                          });
+                          final bookingProv = context.read<BookingProvider>();
+                          bookingProv.setTripDetails(
+                            pickupAddress: bookingProv.pickupAddress ?? '',
+                            dropoffAddress: bookingProv.dropoffAddress ?? '',
+                            passengerNote: 'Guest: $fullName ($fullPhone)',
+                          );
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                  _buildPassengerOption(
+                    context: ctx,
+                    icon: Icons.person_add_alt_1_outlined,
+                    title: 'Add a new guest',
+                    isSelected: false,
+                    showChevron: true,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _openAddGuestScreen();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openAddGuestScreen() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const AddGuestScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+
+    if (result != null && mounted) {
+      final firstName = result['first_name'] as String? ?? '';
+      final lastName = result['last_name'] as String? ?? '';
+      final fullName =
+          result['full_name'] as String? ?? '$firstName $lastName'.trim();
+      final fullPhone = result['full_phone'] as String? ?? '';
+
+      setState(() {
+        _guestName = fullName;
+        _guestPhone = fullPhone;
+        _passengerMode = firstName.isNotEmpty ? firstName : fullName;
+      });
+
+      final bookingProv = context.read<BookingProvider>();
+      bookingProv.setTripDetails(
+        pickupAddress: bookingProv.pickupAddress ?? '',
+        dropoffAddress: bookingProv.dropoffAddress ?? '',
+        passengerNote: 'Guest: $fullName ($fullPhone)',
+      );
+      CustomToast.showSuccess(context, 'Guest $fullName added for this ride');
+    }
+  }
+
+  Widget _buildPassengerOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required bool isSelected,
+    bool showChevron = false,
+    required VoidCallback onTap,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : (isDark ? const Color(0xFF1E2026) : const Color(0xFFF3F4F6)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : (isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.05)),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: isSelected ? AppColors.primary : cs.onSurface,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.5,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 22,
+              )
+            else if (showChevron)
+              Icon(
+                Icons.chevron_right_rounded,
+                color: cs.onSurfaceVariant,
+                size: 22,
+              ),
+          ],
         ),
       ),
     );
@@ -211,7 +483,13 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
 
       // Build comprehensive passenger notes
       final notesList = <String>[];
-      if (bookingProv.passengerNote != null && bookingProv.passengerNote!.isNotEmpty) {
+      if (_guestName != null && _guestName!.isNotEmpty) {
+        final guestContact = _guestPhone != null && _guestPhone!.isNotEmpty
+            ? ' ($_guestPhone)'
+            : '';
+        notesList.add('Passenger: $_guestName$guestContact');
+      } else if (bookingProv.passengerNote != null &&
+          bookingProv.passengerNote!.isNotEmpty) {
         notesList.add(bookingProv.passengerNote!);
       }
       if (_pickupNotes != null && _pickupNotes!.isNotEmpty) {
@@ -281,9 +559,12 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
         : (bookingProv.dropoffAddress ?? 'Destination');
 
     // Extract guest name if any
-    String passengerLabel = 'For myself';
-    if (bookingProv.passengerNote != null && bookingProv.passengerNote!.startsWith('Guest:')) {
-      final match = RegExp(r'Guest:\s*([^(\n]+)').firstMatch(bookingProv.passengerNote!);
+    String passengerLabel =
+        _guestName ?? (_passengerMode.isNotEmpty ? _passengerMode : 'For myself');
+    if (bookingProv.passengerNote != null &&
+        bookingProv.passengerNote!.startsWith('Guest:')) {
+      final match =
+          RegExp(r'Guest:\s*([^(\n]+)').firstMatch(bookingProv.passengerNote!);
       if (match != null && match.group(1)?.trim().isNotEmpty == true) {
         passengerLabel = match.group(1)!.trim();
       }
@@ -399,30 +680,44 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
                                   color: cs.onSurface,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.person_outline_rounded,
-                                    size: 16,
-                                    color: AppColors.primary,
+                              GestureDetector(
+                                onTap: _openGuestSelectionSheet,
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF24262E)
+                                        : const Color(0xFFE9ECF0),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    passengerLabel,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: cs.onSurface,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 15,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        passengerLabel,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: cs.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 16,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    size: 16,
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -584,7 +879,7 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
 
                   // Payment method selector row
                   GestureDetector(
-                    onTap: _openPaymentMethodSheet,
+                    onTap: _openPaymentMethodScreen,
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),

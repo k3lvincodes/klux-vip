@@ -7,7 +7,9 @@ import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
-  const PaymentMethodScreen({super.key});
+  const PaymentMethodScreen({super.key, this.isSelectionMode = false});
+
+  final bool isSelectionMode;
 
   @override
   State<PaymentMethodScreen> createState() => _PaymentMethodScreenState();
@@ -272,7 +274,19 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         final isSelected = _selectedCardId == id;
 
         return InkWell(
-          onTap: () => setState(() => _selectedCardId = id),
+          onTap: () {
+            setState(() => _selectedCardId = id);
+            if (widget.isSelectionMode) {
+              final last4 = card['last4'] ?? '4242';
+              final brand = card['brand'] ?? 'Card';
+              Navigator.of(context).pop({
+                'id': id,
+                'last4': last4,
+                'brand': brand,
+                'display': '$brand •••• $last4',
+              });
+            }
+          },
           borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.all(18),
@@ -331,6 +345,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     ],
                   ),
                 ),
+                if (widget.isSelectionMode && isSelected) ...[
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                ],
                 IconButton(
                   icon: Icon(
                     Icons.delete_outline_rounded,
@@ -364,7 +388,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        context.pop();
+                      }
+                    },
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       width: 38,

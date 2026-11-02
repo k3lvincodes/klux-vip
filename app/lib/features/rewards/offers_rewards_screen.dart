@@ -64,7 +64,13 @@ class _OffersRewardsScreenState extends State<OffersRewardsScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        context.pop();
+                      }
+                    },
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       width: 40,
