@@ -1,4 +1,3 @@
-import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -8,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
 import 'package:kenick_vip/services/fleet_service.dart';
@@ -594,7 +594,6 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.primary.withValues(alpha: 0.35),
-                      width: 1,
                     ),
                   ),
                   child: Row(
@@ -689,7 +688,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "You started exploring a ride. Your details are saved so you can resume your reservation within 24 hours.",
+                    'You started exploring a ride. Your details are saved so you can resume your reservation within 24 hours.',
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -884,7 +883,6 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.35),
-                  width: 1,
                 ),
               ),
               child: Row(
@@ -932,7 +930,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Ultra-luxury executive sedans, spacious passenger vans, and tailored chauffeur service at your disposal.",
+                    'Ultra-luxury executive sedans, spacious passenger vans, and tailored chauffeur service at your disposal.',
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -1044,28 +1042,28 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       {
         'title': 'Airport transfers',
         'imageUrl':
-            'https://images.unsplash.com/photo-1542296332-2e4473faf563?w=500&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1648413653819-7c0fd93e8e6a?w=600&auto=format&fit=crop&q=80',
         'mode': 'schedule',
         'icon': Icons.flight_takeoff_rounded,
       },
       {
         'title': 'Hourly & full day\nhire',
         'imageUrl':
-            'https://images.unsplash.com/photo-1508974239320-0a029497e820?w=500&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1732347700505-e1231e0f7c94?w=600&auto=format&fit=crop&q=80',
         'mode': 'schedule',
         'icon': Icons.access_time_rounded,
       },
       {
         'title': 'City-to-City\nrides',
         'imageUrl':
-            'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=500&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1764089859662-7b4773dff85b?w=600&auto=format&fit=crop&q=80',
         'mode': 'instant',
         'icon': Icons.location_city_rounded,
       },
       {
         'title': 'Corporate rides',
         'imageUrl':
-            'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=500&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1792813195738-d386fe4fe045?w=600&auto=format&fit=crop&q=80',
         'mode': 'special',
         'icon': Icons.business_center_rounded,
       },
