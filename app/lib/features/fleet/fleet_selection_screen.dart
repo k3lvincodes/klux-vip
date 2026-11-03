@@ -496,58 +496,6 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     );
   }
 
-  Widget _featherImageEdges(Widget child) {
-    return ShaderMask(
-      shaderCallback: (Rect rect) {
-        return const LinearGradient(
-          colors: [
-            Colors.transparent,
-            Colors.black,
-            Colors.black,
-            Colors.transparent,
-          ],
-          stops: [0.0, 0.10, 0.90, 1.0],
-        ).createShader(rect);
-      },
-      blendMode: BlendMode.dstIn,
-      child: ShaderMask(
-        shaderCallback: (Rect rect) {
-          return const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black,
-              Colors.black,
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.10, 0.90, 1.0],
-          ).createShader(rect);
-        },
-        blendMode: BlendMode.dstIn,
-        child: ShaderMask(
-          shaderCallback: (Rect rect) {
-            return const RadialGradient(
-              radius: 0.94,
-              colors: [
-                Colors.black,
-                Colors.black,
-                Colors.black54,
-                Colors.transparent,
-              ],
-              stops: [0.0, 0.60, 0.85, 1.0],
-            ).createShader(rect);
-          },
-          blendMode: BlendMode.dstIn,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildVehicleImage(FleetVehicleItem? car, FleetCategoryTier tier) {
     Widget imageWidget;
     if (car != null && car.imageUrl != null && car.imageUrl!.isNotEmpty) {
@@ -584,6 +532,9 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
       );
     }
 
-    return _featherImageEdges(imageWidget);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: imageWidget,
+    );
   }
 }
