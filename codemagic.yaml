@@ -63,9 +63,9 @@ workflows:
 
       - name: Build iOS IPA
         script: |
-          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$APP_ID" 2>/dev/null || echo 1)
-          if [ -z "$LATEST_BUILD" ] || [ "$LATEST_BUILD" -le 0 ] 2>/dev/null; then
-            LATEST_BUILD=1
+          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" 2>/dev/null || echo 2)
+          if [ -z "$LATEST_BUILD" ] || [ "$LATEST_BUILD" -lt 2 ] 2>/dev/null; then
+            LATEST_BUILD=2
           fi
           NEXT_BUILD=$((LATEST_BUILD + 1))
           if [ -n "$BUILD_NUMBER" ] && [ "$BUILD_NUMBER" -gt "$NEXT_BUILD" ] 2>/dev/null; then
