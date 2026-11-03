@@ -28,6 +28,7 @@ class FleetVehicleItem {
     required this.year,
     this.licensePlate,
     this.imageUrl,
+    this.localAssetPath,
     this.hasDriverAssigned = false,
     this.category = 'Business Class',
     this.features = '',
@@ -40,6 +41,7 @@ class FleetVehicleItem {
   final int year;
   final String? licensePlate;
   final String? imageUrl;
+  final String? localAssetPath;
   final bool hasDriverAssigned;
   final String category;
   final String features;
