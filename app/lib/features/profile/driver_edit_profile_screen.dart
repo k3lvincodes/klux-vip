@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -115,186 +117,299 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: cs.onSurface),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Edit Profile Details',
-          style: tt.titleMedium?.copyWith(color: cs.onSurface, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-      body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: cs.surfaceContainerLow,
-                              border: Border.all(color: cs.primary, width: 2),
-                            ),
-                            child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                ? ClipOval(
-                                    child: CachedNetworkImage(
-                                      imageUrl: _profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Icon(Icons.person, size: 50, color: cs.onSurfaceVariant),
-                                      errorWidget: (context, url, error) =>
-                                          Icon(Icons.person, size: 50, color: cs.onSurface),
-                                    ),
-                                  )
-                                : Icon(Icons.person, size: 50, color: cs.onSurface),
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Bar with Circular Back Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => context.pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF27272A)
+                                : const Color(0xFFE4E4E7),
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: _isUploadingImage ? null : _pickAndUploadImage,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: _isUploadingImage ? cs.outline : cs.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: cs.surface, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: isDark ? Colors.white : const Color(0xFF18181B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Edit Profile Details',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 8),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            Center(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF4F4F5),
+                                      border: Border.all(color: AppColors.primary, width: 2.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(alpha: 0.25),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                        ? ClipOval(
+                                            child: CachedNetworkImage(
+                                              imageUrl: _profileImageUrl!,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => Icon(
+                                                Icons.person_rounded,
+                                                size: 50,
+                                                color: isDark ? Colors.white54 : Colors.black45,
+                                              ),
+                                              errorWidget: (context, url, error) => Icon(
+                                                Icons.person_rounded,
+                                                size: 50,
+                                                color: isDark ? Colors.white54 : Colors.black45,
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.person_rounded,
+                                            size: 50,
+                                            color: isDark ? Colors.white54 : Colors.black45,
+                                          ),
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: GestureDetector(
+                                      onTap: _isUploadingImage ? null : _pickAndUploadImage,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: _isUploadingImage
+                                              ? (isDark ? const Color(0xFF3F3F46) : const Color(0xFFD4D4D8))
+                                              : AppColors.primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isDark ? const Color(0xFF141416) : Colors.white,
+                                            width: 2.5,
+                                          ),
+                                        ),
+                                        child: _isUploadingImage
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Color(0xFF111827),
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.camera_alt_rounded,
+                                                color: Color(0xFF111827),
+                                                size: 16,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 36),
+
+                            // Inputs
+                            _buildInputField(
+                              controller: _firstNameController,
+                              label: 'First Name',
+                              icon: Icons.person_outline_rounded,
+                              isDark: isDark,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your first name';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            _buildInputField(
+                              controller: _lastNameController,
+                              label: 'Last Name',
+                              icon: Icons.person_outline_rounded,
+                              isDark: isDark,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your last name';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 40),
+
+                            // Signature Gold Pill Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _isSaving ? null : _saveProfile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: const Color(0xFF111827),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
                                 ),
-                                child: _isUploadingImage
-                                    ? SizedBox(
-                                        width: 16,
-                                        height: 16,
+                                child: _isSaving
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
                                         child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: cs.onPrimary,
+                                          strokeWidth: 2.5,
+                                          color: Color(0xFF111827),
                                         ),
                                       )
-                                    : Icon(
-                                        Icons.camera_alt,
-                                        color: cs.onPrimary,
-                                        size: 16,
+                                    : Text(
+                                        'Save Changes',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF111827),
+                                          letterSpacing: 0.1,
+                                        ),
                                       ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildTextField(
-                      controller: _firstNameController,
-                      label: 'First Name',
-                      icon: Icons.person_outline,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your first name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _lastNameController,
-                      label: 'Last Name',
-                      icon: Icons.person_outline,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your last name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        onPressed: _isSaving ? null : _saveProfile,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          ],
                         ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2.5),
-                              )
-                            : Text(
-                                'Save Changes',
-                                style: tt.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onPrimary,
-                                ),
-                              ),
                       ),
                     ),
-                  ],
-                ),
-              ),
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildInputField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    required bool isDark,
     String? Function(String?)? validator,
   }) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    return TextFormField(
-      controller: controller,
-      validator: validator,
-      style: tt.bodyLarge?.copyWith(color: cs.onSurface),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-        prefixIcon: Icon(icon, color: cs.onSurfaceVariant),
-        filled: true,
-        fillColor: cs.surfaceContainerLow,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: cs.outline),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: isDark ? Colors.white : const Color(0xFF18181B),
+          ),
+          decoration: InputDecoration(
+            prefixIcon: Icon(
+              icon,
+              size: 20,
+              color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+            ),
+            filled: true,
+            fillColor: isDark ? const Color(0xFF121316) : Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: cs.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: cs.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: cs.error, width: 2),
-        ),
-      ),
+      ],
     );
   }
 }

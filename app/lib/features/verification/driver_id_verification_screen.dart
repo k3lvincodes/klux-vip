@@ -1,9 +1,11 @@
 import 'package:didit_sdk/sdk_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/repositories/document_repository.dart';
 import 'package:kenick_vip/services/didit_verification_service.dart';
 import 'package:kenick_vip/services/email_notification_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -237,8 +239,8 @@ class _DriverIdVerificationScreenState
     required IconData icon,
     required String title,
     required String description,
+    required bool isDark,
   }) {
-    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -246,12 +248,13 @@ class _DriverIdVerificationScreenState
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.12),
+            color: AppColors.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
           ),
+          alignment: Alignment.center,
           child: Icon(
             icon,
-            color: cs.primary,
+            color: AppColors.primary,
             size: 22,
           ),
         ),
@@ -262,19 +265,19 @@ class _DriverIdVerificationScreenState
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: cs.onSurface,
+                  color: isDark ? Colors.white : const Color(0xFF18181B),
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 description,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 13,
-                  height: 1.35,
-                  color: cs.onSurfaceVariant,
+                  height: 1.4,
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                 ),
               ),
             ],
@@ -286,18 +289,16 @@ class _DriverIdVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 22.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -314,24 +315,31 @@ class _DriverIdVerificationScreenState
                             context.go('/role-selection');
                           }
                         },
+                        behavior: HitTestBehavior.opaque,
                         child: Container(
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.white,
+                            color: isDark ? const Color(0xFF1E2026) : Colors.white,
                             border: Border.all(
                               color: isDark
-                                  ? Colors.transparent
-                                  : cs.outlineVariant,
+                                  ? const Color(0xFF27272A)
+                                  : const Color(0xFFE4E4E7),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
+                          alignment: Alignment.center,
                           child: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            size: 18,
-                            color: cs.onSurface,
+                            size: 16,
+                            color: isDark ? Colors.white : const Color(0xFF18181B),
                           ),
                         ),
                       ),
@@ -339,7 +347,7 @@ class _DriverIdVerificationScreenState
 
                     const SizedBox(height: 24),
 
-                    // Headline & Subtitle
+                    // Headline & Subtitle (Poppins scale)
                     FadeSlideIn(
                       duration: AppDurations.slow,
                       slideOffset: 0.04,
@@ -348,20 +356,20 @@ class _DriverIdVerificationScreenState
                         children: [
                           Text(
                             'Identity Verification',
-                            style: tt.headlineMedium?.copyWith(
+                            style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w700,
-                              fontSize: 26,
-                              letterSpacing: -0.5,
-                              color: cs.onSurface,
+                              fontSize: 27,
+                              letterSpacing: -0.4,
+                              color: isDark ? Colors.white : const Color(0xFF18181B),
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Verify your USA Driver\'s License to continue.',
-                            style: tt.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 15,
-                              height: 1.4,
+                            style: GoogleFonts.poppins(
+                              color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                              fontSize: 14.5,
+                              height: 1.45,
                             ),
                           ),
                         ],
@@ -370,7 +378,7 @@ class _DriverIdVerificationScreenState
 
                     const SizedBox(height: 28),
 
-                    // Steps Container Card
+                    // Steps Stage Card (Section 5.3)
                     FadeSlideIn(
                       duration: AppDurations.slow,
                       delay: const Duration(milliseconds: 60),
@@ -379,36 +387,35 @@ class _DriverIdVerificationScreenState
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: cs.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(16),
+                          color: isDark ? const Color(0xFF121316) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: cs.outlineVariant,
-                            width: 1.2,
+                            color: isDark
+                                ? const Color(0xFF27272A)
+                                : const Color(0xFFE4E4E7),
                           ),
-                          boxShadow: isDark
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
                             _buildStepItem(
                               icon: Icons.drive_eta_outlined,
                               title: 'Driver\'s License',
-                              description:
-                                  'Valid USA Driver\'s License.',
+                              description: 'Valid USA Driver\'s License.',
+                              isDark: isDark,
                             ),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
                               child: Divider(
                                 height: 1,
-                                color: cs.outlineVariant.withValues(alpha: 0.5),
+                                thickness: 0.8,
+                                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
                               ),
                             ),
                             _buildStepItem(
@@ -416,13 +423,14 @@ class _DriverIdVerificationScreenState
                               title: 'Liveness Selfie Scan',
                               description:
                                   'Quick 3D facial scan to confirm your identity.',
+                              isDark: isDark,
                             ),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
                               child: Divider(
                                 height: 1,
-                                color: cs.outlineVariant.withValues(alpha: 0.5),
+                                thickness: 0.8,
+                                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
                               ),
                             ),
                             _buildStepItem(
@@ -430,6 +438,7 @@ class _DriverIdVerificationScreenState
                               title: 'Instant Automatic Verification',
                               description:
                                   'Automated approval or denial powered by Didit.',
+                              isDark: isDark,
                             ),
                           ],
                         ),
@@ -442,39 +451,40 @@ class _DriverIdVerificationScreenState
               ),
             ),
 
-            // Pinned Bottom Action Button
+            // Pinned Bottom Gold Pill CTA Action Button
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _isVerifying ? null : _startVerification,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: cs.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF111827),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
                     ),
                   ),
                   child: _isVerifying
-                      ? SizedBox(
+                      ? const SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              cs.onPrimary,
+                              Color(0xFF111827),
                             ),
                           ),
                         )
                       : Text(
                           'Start Verification',
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.5,
                             fontWeight: FontWeight.w600,
-                            color: cs.onPrimary,
+                            color: const Color(0xFF111827),
+                            letterSpacing: 0.1,
                           ),
                         ),
                 ),

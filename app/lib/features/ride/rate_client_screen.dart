@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/review_repository.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -100,136 +100,209 @@ class _RateClientScreenState extends State<RateClientScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
-          onPressed: () {
-            context.read<RideProvider>().clearRide();
-            context.go('/driver-home');
-          },
-        ),
-        title: Text(
-          'Rate Passenger',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: isDark ? AppColors.white : AppColors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-          child: Column(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.star_rounded,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Rate Your Client',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'How was your luxury chauffeur experience with $_passengerName?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  final starNum = index + 1;
-                  return GestureDetector(
-                    onTap: () => setState(() => _rating = starNum),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Icon(
-                        starNum <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                        size: 44,
-                        color: starNum <= _rating
-                            ? const Color(0xFFD4AF37)
-                            : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+        child: Column(
+          children: [
+            // Top Bar with Circular Back Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () {
+                        context.read<RideProvider>().clearRide();
+                        context.go('/driver-home');
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF27272A)
+                                : const Color(0xFFE4E4E7),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: isDark ? Colors.white : const Color(0xFF18181B),
+                        ),
                       ),
                     ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 28),
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
                   ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  controller: _commentController,
-                  maxLines: 3,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Add an optional note about this trip...',
-                    hintStyle: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                  Text(
+                    'Rate Passenger',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
+                      letterSpacing: -0.2,
                     ),
-                    border: InputBorder.none,
                   ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.star_rounded,
+                          size: 44,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Rate Your Client',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF18181B),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'How was your luxury chauffeur experience with $_passengerName?',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13.5,
+                        color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starNum = index + 1;
+                        return GestureDetector(
+                          onTap: () => setState(() => _rating = starNum),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(
+                              starNum <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                              size: 44,
+                              color: starNum <= _rating
+                                  ? AppColors.primary
+                                  : (isDark ? const Color(0xFF3F3F46) : const Color(0xFFD4D4D8)),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 28),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF121316) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: TextField(
+                        controller: _commentController,
+                        maxLines: 3,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : const Color(0xFF18181B),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Add an optional note about this trip...',
+                          hintStyle: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                          ),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // Signature Gold Pill Submit Rating CTA
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitRating,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: const Color(0xFF111827),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(26),
+                          ),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Color(0xFF111827),
+                                ),
+                              )
+                            : Text(
+                                'Submit Rating',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextButton(
+                      onPressed: () {
+                        context.read<RideProvider>().clearRide();
+                        context.go('/driver-home');
+                      },
+                      child: Text(
+                        'Skip',
+                        style: GoogleFonts.poppins(
+                          color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              CustomButton(
-                title: _isSubmitting ? 'Submitting...' : 'Submit Rating',
-                onPress: _isSubmitting ? () {} : _submitRating,
-                variant: ButtonVariant.primary,
-                height: 50,
-                borderRadius: 16,
-              ),
-              const SizedBox(height: 14),
-              TextButton(
-                onPressed: () {
-                  context.read<RideProvider>().clearRide();
-                  context.go('/driver-home');
-                },
-                child: Text(
-                  'Skip',
-                  style: TextStyle(
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

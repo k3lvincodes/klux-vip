@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
@@ -82,33 +83,39 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // Glassmorphic back button
+              // Circular back button
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+                  padding: const EdgeInsets.only(left: 18.0, top: 12.0),
                   child: PressScale(
-                  onTap: () {
-                    context.pushReplacement('/rate-client');
-                  },
+                    onTap: () {
+                      context.pushReplacement('/rate-client');
+                    },
                     child: Container(
-                      width: 44,
-                      height: 44,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.05),
+                        color: isDark ? const Color(0xFF1E2026) : Colors.white,
                         border: Border.all(
                           color: isDark
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : Colors.black.withValues(alpha: 0.08),
+                              ? const Color(0xFF27272A)
+                              : const Color(0xFFE4E4E7),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
+                      alignment: Alignment.center,
                       child: Icon(
-                        Icons.arrow_back,
-                        color: isDark ? AppColors.white : AppColors.black,
-                        size: 20,
+                        Icons.arrow_back_ios_new_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF18181B),
+                        size: 16,
                       ),
                     ),
                   ),
@@ -190,8 +197,8 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isDark
-                                  ? AppColors.darkBackground
-                                  : AppColors.white,
+                                  ? const Color(0xFF141416)
+                                  : Colors.white,
                             ),
                           ),
                         ),
@@ -207,9 +214,9 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                         ),
                         child: const Center(
                           child: Icon(
-                            Icons.check,
-                            color: AppColors.white,
-                            size: 80,
+                            Icons.check_rounded,
+                            color: Color(0xFF111827),
+                            size: 76,
                           ),
                         ),
                       ),
@@ -225,10 +232,11 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
               // Amount Received - staggered fade-in
               Text(
                 '$displayAmount Received',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.white : AppColors.black,
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF18181B),
+                  letterSpacing: -0.3,
                 ),
               )
                   .animate()
@@ -244,27 +252,28 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                     delay: 600.ms,
                     curve: Curves.easeOutCubic,
                   ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // View payment details button - staggered fade-in
+              // View payment details button - signature gold pill or styled outline
               PressScale(
                 onTap: () => context.push('/account'),
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: isDark
-                          ? Colors.grey.shade700
-                          : Colors.grey.shade300,
+                          ? const Color(0xFF27272A)
+                          : const Color(0xFFE4E4E7),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'View payment details',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
+                    style: GoogleFonts.poppins(
+                      color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -281,6 +290,42 @@ class _RidePaymentReceivedScreenState extends State<RidePaymentReceivedScreen>
                     duration: 500.ms,
                     delay: 800.ms,
                     curve: Curves.easeOutCubic,
+                  ),
+
+              const SizedBox(height: 20),
+
+              // Continue to rating CTA button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => context.pushReplacement('/rate-client'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: const Color(0xFF111827),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: Text(
+                      'Rate Client',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+                  .animate()
+                  .fadeIn(
+                    duration: 500.ms,
+                    delay: 900.ms,
+                    curve: Curves.easeOut,
                   ),
 
               const Expanded(flex: 2, child: SizedBox()),

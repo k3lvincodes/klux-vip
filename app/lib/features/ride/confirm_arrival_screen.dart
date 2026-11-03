@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -124,22 +123,32 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
 
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(left: 16, top: 8),
+              padding: const EdgeInsets.only(left: 18, top: 10),
               child: GestureDetector(
                 onTap: () => context.pop(),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
-                      ),
-                      child: Icon(Icons.arrow_back, size: 18, color: isDark ? AppColors.white : AppColors.black),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
                   ),
                 ),
               ),
@@ -151,75 +160,209 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
             child: SafeArea(
               top: false,
               child: Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.white,
+                  color: isDark ? const Color(0xFF141416) : Colors.white,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, -6))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, -6),
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(child: Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 18), decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2.5)))),
-                    Row(children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 6, spreadRadius: 2)])),
-                      const SizedBox(width: 10),
-                      Text('Confirmation of Arrival', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? AppColors.white : AppColors.black, letterSpacing: 0.2)),
-                    ]),
-                    const SizedBox(height: 6),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Text('Executive assignment in progress', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4.5,
+                        margin: const EdgeInsets.only(bottom: 18),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                                blurRadius: 6,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Text(
+                          'Confirmation of Arrival',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : const Color(0xFF18181B),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 17),
+                      child: Text(
+                        'Executive assignment in progress',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     Consumer<RideProvider>(
                       builder: (context, rideProv, _) {
                         return Container(
                           padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: isDark ? const Color(0xFF161316) : const Color(0xFFFAF9F9), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100)),
-                          child: Column(children: [
-                            _buildInfoRow(Icons.my_location, Colors.green, rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location', isDark),
-                            Padding(padding: const EdgeInsets.only(left: 7), child: Align(alignment: Alignment.centerLeft, child: Container(width: 2, height: 18, color: isDark ? Colors.grey.shade800 : Colors.grey.shade300))),
-                            _buildInfoRow(Icons.location_on, Colors.red, rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location', isDark),
-                          ]),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF121316) : const Color(0xFFF9F8F6),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildInfoRow(
+                                Icons.my_location_rounded,
+                                AppColors.primary,
+                                rideProv.currentRideDetails?['pickup_address'] ?? 'Pickup location',
+                                isDark,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 7),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    width: 2,
+                                    height: 14,
+                                    color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                                  ),
+                                ),
+                              ),
+                              _buildInfoRow(
+                                Icons.location_on_rounded,
+                                const Color(0xFFEF4444),
+                                rideProv.currentRideDetails?['dropoff_address'] ?? 'Dropoff location',
+                                isDark,
+                              ),
+                            ],
+                          ),
                         );
-                      }
+                      },
                     ),
                     const SizedBox(height: 22),
                     Consumer<RideProvider>(
                       builder: (context, rideProv, _) {
-                        return CustomButton(
-                          title: rideProv.isLoading ? 'Updating...' : 'Confirm Arrival',
-                          onPress: rideProv.isLoading ? () {} : () async {
-                            final success = await rideProv.updateRideStatus('arriving');
-                            if (success && context.mounted) context.push('/start-ride');
-                          },
-                          variant: ButtonVariant.primary,
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: rideProv.isLoading
+                                ? null
+                                : () async {
+                                    final success = await rideProv.updateRideStatus('arriving');
+                                    if (success && context.mounted) context.push('/start-ride');
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: const Color(0xFF111827),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: rideProv.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Color(0xFF111827),
+                                    ),
+                                  )
+                                : Text(
+                                    'Confirm Arrival',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF111827),
+                                    ),
+                                  ),
+                          ),
                         );
-                      }
+                      },
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
+                      height: 48,
                       child: OutlinedButton(
                         onPressed: () async {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              backgroundColor: Theme.of(ctx).colorScheme.surface,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              title: const Text('Cancel Assignment?'),
-                              content: const Text('Are you sure you want to cancel this executive assignment? It will return to the radar for other chauffeurs.'),
+                              backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              title: Text(
+                                'Cancel Assignment?',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF18181B),
+                                ),
+                              ),
+                              content: Text(
+                                'Are you sure you want to cancel this executive assignment? It will return to the radar for other chauffeurs.',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13.5,
+                                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                                ),
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Keep Assignment'),
+                                  child: Text(
+                                    'Keep Assignment',
+                                    style: GoogleFonts.poppins(
+                                      color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
                                 FilledButton(
-                                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFFEF4444),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('Cancel Assignment'),
+                                  child: Text(
+                                    'Cancel Assignment',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -230,14 +373,22 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
                           }
                         },
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary.withValues(alpha: 0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          side: BorderSide(
+                            color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         ),
-                        child: Text('Cancel Assignment', style: TextStyle(color: isDark ? AppColors.white : AppColors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: Text(
+                          'Cancel Assignment',
+                          style: GoogleFonts.poppins(
+                            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ).animate().slideY(begin: 0.15, end: 0, duration: 450.ms, curve: Curves.easeOutCubic).fadeIn(duration: 350.ms),
@@ -249,10 +400,26 @@ class _ConfirmArrivalScreenState extends State<ConfirmArrivalScreen> {
   }
 
   Widget _buildInfoRow(IconData icon, Color iconColor, String address, bool isDark) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(padding: const EdgeInsets.only(top: 2), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.12), shape: BoxShape.circle), child: Icon(icon, color: iconColor, size: 14))),
-      const SizedBox(width: 10),
-      Expanded(child: Text(address, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, height: 1.4, letterSpacing: 0.1))),
-    ]);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, color: iconColor, size: 15),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            address,
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              color: isDark ? Colors.white : const Color(0xFF18181B),
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

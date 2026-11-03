@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 
 class DriverOfferCard extends StatefulWidget {
-
   const DriverOfferCard({
     super.key,
     required this.passengerName,
@@ -17,6 +17,7 @@ class DriverOfferCard extends StatefulWidget {
     this.onAccept,
     this.onDecline,
   });
+
   final String passengerName;
   final String? passengerAvatarUrl;
   final int passengerCount;
@@ -59,72 +60,69 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.only(left: 24),
           decoration: BoxDecoration(
-            color: Colors.red[50],
+            color: Colors.red.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.close, color: Colors.red, size: 28),
+          child: const Icon(Icons.close_rounded, color: Colors.red, size: 28),
         ),
         secondaryBackground: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 24),
           decoration: BoxDecoration(
-            color: Colors.red[50],
+            color: Colors.red.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.close, color: Colors.red, size: 28),
+          child: const Icon(Icons.close_rounded, color: Colors.red, size: 28),
         ),
         child: PressScale(
           scale: 0.99,
           child: Container(
             margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.white,
+              color: isDark ? const Color(0xFF121316) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isDark
-                    ? Colors.grey.shade800
-                    : AppColors.primary.withValues(alpha: 0.25),
+                    ? const Color(0xFF27272A)
+                    : const Color(0xFFE4E4E7),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
                   blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.03),
-                  blurRadius: 24,
-                  offset: const Offset(0, 2),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Avatar + Info
+                // Top Row: Avatar + Info + Fare Pill
                 FadeSlideIn(
                   delay: AppDurations.staggerGap * 0,
                   slideOffset: 0.04,
                   child: Row(
                     children: [
                       CircleAvatar(
-                        radius: 26,
+                        radius: 24,
                         backgroundColor: isDark
-                            ? Colors.grey.shade800
-                            : const Color(0xFFF5F0EF),
+                            ? const Color(0xFF1E2026)
+                            : const Color(0xFFF4F4F5),
                         backgroundImage: widget.passengerAvatarUrl != null
                             ? NetworkImage(widget.passengerAvatarUrl!)
                             : null,
                         child: widget.passengerAvatarUrl == null
-                            ? Icon(Icons.person,
-                                size: 26,
+                            ? Icon(
+                                Icons.person_rounded,
+                                size: 24,
                                 color: isDark
-                                    ? AppColors.white
-                                    : Colors.black54)
+                                    ? Colors.white70
+                                    : const Color(0xFF71717A),
+                              )
                             : null,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,28 +131,35 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                               widget.passengerName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
                                 fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppColors.white
-                                    : AppColors.black,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : const Color(0xFF18181B),
+                                letterSpacing: -0.2,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                Icon(Icons.people,
-                                    size: 13, color: Colors.grey.shade500),
+                                Icon(
+                                  Icons.people_outline_rounded,
+                                  size: 13,
+                                  color: isDark
+                                      ? const Color(0xFFA1A1AA)
+                                      : const Color(0xFF71717A),
+                                ),
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
                                     '${widget.passengerCount} passenger${widget.passengerCount == 1 ? '' : 's'}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: isDark
+                                          ? const Color(0xFFA1A1AA)
+                                          : const Color(0xFF71717A),
                                     ),
                                   ),
                                 ),
@@ -164,39 +169,36 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '\$${widget.fare}',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.white : AppColors.black,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '\$${widget.fare}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Location Details
+                // Location Details (Inset container)
                 FadeSlideIn(
                   delay: AppDurations.staggerGap * 1,
                   slideOffset: 0.04,
                   child: _buildLocationSection(isDark),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Action Buttons
                 FadeSlideIn(
@@ -207,7 +209,7 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
 
                 // Expandable Detail Section
                 if (_isExpanded) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   _buildExpandedSection(isDark),
                 ],
 
@@ -217,6 +219,7 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                 Center(
                   child: GestureDetector(
                     onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    behavior: HitTestBehavior.opaque,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
@@ -224,8 +227,8 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                         children: [
                           Text(
                             _isExpanded ? 'Less details' : 'More details',
-                            style: const TextStyle(
-                              fontSize: 11,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                             ),
@@ -235,7 +238,7 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                             turns: _isExpanded ? 0.5 : 0.0,
                             duration: AppDurations.fast,
                             child: const Icon(
-                              Icons.expand_more,
+                              Icons.expand_more_rounded,
                               size: 16,
                               color: AppColors.primary,
                             ),
@@ -257,27 +260,37 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : const Color(0xFFF9F8F8),
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF9F8F6),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+        ),
       ),
       child: Column(
         children: [
           _buildLocationRow(
-            Icons.my_location,
-            Colors.green,
+            Icons.my_location_rounded,
+            AppColors.primary,
             widget.pickupAddress,
             isDark,
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 9),
-            child: SizedBox(
-              height: 14,
-              child: VerticalDivider(width: 2, thickness: 2, color: Colors.grey.shade300),
+            padding: const EdgeInsets.only(left: 7),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                height: 12,
+                child: VerticalDivider(
+                  width: 2,
+                  thickness: 1.5,
+                  color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                ),
+              ),
             ),
           ),
           _buildLocationRow(
-            Icons.location_on,
-            Colors.red,
+            Icons.location_on_rounded,
+            const Color(0xFFEF4444),
             widget.dropoffAddress,
             isDark,
           ),
@@ -293,16 +306,17 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, color: iconColor, size: 16),
+          child: Icon(icon, color: iconColor, size: 15),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             address,
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-              height: 1.3,
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              color: isDark ? Colors.white : const Color(0xFF18181B),
+              height: 1.35,
             ),
           ),
         ),
@@ -315,21 +329,23 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
       children: [
         Expanded(
           child: SizedBox(
-            height: 44,
+            height: 42,
             child: OutlinedButton(
               onPressed: widget.isLoading ? null : _handleDecline,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.grey.shade300),
+                side: BorderSide(
+                  color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(21),
                 ),
               ),
               child: Text(
                 'Decline',
-                style: TextStyle(
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                style: GoogleFonts.poppins(
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -338,15 +354,16 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
         const SizedBox(width: 12),
         Expanded(
           child: SizedBox(
-            height: 44,
+            height: 42,
             child: ElevatedButton(
               onPressed: widget.isLoading ? null : widget.onAccept,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
+                foregroundColor: const Color(0xFF111827),
                 elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(21),
+                ),
               ),
               child: widget.isLoading
                   ? const SizedBox(
@@ -354,15 +371,15 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.white,
+                        color: Color(0xFF111827),
                       ),
                     )
-                  : const Text(
-                      'Accept',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                  : Text(
+                      'Accept Trip',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF111827),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
                       ),
                     ),
             ),
@@ -377,23 +394,26 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
       slideOffset: 0.03,
       child: Container(
         margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade900 : const Color(0xFFF9F8F8),
+          color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF9F8F6),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+          ),
         ),
         child: Column(
           children: [
-            _buildInfoRow(Icons.directions_car, 'Distance', '~2.3 miles', isDark),
+            _buildInfoRow(Icons.directions_car_outlined, 'Distance', '~2.3 miles', isDark),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.timer_outlined, 'Est. time', '~8 min', isDark),
+            _buildInfoRow(Icons.timer_outlined, 'Est. arrival', '~8 min', isDark),
             const SizedBox(height: 8),
             _buildInfoRow(
-              Icons.star_outline,
+              Icons.star_rounded,
               'Client rating',
-              '4.8',
+              '5.0',
               isDark,
-              trailing: const Icon(Icons.star, size: 12, color: Colors.amber),
+              trailing: const Icon(Icons.star_rounded, size: 14, color: AppColors.primary),
             ),
           ],
         ),
@@ -406,13 +426,18 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
       {Widget? trailing}) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade500),
+        Icon(
+          icon,
+          size: 15,
+          color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+        ),
         const SizedBox(width: 8),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
           ),
         ),
         const Spacer(),
@@ -422,10 +447,10 @@ class _DriverOfferCardState extends State<DriverOfferCard> {
         ],
         Text(
           value,
-          style: TextStyle(
-            fontSize: 11,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.white : AppColors.black,
+            color: isDark ? Colors.white : const Color(0xFF18181B),
           ),
         ),
       ],

@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -73,8 +74,7 @@ class _StartRideScreenState extends State<StartRideScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = context.watch<RideProvider>();
     final ride = rideProv.currentRideDetails;
     final dropoffStr = ride?['dropoff_location']?.toString() ?? '';
@@ -99,62 +99,177 @@ class _StartRideScreenState extends State<StartRideScreen> {
             routePoints: dropoffPos != null ? [_currentPosition, dropoffPos] : null,
             padding: const EdgeInsets.only(bottom: 240, top: 60),
           ),
-          Positioned(
-            top: 50, left: 16,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  shape: BoxShape.circle,
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 18, top: 10),
+              child: GestureDetector(
+                onTap: () => context.pop(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
                 ),
-                child: Icon(Icons.arrow_back, size: 18, color: cs.onSurface),
               ),
             ),
           ),
           Positioned(
             bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerLow,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Text('Waiting time', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 16),
-                    Text(_formattedTime, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                  ]),
-                  const SizedBox(height: 8),
-                  Text('You may cancel the offer', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                  const SizedBox(height: 24),
-                  Consumer<RideProvider>(
-                    builder: (context, rideProv, _) {
-                      return CustomButton(
-                        title: rideProv.isLoading ? 'Starting...' : 'Start the ride',
-                        onPress: rideProv.isLoading ? () {} : () async {
-                          final success = await rideProv.updateRideStatus('in_progress');
-                          if (success && context.mounted) context.push('/active-ride');
-                        },
-                        variant: ButtonVariant.primary,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => context.pop(),
-                      child: const Text('Cancel'),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF141416) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, -6),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4.5,
+                        margin: const EdgeInsets.only(bottom: 18),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Waiting time',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : const Color(0xFF18181B),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _formattedTime,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Client has been notified of your arrival',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Consumer<RideProvider>(
+                      builder: (context, rideProv, _) {
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: rideProv.isLoading
+                                ? null
+                                : () async {
+                                    final success = await rideProv.updateRideStatus('in_progress');
+                                    if (success && context.mounted) context.push('/active-ride');
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: const Color(0xFF111827),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: rideProv.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Color(0xFF111827),
+                                    ),
+                                  )
+                                : Text(
+                                    'Start the ride',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF111827),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () => context.pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.poppins(
+                            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
               ),
             ),
           ),

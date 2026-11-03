@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/models/vehicle.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -47,69 +49,142 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
-          onPressed: () => context.pop(),
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Bar with Circular Back Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => context.pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF27272A)
+                                : const Color(0xFFE4E4E7),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: isDark ? Colors.white : const Color(0xFF18181B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Vehicle Information',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : _vehicle == null
+                      ? _buildEmptyState(context, isDark)
+                      : _buildVehicleDetails(context, isDark),
+            ),
+          ],
         ),
-        title: Text(
-          'Vehicle Information',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _vehicle == null
-              ? _buildEmptyState(context)
-              : _buildVehicleDetails(context),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_car_outlined, size: 80, color: colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.12),
+              ),
+              child: const Icon(
+                Icons.directions_car_outlined,
+                size: 44,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'No vehicle registered',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                color: isDark ? Colors.white : const Color(0xFF18181B),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Select and register your executive vehicle model from the supported platform fleet.',
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                height: 1.45,
+                color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+              ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => context.push('/vehicle-management'),
-              icon: const Icon(Icons.add),
-              label: const Text('Register Vehicle'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/vehicle-management'),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  'Register Vehicle',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF111827),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  elevation: 0,
+                ),
               ),
             ),
           ],
@@ -118,8 +193,7 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     );
   }
 
-  Widget _buildVehicleDetails(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildVehicleDetails(BuildContext context, bool isDark) {
     final String make = _vehicle?.make ?? '';
     final String model = _vehicle?.model ?? '';
     final int year = _vehicle?.year ?? 0;
@@ -128,23 +202,24 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
     final List<String> images = _vehicle?.images ?? [];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
         children: [
+          const SizedBox(height: 8),
           // 1:1 Aspect Ratio Vehicle Image Box
           Container(
             margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(20),
+              color: isDark ? const Color(0xFF121316) : Colors.white,
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.35),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 16,
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                  blurRadius: 18,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -158,7 +233,7 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
                         imageUrl: images.first,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                         ),
                         errorWidget: (context, url, error) => Image.asset(
                           'assets/images/cadillac.png',
@@ -173,54 +248,80 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
+              color: isDark ? const Color(0xFF121316) : Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Column(
               children: [
-                _buildDetailRow(context, Icons.directions_car_rounded, 'Make', make),
-                const Divider(height: 16),
-                _buildDetailRow(context, Icons.directions_car_filled_outlined, 'Model', model),
-                const Divider(height: 16),
-                _buildDetailRow(context, Icons.calendar_today_rounded, 'Year', year.toString()),
-                const Divider(height: 16),
-                _buildDetailRow(context, Icons.palette_outlined, 'Color', color),
-                const Divider(height: 16),
-                _buildDetailRow(context, Icons.tag_rounded, 'License Plate', licensePlate),
+                _buildDetailRow(Icons.directions_car_rounded, 'Make', make, isDark),
+                _buildDivider(isDark),
+                _buildDetailRow(Icons.directions_car_filled_outlined, 'Model', model, isDark),
+                _buildDivider(isDark),
+                _buildDetailRow(Icons.calendar_today_rounded, 'Year', year.toString(), isDark),
+                _buildDivider(isDark),
+                _buildDetailRow(Icons.palette_outlined, 'Color', color, isDark),
+                _buildDivider(isDark),
+                _buildDetailRow(Icons.tag_rounded, 'License Plate', licensePlate, isDark),
               ],
             ),
           ),
           const SizedBox(height: 28),
+          // Signature Gold Pill Manage Vehicles Button
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            height: 50,
+            child: ElevatedButton.icon(
               onPressed: () => context.push('/vehicle-management'),
-              icon: Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
-              label: Text('Manage Vehicles', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: colorScheme.outlineVariant),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF111827)),
+              label: Text(
+                'Manage Vehicles',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF111827),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: const Color(0xFF111827),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+  Widget _buildDivider(bool isDark) {
+    return Divider(
+      height: 18,
+      thickness: 0.8,
+      indent: 48,
+      color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+    );
+  }
 
+  Widget _buildDetailRow(IconData icon, String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: colorScheme.primary),
+          Icon(icon, size: 20, color: AppColors.primary),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -228,16 +329,19 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen> {
               children: [
                 Text(
                   label,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: textTheme.bodyMedium?.copyWith(
+                  style: GoogleFonts.poppins(
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,18 +1,17 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:kenick_vip/models/ride.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
-import 'package:kenick_vip/widgets/buttons/custom_button.dart';
 import 'package:kenick_vip/widgets/cards/driver_offer_card.dart';
-import 'package:kenick_vip/widgets/navigation/drawer_item.dart';
-import 'package:kenick_vip/widgets/navigation/premium_drawer.dart';
+import 'package:kenick_vip/widgets/navigation/kenick_navigation_drawer.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -27,7 +26,6 @@ class DriverHomeScreen extends StatefulWidget {
 class _DriverHomeScreenState extends State<DriverHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _userName = 'CHAUFFEUR';
   String? _profileImageUrl;
@@ -60,7 +58,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   void _initCompletedRidesFuture() {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
-      _completedRidesFuture = RideRepository().getDriverCompletedRides(user.id).then((rides) {
+      _completedRidesFuture =
+          RideRepository().getDriverCompletedRides(user.id).then((rides) {
         if (mounted) {
           final now = DateTime.now();
           double todayTotal = 0;
@@ -98,8 +97,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     if (user != null) {
       final role = (user.userMetadata?['role'] as String?)?.toLowerCase();
       final orgName = (user.userMetadata?['organization_name'] as String?) ?? '';
+      final isOrg = user.userMetadata?['is_organization'] == true;
       final contact = (user.userMetadata?['contact_person'] as String?) ?? '';
-      final isAff = role == 'affiliate' || (user.userMetadata?['is_organization'] == true);
+      final bool isAff = role == 'affiliate' || isOrg;
 
       if (mounted) {
         setState(() {
@@ -109,110 +109,119 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         });
       }
 
-      if (isAff) {
+      try {
+        final profile = await ProfileRepository().getDriverProfile(user.id);
+        if (profile != null && mounted) {
+          final d = profile.driverDetails;
+          final rc = (d?['rating_count'] as num?)?.toInt() ?? 0;
+          final r = (d?['rating'] as num?)?.toDouble() ?? 0.0;
+          setState(() {
+            if (_isAffiliate && _organizationName.isNotEmpty) {
+              _userName = _organizationName;
+            } else {
+              final name = '${profile.firstName ?? ''} ${profile.lastName ?? ''}'.trim();
+              _userName = name.isNotEmpty ? name : 'CHAUFFEUR';
+            }
+            _profileImageUrl = profile.avatarUrl;
+            _ratingCount = rc;
+            _rating = r;
+          });
+        }
+      } catch (_) {}
+
+      if (_isAffiliate) {
         try {
-          final countRes = await Supabase.instance.client
-              .from('vehicles')
+          final cars = await Supabase.instance.client
+              .from('fleet_cars')
               .select('id')
-              .eq('chauffeur_id', user.id);
+              .eq('organization_id', user.id);
           if (mounted) {
             setState(() {
-              _fleetVehicleCount = (countRes as List).length;
+              _fleetVehicleCount = (cars as List).length;
             });
           }
         } catch (_) {}
       }
-
-      try {
-        final profile = await ProfileRepository().getDriverProfile(user.id);
-        if (profile != null && mounted) {
-          setState(() {
-            if (_isAffiliate && _organizationName.isNotEmpty) {
-              _userName = _organizationName.toUpperCase();
-            } else {
-              _userName = profile.displayName.trim().toUpperCase();
-              if (_userName.isEmpty) _userName = _isAffiliate ? 'AFFILIATE PARTNER' : 'CHAUFFEUR';
-            }
-            _profileImageUrl = profile.avatarUrl;
-            if (profile.driverDetails != null) {
-              _isOnline = profile.driverDetails!['is_online'] as bool? ?? true;
-              final rawRating = profile.driverDetails!['rating'];
-              final rawCount = profile.driverDetails!['rating_count'];
-              if (rawRating != null) {
-                _rating = (rawRating as num).toDouble();
-              }
-              if (rawCount != null) {
-                _ratingCount = (rawCount as num).toInt();
-              }
-            }
-          });
-        }
-      } catch (e) {
-        // Best effort
-      }
     }
   }
 
-  Future<void> _toggleOnlineStatus() async {
-    final nextStatus = !_isOnline;
-    setState(() => _isOnline = nextStatus);
+  void _toggleOnlineStatus() {
+    setState(() => _isOnline = !_isOnline);
+    final statusMsg = _isOnline
+        ? (_isAffiliate ? 'Fleet activated for dispatches' : 'You are now online and ready for VIP rides')
+        : (_isAffiliate ? 'Fleet status set to standby' : 'You are now offline');
+    CustomToast.showSuccess(context, statusMsg);
+  }
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      await Supabase.instance.client
-          .from('driver_details')
-          .update({
-            'is_online': nextStatus,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('profile_id', user.id);
-
-      if (mounted) {
-        CustomToast.showSuccess(
-          context,
-          nextStatus ? 'Status: Online Standby (Receiving assignments)' : 'Status: Offline (Standby paused)',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isOnline = !nextStatus);
-        CustomToast.showError(context, 'Failed to update standby status');
-      }
-    }
+  void _openNavigationDrawer() {
+    _fetchProfile().ignore();
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.5),
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return KenickNavigationDrawer(
+            userName: _userName,
+            avatarUrl: _profileImageUrl,
+            isDark: Theme.of(context).brightness == Brightness.dark,
+            isDriver: true,
+            isAffiliate: _isAffiliate,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(-1.0, 0.0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _fetchPassengerNames(List<Map<String, dynamic>> rides) async {
-    final uniqIds = <String>{};
-    for (final ride in rides) {
-      final pid = ride['passenger_id'] as String?;
-      if (pid != null) uniqIds.add(pid);
-    }
-    final newIds = uniqIds.difference(_fetchedPassengerIds).toList();
+    final newIds = rides
+        .map((r) => r['passenger_id'] as String?)
+        .whereType<String>()
+        .where((id) => id.isNotEmpty && !_fetchedPassengerIds.contains(id))
+        .toSet();
+
     if (newIds.isEmpty) return;
     _fetchedPassengerIds.addAll(newIds);
+
     try {
-      final results = await Future.wait(
-        newIds.map((id) => Supabase.instance.client
-            .from('profiles')
-            .select('id, first_name, last_name')
-            .eq('id', id)
-            .maybeSingle()),
-      );
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .filter('id', 'in', newIds.toList());
+
       if (mounted) {
-        for (final p in results) {
-          if (p == null) continue;
-          final pid = p['id'] as String;
-          final name = '${p['first_name'] ?? ''} ${p['last_name'] ?? ''}'.trim();
-          _passengerNames[pid] = name.isNotEmpty ? name : 'Client';
+        for (final row in (res as List)) {
+          final id = row['id'] as String;
+          final first = row['first_name'] as String? ?? '';
+          final last = row['last_name'] as String? ?? '';
+          final name = '$first $last'.trim();
+          _passengerNames[id] = name.isNotEmpty ? name : 'VIP Client';
+        }
+        for (final id in newIds) {
+          _passengerNames.putIfAbsent(id, () => 'VIP Client');
         }
         setState(() {});
       }
     } catch (e) {
       if (mounted) {
         for (final id in newIds) {
-          _passengerNames[id] = 'Client';
+          _passengerNames[id] = 'VIP Client';
         }
         setState(() {});
       }
@@ -228,75 +237,84 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildDrawer(context),
-      body: Container(
-        width: double.infinity,
-        color: cs.surface,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 1. Executive Top Bar
-              _buildTopBar(cs, tt),
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. Executive Top Bar
+            _buildTopBar(cs, isDark),
 
-              // 2. Performance Metrics Card
-              _buildMetricsCard(cs, tt),
+            // 2. Performance Metrics Card (Two-Tier Stage Blueprint)
+            _buildMetricsCard(cs, isDark),
 
-              const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-              // 3. Segmented Tab Selector
-              _buildSegmentedTabSelector(cs, tt),
+            // 3. Segmented Tab Selector (Section 2.3)
+            _buildSegmentedTabSelector(cs, isDark),
 
-              const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-              // 4. Tab Views
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildAvailableTab(),
-                    _buildCompletedTab(),
-                  ],
-                ),
+            // 4. Tab Views
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildAvailableTab(isDark),
+                  _buildCompletedTab(isDark),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTopBar(ColorScheme cs, TextTheme tt) {
+  Widget _buildTopBar(ColorScheme cs, bool isDark) {
     final badgeText = _isAffiliate ? 'AFFILIATE PARTNER' : 'VIP CHAUFFEUR';
     final statusText = _isAffiliate
         ? (_isOnline ? 'FLEET ACTIVE' : 'FLEET STANDBY')
         : (_isOnline ? 'ONLINE' : 'OFFLINE');
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
       child: Row(
         children: [
-          // Drawer menu icon button
+          // Drawer menu icon button (42x42 tap target)
           GestureDetector(
-            onTap: () {
-              _fetchProfile().ignore();
-              if (mounted) _scaffoldKey.currentState?.openDrawer();
-            },
+            onTap: _openNavigationDrawer,
+            behavior: HitTestBehavior.opaque,
             child: Container(
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh.withValues(alpha: 0.7),
+                color: isDark ? const Color(0xFF1E2026) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF27272A)
+                      : const Color(0xFFE4E4E7),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Icon(Icons.menu_rounded, color: cs.onSurface, size: 22),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.menu_rounded,
+                color: isDark ? Colors.white : const Color(0xFF18181B),
+                size: 24,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
 
           // Identity (Chauffeur or Affiliate Organization)
           Expanded(
@@ -307,24 +325,24 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                       decoration: BoxDecoration(
-                        color: cs.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (_isAffiliate) ...[
-                            Icon(Icons.business_outlined, size: 10, color: cs.primary),
-                            const SizedBox(width: 3),
+                            const Icon(Icons.business_outlined, size: 10, color: AppColors.primary),
+                            const SizedBox(width: 4),
                           ],
                           Text(
                             badgeText,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: cs.primary,
+                            style: GoogleFonts.poppins(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -333,12 +351,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   _userName,
-                  style: tt.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.2,
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                    letterSpacing: -0.2,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -348,9 +368,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     padding: const EdgeInsets.only(top: 1),
                     child: Text(
                       'Rep: $_contactPerson',
-                      style: tt.labelSmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 10,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -363,26 +384,27 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           // Online / Offline / Fleet Active Toggle Pill
           GestureDetector(
             onTap: _toggleOnlineStatus,
+            behavior: HitTestBehavior.opaque,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: _isOnline
                     ? const Color(0xFF22C55E).withValues(alpha: 0.15)
-                    : cs.surfaceContainerHigh,
+                    : (isDark ? const Color(0xFF1E2026) : const Color(0xFFE5E7EB)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _isOnline
-                      ? const Color(0xFF22C55E).withValues(alpha: 0.4)
-                      : cs.outline.withValues(alpha: 0.3),
+                      ? const Color(0xFF22C55E).withValues(alpha: 0.45)
+                      : (isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8)),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 7,
-                    height: 7,
+                    width: 7.5,
+                    height: 7.5,
                     decoration: BoxDecoration(
                       color: _isOnline ? const Color(0xFF22C55E) : Colors.grey,
                       shape: BoxShape.circle,
@@ -397,14 +419,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                           : null,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 7),
                   Text(
                     statusText,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: _isOnline ? const Color(0xFF22C55E) : cs.onSurfaceVariant,
-                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w600,
+                      color: _isOnline
+                          ? const Color(0xFF22C55E)
+                          : (isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A)),
+                      letterSpacing: 0.4,
                     ),
                   ),
                 ],
@@ -412,31 +436,47 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
 
-          // Notifications Button
+          // Notifications Button (42x42)
           GestureDetector(
             onTap: () => context.push('/notifications'),
+            behavior: HitTestBehavior.opaque,
             child: Container(
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh.withValues(alpha: 0.7),
+                color: isDark ? const Color(0xFF1E2026) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF27272A)
+                      : const Color(0xFFE4E4E7),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(Icons.notifications_outlined, color: cs.onSurface, size: 20),
+                  Icon(
+                    Icons.notifications_outlined,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                    size: 21,
+                  ),
                   Positioned(
                     top: 10,
                     right: 10,
                     child: Container(
-                      width: 6,
-                      height: 6,
+                      width: 6.5,
+                      height: 6.5,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFD4AF37),
+                        color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -450,75 +490,92 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildMetricsCard(ColorScheme cs, TextTheme tt) {
+  Widget _buildMetricsCard(ColorScheme cs, bool isDark) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          // 1. Revenue
-          Expanded(
-            child: GestureDetector(
-              onTap: () => context.push('/account'),
-              behavior: HitTestBehavior.opaque,
-              child: _buildMetricItem(
-                icon: Icons.account_balance_wallet_outlined,
-                iconColor: cs.primary,
-                label: _isAffiliate ? 'Fleet Revenue' : "Today's Fare",
-                value: '\$${_todayEarnings.toStringAsFixed(2)}',
-                cs: cs,
-                tt: tt,
-              ),
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 32,
-            color: cs.outlineVariant.withValues(alpha: 0.25),
-          ),
-          // 2. Completed Trips / Bookings
-          Expanded(
-            child: GestureDetector(
-              onTap: () => context.push('/driver-ride-history'),
-              behavior: HitTestBehavior.opaque,
-              child: _buildMetricItem(
-                icon: Icons.directions_car_filled_outlined,
-                iconColor: const Color(0xFF3B82F6),
-                label: _isAffiliate ? 'Fleet Bookings' : 'Trips Logged',
-                value: '$_totalTrips',
-                cs: cs,
-                tt: tt,
-              ),
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 32,
-            color: cs.outlineVariant.withValues(alpha: 0.25),
-          ),
-          // 3. Rating or Fleet Vehicles
-          Expanded(
-            child: GestureDetector(
-              onTap: () => context.push(_isAffiliate ? '/vehicle-management' : '/driver-performance'),
-              behavior: HitTestBehavior.opaque,
-              child: _buildMetricItem(
-                icon: _isAffiliate ? Icons.directions_car_outlined : Icons.star_rounded,
-                iconColor: const Color(0xFFF59E0B),
-                label: _isAffiliate ? 'Vehicles' : 'Rating',
-                value: _isAffiliate
-                    ? (_fleetVehicleCount > 0 ? '$_fleetVehicleCount' : 'Active')
-                    : ((_ratingCount > 0 && _rating > 0) ? '${_rating.toStringAsFixed(1)} ★' : '--'),
-                cs: cs,
-                tt: tt,
-              ),
-            ),
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFE4E4E7),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF27272A)
+              : const Color(0xFFD4D4D8),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF121316) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              // 1. Revenue
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => context.push('/account'),
+                  behavior: HitTestBehavior.opaque,
+                  child: _buildMetricItem(
+                    icon: Icons.account_balance_wallet_outlined,
+                    iconColor: AppColors.primary,
+                    label: _isAffiliate ? 'Fleet Revenue' : "Today's Fare",
+                    value: '\$${_todayEarnings.toStringAsFixed(2)}',
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 36,
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+              ),
+              // 2. Completed Trips / Bookings
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => context.push('/driver-ride-history'),
+                  behavior: HitTestBehavior.opaque,
+                  child: _buildMetricItem(
+                    icon: Icons.directions_car_filled_outlined,
+                    iconColor: const Color(0xFF3B82F6),
+                    label: _isAffiliate ? 'Fleet Bookings' : 'Trips Logged',
+                    value: '$_totalTrips',
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 36,
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+              ),
+              // 3. Rating or Fleet Vehicles
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => context.push(_isAffiliate ? '/vehicle-management' : '/driver-performance'),
+                  behavior: HitTestBehavior.opaque,
+                  child: _buildMetricItem(
+                    icon: _isAffiliate ? Icons.directions_car_outlined : Icons.star_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    label: _isAffiliate ? 'Vehicles' : 'Rating',
+                    value: _isAffiliate
+                        ? (_fleetVehicleCount > 0 ? '$_fleetVehicleCount' : 'Active')
+                        : ((_ratingCount > 0 && _rating > 0) ? '${_rating.toStringAsFixed(1)} ★' : '--'),
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -528,8 +585,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     required Color iconColor,
     required String label,
     required String value,
-    required ColorScheme cs,
-    required TextTheme tt,
+    required bool isDark,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -537,15 +593,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 13, color: iconColor),
-            const SizedBox(width: 3),
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 4),
             Flexible(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurfaceVariant,
+                style: GoogleFonts.poppins(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -553,14 +609,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             ),
           ],
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
             value,
-            style: tt.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.2,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF18181B),
+              letterSpacing: -0.2,
             ),
             maxLines: 1,
           ),
@@ -569,35 +627,52 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildSegmentedTabSelector(ColorScheme cs, TextTheme tt) {
+  Widget _buildSegmentedTabSelector(ColorScheme cs, bool isDark) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 44,
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      height: 46,
+      padding: const EdgeInsets.all(3.5),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.25)),
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFE5E7EB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+        ),
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(10),
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: cs.onPrimary,
-        unselectedLabelColor: cs.onSurfaceVariant,
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        labelColor: const Color(0xFF111827),
+        unselectedLabelColor: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+        labelStyle: GoogleFonts.poppins(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: GoogleFonts.poppins(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+        ),
         tabs: [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.assignment_rounded, size: 16),
-                const SizedBox(width: 6),
+                const SizedBox(width: 7),
                 Flexible(
                   child: Text(
-                    _isAffiliate ? 'Fleet Dispatch' : 'Assignments',
+                    _isAffiliate ? 'Fleet Dispatch' : 'Assignments Radar',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -610,7 +685,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.history_rounded, size: 16),
-                SizedBox(width: 6),
+                SizedBox(width: 7),
                 Flexible(
                   child: Text(
                     'Completed',
@@ -626,18 +701,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildCompletedTab() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
+  Widget _buildCompletedTab(bool isDark) {
     if (_completedRidesFuture == null) return const SizedBox();
 
     return FutureBuilder<List<Ride>>(
       future: _completedRidesFuture!,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
+          return const Center(
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary),
           );
         }
         if (snapshot.hasError || (snapshot.data ?? []).isEmpty) {
@@ -652,17 +724,33 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     height: 72,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: cs.surfaceContainerHigh,
+                      color: isDark ? const Color(0xFF1E2026) : const Color(0xFFE5E7EB),
                     ),
-                    child: Icon(Icons.history_rounded, size: 36, color: cs.onSurfaceVariant),
+                    child: Icon(
+                      Icons.history_rounded,
+                      size: 36,
+                      color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Text('No Completed Trips Yet', style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'No Completed Trips Yet',
+                    style: GoogleFonts.poppins(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
-                    'Your finished itineraries will be logged here with complete revenue details.',
+                    'Your finished luxury itineraries will be logged here with complete revenue details.',
                     textAlign: TextAlign.center,
-                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -672,9 +760,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
         final rides = snapshot.data!;
         return ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12),
           itemCount: rides.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 10),
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final ride = rides[index];
             final pickup = ride.pickupAddress.isNotEmpty ? ride.pickupAddress : 'Pickup Location';
@@ -685,9 +773,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: cs.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                color: isDark ? const Color(0xFF121316) : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,22 +793,22 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFF22C55E).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF22C55E)),
-                            SizedBox(width: 4),
+                            const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF22C55E)),
+                            const SizedBox(width: 5),
                             Text(
                               'Completed',
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF22C55E),
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF22C55E),
                               ),
                             ),
                           ],
@@ -719,27 +816,32 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                       ),
                       Text(
                         fare,
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: cs.primary,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   // Pickup
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Icon(Icons.my_location_rounded, color: cs.primary, size: 16),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Icon(Icons.my_location_rounded, color: AppColors.primary, size: 16),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           pickup,
-                          style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: isDark ? Colors.white : const Color(0xFF18181B),
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -749,11 +851,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   Padding(
                     padding: const EdgeInsets.only(left: 7),
                     child: SizedBox(
-                      height: 10,
+                      height: 12,
                       child: VerticalDivider(
                         width: 2,
                         thickness: 1.5,
-                        color: cs.outlineVariant.withValues(alpha: 0.4),
+                        color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
                       ),
                     ),
                   ),
@@ -769,7 +871,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                       Expanded(
                         child: Text(
                           dropoff,
-                          style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: isDark ? Colors.white : const Color(0xFF18181B),
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -777,21 +883,28 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
-                  const SizedBox(height: 8),
+                  Divider(
+                    height: 1,
+                    color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         dateStr,
-                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w400,
+                          color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                        ),
                       ),
                       Text(
                         'VIP Ride #${ride.id.substring(0, 6).toUpperCase()}',
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: cs.onSurfaceVariant,
+                          color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                         ),
                       ),
                     ],
@@ -805,10 +918,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildAvailableTab() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
+  Widget _buildAvailableTab(bool isDark) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: RideRepository().listenToRequestedRides(),
       builder: (context, snapshot) {
@@ -817,13 +927,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 32,
                   height: 32,
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary),
                 ),
-                const SizedBox(height: 12),
-                Text('Connecting to assignment radar...', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                const SizedBox(height: 14),
+                Text(
+                  'Connecting to assignment radar...',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w400,
+                    color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                  ),
+                ),
               ],
             ),
           );
@@ -834,9 +951,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.cloud_off, size: 48, color: cs.outline),
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 48,
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                ),
                 const SizedBox(height: 12),
-                Text('No available rides right now', style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                Text(
+                  'No available rides right now',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
+                ),
               ],
             ),
           );
@@ -877,7 +1005,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               ),
             );
           },
-          child: rides.isEmpty ? _buildEmptyState() : _buildRidesList(rides),
+          child: rides.isEmpty ? _buildEmptyState(isDark) : _buildRidesList(rides),
         );
       },
     );
@@ -885,59 +1013,73 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
   void _showRideNotification(Map<String, dynamic> ride) {
     if (!mounted) return;
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: cs.surface,
+          backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.notifications_active_rounded, size: 28, color: cs.primary),
+                child: const Icon(Icons.notifications_active_rounded, size: 28, color: AppColors.primary),
               ),
-              const SizedBox(height: 14),
-              Text('New Executive Assignment!', style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Text(
+                'New Executive Assignment!',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF18181B),
+                  letterSpacing: -0.2,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
                 'A VIP booking has been matched to your vehicle',
                 textAlign: TextAlign.center,
-                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                ),
               ),
-              const SizedBox(height: 14),
-              _buildNotifRow(Icons.my_location_rounded, 'Pickup', ride['pickup_address'] ?? 'Unknown location', cs),
-              const SizedBox(height: 8),
-              _buildNotifRow(Icons.location_on_rounded, 'Dropoff', ride['dropoff_address'] ?? 'Unknown location', cs),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
+              _buildNotifRow(Icons.my_location_rounded, 'Pickup', ride['pickup_address'] ?? 'Unknown location', isDark),
+              const SizedBox(height: 10),
+              _buildNotifRow(Icons.location_on_rounded, 'Dropoff', ride['dropoff_address'] ?? 'Unknown location', isDark),
+              const SizedBox(height: 18),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attach_money_rounded, size: 20, color: cs.onPrimaryContainer),
                     Text(
-                      '${ride['fare_amount'] ?? '0.00'}',
-                      style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: cs.onPrimaryContainer),
+                      '\$${ride['fare_amount'] ?? '0.00'}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -945,14 +1087,26 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                       height: 44,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(
+                            color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           setState(() => _declinedRideIds.add(ride['id']));
                           _saveDeclinedRides();
                         },
-                        child: Text('Decline', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          'Decline',
+                          style: GoogleFonts.poppins(
+                            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -960,11 +1114,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                   Expanded(
                     child: SizedBox(
                       height: 44,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: cs.primary,
-                          foregroundColor: cs.onPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: const Color(0xFF111827),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
@@ -979,7 +1136,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                             }
                           });
                         },
-                        child: const Text('Accept Trip', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Accept Trip',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                            color: const Color(0xFF111827),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -992,16 +1156,19 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildNotifRow(IconData icon, String label, String value, ColorScheme cs) {
-    final tt = Theme.of(context).textTheme;
+  Widget _buildNotifRow(IconData icon, String label, String value, bool isDark) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: label == 'Pickup' ? cs.primary : const Color(0xFFEF4444)),
-        const SizedBox(width: 8),
+        Icon(icon, size: 16, color: label == 'Pickup' ? AppColors.primary : const Color(0xFFEF4444)),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             '$label: $value',
-            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              color: isDark ? Colors.white : const Color(0xFF18181B),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1010,10 +1177,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     );
   }
 
-  Widget _buildEmptyState() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       key: const ValueKey('empty'),
       child: Padding(
@@ -1022,55 +1186,59 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 90,
-              height: 90,
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: cs.primary.withValues(alpha: 0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 border: Border.all(
-                  color: cs.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   width: 1.5,
                 ),
               ),
               child: Center(
                 child: Container(
-                  width: 64,
-                  height: 64,
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: cs.primary.withValues(alpha: 0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                     border: Border.all(
-                      color: cs.primary.withValues(alpha: 0.4),
+                      color: AppColors.primary.withValues(alpha: 0.45),
                       width: 1.5,
                     ),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Icon(
                       Icons.sensors_rounded,
-                      size: 28,
-                      color: cs.primary,
+                      size: 30,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             Text(
               _isAffiliate ? 'Fleet Dispatch Active' : 'Assignment Radar Active',
-              style: tt.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.2,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF18181B),
+                letterSpacing: -0.2,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               _isAffiliate
                   ? 'Scanning for luxury corporate bookings and VIP itineraries for your fleet...'
                   : 'Scanning for luxury bookings and VIP client itineraries in your zone...',
               textAlign: TextAlign.center,
-              style: tt.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                height: 1.4,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                height: 1.45,
               ),
             ),
           ],
@@ -1082,17 +1250,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   Widget _buildRidesList(List<Map<String, dynamic>> rides) {
     return RefreshIndicator(
       key: const ValueKey('rides'),
+      color: AppColors.primary,
       onRefresh: () async {
         _initCompletedRidesFuture();
       },
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12),
         itemCount: rides.length,
         itemBuilder: (context, index) {
           final ride = rides[index];
           final passengerId = ride['passenger_id'] as String? ?? '';
           return DriverOfferCard(
-            passengerName: _passengerNames[passengerId] ?? 'Client',
+            passengerName: _passengerNames[passengerId] ?? 'VIP Client',
             passengerCount: ride['passenger_count'] ?? 1,
             pickupAddress: ride['pickup_address'] ?? 'Unknown location',
             dropoffAddress: ride['dropoff_address'] ?? 'Unknown location',
@@ -1120,109 +1289,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           );
         },
       ),
-    );
-  }
-
-  Widget _buildDrawer(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    final header = GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        context.push('/driver-profile');
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                  ? ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: _profileImageUrl!,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
-                        errorWidget: (context, url, error) => Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
-                      ),
-                    )
-                  : Icon(_isAffiliate ? Icons.business : Icons.person, size: 28, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_userName, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(_isAffiliate ? 'Organization Profile' : 'View Profile', style: tt.labelMedium?.copyWith(color: cs.primary)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-          ],
-        ),
-      ),
-    );
-
-    final footer = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: CustomButton(
-        title: 'Client mode',
-        onPress: () async {
-          final user = Supabase.instance.client.auth.currentUser;
-          if (user == null) return;
-          try {
-            final profile = await ProfileRepository().getPassengerProfile(user.id);
-            if (profile == null) {
-              if (context.mounted) context.push('/passenger-profile-setup');
-            } else {
-              if (context.mounted) context.go('/passenger-home');
-            }
-          } catch (_) {
-            if (context.mounted) context.push('/passenger-profile-setup');
-          }
-        },
-        variant: ButtonVariant.primary,
-      ),
-    );
-
-    return PremiumDrawer(
-      isDark: Theme.of(context).brightness == Brightness.dark,
-      header: header,
-      footer: footer,
-      items: _isAffiliate
-          ? [
-              DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Company Wallet & Payouts', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.history, title: 'Fleet Bookings & Trips', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.directions_car_outlined, title: 'Fleet Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.verified_user_outlined, title: 'Organization Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.insights_outlined, title: 'Fleet Performance', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-            ]
-          : [
-              DrawerItem(icon: Icons.account_balance_wallet_outlined, title: 'Earnings / Wallet', onTap: () { Navigator.pop(context); context.push('/account'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.history, title: 'Ride History', onTap: () { Navigator.pop(context); context.push('/driver-ride-history'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.directions_car_outlined, title: 'Vehicle Management', onTap: () { Navigator.pop(context); context.push('/vehicle-management'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.verified_user_outlined, title: 'Verification Documents', onTap: () { Navigator.pop(context); context.push('/driver-id-documents'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.star_outline, title: 'Performance & Ratings', onTap: () { Navigator.pop(context); context.push('/driver-performance'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.help_outline, title: 'Support / Help', onTap: () { Navigator.pop(context); context.push('/support'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-              DrawerItem(icon: Icons.settings_outlined, title: 'Settings', onTap: () { Navigator.pop(context); context.push('/settings'); }, isDark: Theme.of(context).brightness == Brightness.dark),
-            ],
     );
   }
 }

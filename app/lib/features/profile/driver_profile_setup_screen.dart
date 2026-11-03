@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/services/cloudinary_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -27,7 +29,6 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   File? _pickedImage;
   String? _profileImageUrl;
   bool _isUploadingImage = false;
-
 
   final List<String> _genders = ['Male', 'Female', 'Other'];
 
@@ -138,52 +139,62 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   }
 
   void _showCountryPicker() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 8),
-                Text(
-                  'Select Country',
-                  style: tt.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                Text(
+                  'Select Country',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 18),
                 ListTile(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  tileColor: cs.surfaceContainerLowest,
+                  tileColor: isDark ? const Color(0xFF1E2026) : const Color(0xFFF9F8F6),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 2,
+                    vertical: 4,
                   ),
-                  leading: const Text('🇺🇸', style: TextStyle(fontSize: 22)),
+                  leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
                   title: Text(
                     'United States',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
                       fontSize: 15,
                     ),
                   ),
-                  trailing: Icon(
+                  trailing: const Icon(
                     Icons.check_circle_rounded,
-                    color: cs.primary,
+                    color: AppColors.primary,
                     size: 22,
                   ),
                   onTap: () {
@@ -200,60 +211,70 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   }
 
   void _showGenderPicker() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 8),
-                Text(
-                  'Select Gender',
-                  style: tt.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                Text(
+                  'Select Gender',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 18),
                 ..._genders.map((opt) {
                   final isSelected = opt == _gender;
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
+                    padding: const EdgeInsets.only(bottom: 10.0),
                     child: ListTile(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       tileColor: isSelected
-                          ? cs.primary.withValues(alpha: 0.1)
-                          : cs.surfaceContainerLowest,
+                          ? AppColors.primary.withValues(alpha: 0.15)
+                          : (isDark ? const Color(0xFF1E2026) : const Color(0xFFF9F8F6)),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 2,
                       ),
                       title: Text(
                         opt,
-                        style: TextStyle(
-                          color: cs.onSurface,
+                        style: GoogleFonts.poppins(
+                          color: isDark ? Colors.white : const Color(0xFF18181B),
                           fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.normal,
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
                           fontSize: 15,
                         ),
                       ),
                       trailing: isSelected
-                          ? Icon(
+                          ? const Icon(
                               Icons.check_circle_rounded,
-                              size: 20,
-                              color: cs.primary,
+                              size: 22,
+                              color: AppColors.primary,
                             )
                           : null,
                       onTap: () {
@@ -283,8 +304,8 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         return Theme(
           data: Theme.of(pickerCtx).copyWith(
             colorScheme: Theme.of(pickerCtx).colorScheme.copyWith(
-                  primary: cs.primary,
-                  onPrimary: cs.onPrimary,
+                  primary: AppColors.primary,
+                  onPrimary: const Color(0xFF111827),
                   surface: cs.surface,
                   onSurface: cs.onSurface,
                 ),
@@ -304,55 +325,52 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
+    required bool isDark,
     TextInputAction textInputAction = TextInputAction.next,
     TextCapitalization textCapitalization = TextCapitalization.words,
   }) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
-      height: 52,
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(10),
+        color: isDark ? const Color(0xFF121316) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: TextField(
         controller: controller,
         textInputAction: textInputAction,
         textCapitalization: textCapitalization,
-        style: TextStyle(
-          color: cs.onSurface,
+        style: GoogleFonts.poppins(
+          color: isDark ? Colors.white : const Color(0xFF18181B),
           fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(
-            color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-            fontSize: 15,
+          hintStyle: GoogleFonts.poppins(
+            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+            fontSize: 14.5,
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
+            horizontal: 18,
             vertical: 16,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: cs.outlineVariant,
-              width: 1.2,
+              color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
             ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: cs.outlineVariant,
-              width: 1.2,
+              color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-              color: cs.primary,
-              width: 1.8,
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
             ),
           ),
         ),
@@ -364,8 +382,8 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     required String value,
     required String hintText,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
-    final cs = Theme.of(context).colorScheme;
     final hasValue = value.isNotEmpty;
 
     return GestureDetector(
@@ -373,17 +391,17 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         FocusScope.of(context).unfocus();
         onTap();
       },
+      behavior: HitTestBehavior.opaque,
       child: Container(
         height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(10),
+          color: isDark ? const Color(0xFF121316) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: hasValue
-                ? cs.primary.withValues(alpha: 0.35)
-                : cs.outlineVariant,
-            width: 1.2,
+                ? AppColors.primary.withValues(alpha: 0.5)
+                : (isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7)),
           ),
         ),
         child: Row(
@@ -391,11 +409,11 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
             Expanded(
               child: Text(
                 hasValue ? value : hintText,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   color: hasValue
-                      ? cs.onSurface
-                      : cs.onSurfaceVariant.withValues(alpha: 0.7),
-                  fontSize: 15,
+                      ? (isDark ? Colors.white : const Color(0xFF18181B))
+                      : (isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A)),
+                  fontSize: 14.5,
                   fontWeight: hasValue ? FontWeight.w500 : FontWeight.w400,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -403,7 +421,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
             ),
             Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: cs.onSurfaceVariant,
+              color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
               size: 22,
             ),
           ],
@@ -412,51 +430,47 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     );
   }
 
-  Widget _buildAvatarUploader() {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  Widget _buildAvatarUploader(bool isDark) {
     return Center(
       child: GestureDetector(
         onTap: _isUploadingImage ? null : _pickAndUploadImage,
+        behavior: HitTestBehavior.opaque,
         child: Column(
           children: [
             Stack(
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 90,
-                  height: 90,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: cs.surfaceContainerLowest,
+                    color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF4F4F5),
                     border: Border.all(
-                      color: cs.outlineVariant,
-                      width: 1.5,
+                      color: AppColors.primary,
+                      width: 2.5,
                     ),
-                    boxShadow: isDark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: _pickedImage != null
                       ? ClipOval(
                           child: Image.file(
                             _pickedImage!,
-                            width: 90,
-                            height: 90,
+                            width: 96,
+                            height: 96,
                             fit: BoxFit.cover,
                           ),
                         )
                       : Icon(
                           Icons.person_outline_rounded,
-                          size: 44,
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                          size: 46,
+                          color: isDark ? Colors.white54 : Colors.black45,
                         ),
                 ),
                 if (_isUploadingImage)
@@ -466,12 +480,12 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                         color: Colors.black.withValues(alpha: 0.45),
                         shape: BoxShape.circle,
                       ),
-                      child: Center(
+                      child: const Center(
                         child: SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: cs.primary,
+                            color: AppColors.primary,
                             strokeWidth: 2.5,
                           ),
                         ),
@@ -482,13 +496,13 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                   bottom: 0,
                   right: 0,
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    width: 30,
+                    height: 30,
                     decoration: BoxDecoration(
-                      color: cs.primary,
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark ? cs.surface : Colors.white,
+                        color: isDark ? const Color(0xFF141416) : Colors.white,
                         width: 2,
                       ),
                     ),
@@ -496,20 +510,20 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       _pickedImage != null
                           ? Icons.edit_rounded
                           : Icons.camera_alt_rounded,
-                      size: 14,
-                      color: cs.onPrimary,
+                      size: 15,
+                      color: const Color(0xFF111827),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               _pickedImage != null ? 'Change photo' : 'Add photo (optional)',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: cs.onSurfaceVariant,
+                color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
               ),
             ),
           ],
@@ -520,8 +534,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final title =
         _isAffiliate ? 'Organization Profile' : 'Complete Your Profile';
@@ -530,19 +543,19 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         : 'Enter your personal details to continue.';
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: isDark ? const Color(0xFF141416) : const Color(0xFFF6F6F8),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 22.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                    // Headline & Subtitle
+                    // Headline & Subtitle (Poppins editorial scale)
                     FadeSlideIn(
                       duration: AppDurations.slow,
                       slideOffset: 0.04,
@@ -551,34 +564,34 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                         children: [
                           Text(
                             title,
-                            style: tt.headlineMedium?.copyWith(
+                            style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w700,
-                              fontSize: 26,
-                              letterSpacing: -0.5,
-                              color: cs.onSurface,
+                              fontSize: 27,
+                              letterSpacing: -0.4,
+                              color: isDark ? Colors.white : const Color(0xFF18181B),
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             subtitle,
-                            style: tt.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 15,
-                              height: 1.4,
+                            style: GoogleFonts.poppins(
+                              color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                              fontSize: 14,
+                              height: 1.45,
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
                     // Avatar Photo Uploader
                     FadeSlideIn(
                       duration: AppDurations.slow,
                       delay: const Duration(milliseconds: 60),
                       slideOffset: 0.04,
-                      child: _buildAvatarUploader(),
+                      child: _buildAvatarUploader(isDark),
                     ),
 
                     const SizedBox(height: 28),
@@ -591,6 +604,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       child: _buildInputField(
                         controller: _firstNameController,
                         hintText: 'First name*',
+                        isDark: isDark,
                       ),
                     ),
 
@@ -604,6 +618,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       child: _buildInputField(
                         controller: _lastNameController,
                         hintText: 'Last name*',
+                        isDark: isDark,
                       ),
                     ),
 
@@ -618,6 +633,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                         value: _dob,
                         hintText: 'Date of birth*',
                         onTap: _selectDateOfBirth,
+                        isDark: isDark,
                       ),
                     ),
 
@@ -632,6 +648,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                         value: _gender,
                         hintText: 'Gender*',
                         onTap: _showGenderPicker,
+                        isDark: isDark,
                       ),
                     ),
 
@@ -646,48 +663,50 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                         value: _country,
                         hintText: 'Country of residence*',
                         onTap: _showCountryPicker,
+                        isDark: isDark,
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
 
-            // Pinned Bottom "Continue" Pill Button
+            // Pinned Bottom "Continue" Gold Pill CTA Button
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleContinue,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: cs.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF111827),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
                     ),
                   ),
                   child: _isLoading
-                      ? SizedBox(
+                      ? const SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              cs.onPrimary,
+                              Color(0xFF111827),
                             ),
                           ),
                         )
                       : Text(
                           'Continue',
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.5,
                             fontWeight: FontWeight.w600,
-                            color: cs.onPrimary,
+                            color: const Color(0xFF111827),
+                            letterSpacing: 0.1,
                           ),
                         ),
                 ),

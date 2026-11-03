@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
 import 'package:kenick_vip/widgets/cards/active_trip_card.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -12,7 +14,6 @@ import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 
 class ActiveRideScreen extends StatefulWidget {
   const ActiveRideScreen({super.key});
@@ -98,19 +99,22 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     final pos = await Geolocator.getCurrentPosition();
     if (mounted) {
       setState(() => _currentPosition = LatLng(pos.latitude, pos.longitude));
-      _fetchRoute();
+      _fetchAndDrawRoute();
     }
 
     _gpsSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
     ).listen((position) {
       if (mounted) {
-        setState(() => _currentPosition = LatLng(position.latitude, position.longitude));
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+        });
+        _fetchAndDrawRoute();
       }
     });
   }
 
-  Future<void> _fetchRoute() async {
+  Future<void> _fetchAndDrawRoute() async {
     final rideProv = context.read<RideProvider>();
     final ride = rideProv.currentRideDetails;
     if (ride == null) return;
@@ -120,11 +124,11 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     final match = regExp.firstMatch(dropoffStr);
     if (match == null) return;
 
-    final lng = double.tryParse(match.group(1) ?? '');
-    final lat = double.tryParse(match.group(2) ?? '');
-    if (lat == null || lng == null) return;
+    final dropoffLng = double.tryParse(match.group(1) ?? '');
+    final dropoffLat = double.tryParse(match.group(2) ?? '');
+    if (dropoffLat == null || dropoffLng == null) return;
 
-    final dropoff = LatLng(lat, lng);
+    final dropoff = LatLng(dropoffLat, dropoffLng);
     final routeResult = await LocationSearchService.getRoute(_currentPosition, dropoff);
     if (routeResult != null && mounted) {
       setState(() => _routePoints = routeResult.points);
@@ -132,28 +136,53 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   Future<bool> _confirmExit() async {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Exit Navigation?'),
-        content: const Text(
-          'This luxury itinerary is currently in progress. You can safely return to the home screen without ending the ride.',
+        backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Active Ride in Progress',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : const Color(0xFF18181B),
+          ),
+        ),
+        content: Text(
+          'A luxury journey is currently active. Are you sure you want to return to the home screen? The ride will continue running.',
+          style: GoogleFonts.poppins(
+            fontSize: 13.5,
+            color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Stay on Map', style: TextStyle(color: cs.onSurfaceVariant)),
+            child: Text(
+              'Stay on Map',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+              ),
+            ),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: const Color(0xFF111827),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 0,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Return Home'),
+            child: Text(
+              'Return Home',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
           ),
         ],
       ),
@@ -163,7 +192,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final rideProv = context.watch<RideProvider>();
     final ride = rideProv.currentRideDetails;
     final dropoffStr = ride?['dropoff_location']?.toString() ?? '';
@@ -199,7 +228,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             ),
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(left: 16, top: 8),
+                padding: const EdgeInsets.only(left: 18, top: 10),
                 child: GestureDetector(
                   onTap: () async {
                     final shouldExit = await _confirmExit();
@@ -207,20 +236,30 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                       context.pop();
                     }
                   },
+                  behavior: HitTestBehavior.opaque,
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: cs.surface,
                       shape: BoxShape.circle,
+                      color: isDark ? const Color(0xFF1E2026) : Colors.white,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 8,
+                          color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                          blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: Icon(Icons.arrow_back, size: 20, color: cs.onSurface),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 16,
+                      color: isDark ? Colors.white : const Color(0xFF18181B),
+                    ),
                   ),
                 ),
               ),
@@ -246,74 +285,119 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   void _showContactOptions(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       builder: (ctx) => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4.5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF27272A) : const Color(0xFFD4D4D8),
+                    borderRadius: BorderRadius.circular(2.5),
+                  ),
+                ),
+              ),
               Text(
                 'Contact Passenger',
-                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            const SizedBox(height: 4),
-            Text(
-              'Reach out to $_passengerName regarding this assignment',
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF22C55E).withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF18181B),
                 ),
-                child: const Icon(Icons.phone_rounded, color: Color(0xFF22C55E)),
               ),
-              title: const Text('Voice Call Client', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Secured masked call via Kenick VIP', style: TextStyle(fontSize: 12)),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Connecting secured call to client...')),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+              const SizedBox(height: 4),
+              Text(
+                'Reach out to $_passengerName regarding this assignment',
+                style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
                 ),
-                child: Icon(Icons.chat_bubble_outline_rounded, color: cs.primary),
               ),
-              title: const Text('Direct In-App Message', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Send an update or ETA notification', style: TextStyle(fontSize: 12)),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                ActiveTripChatSheet.show(context, _passengerName);
-              },
-            ),
-          ],
+              const SizedBox(height: 20),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.phone_rounded, color: Color(0xFF22C55E), size: 20),
+                ),
+                title: Text(
+                  'Voice Call Client',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
+                ),
+                subtitle: Text(
+                  'Secured masked call via Kenick VIP',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Connecting secured call to client...')),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 20),
+                ),
+                title: Text(
+                  'Direct In-App Message',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                    color: isDark ? Colors.white : const Color(0xFF18181B),
+                  ),
+                ),
+                subtitle: Text(
+                  'Send an update or ETA notification',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ActiveTripChatSheet.show(context, _passengerName);
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
