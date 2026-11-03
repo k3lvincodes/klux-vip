@@ -166,10 +166,10 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                   Text(
                     'Edit Profile Details',
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: isDark ? Colors.white : const Color(0xFF18181B),
-                      letterSpacing: -0.2,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ],

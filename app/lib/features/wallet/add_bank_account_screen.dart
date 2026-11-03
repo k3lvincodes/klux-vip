@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
@@ -45,7 +46,14 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Add Bank Account'),
+        title: Text(
+          'Add Bank Account',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.3,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

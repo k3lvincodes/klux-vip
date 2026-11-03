@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/models/fleet_car.dart';
 import 'package:kenick_vip/models/vehicle.dart';
 import 'package:kenick_vip/repositories/vehicle_repository.dart';
@@ -1399,9 +1400,11 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
         ),
         title: Text(
           'Supported Fleet & Vehicle',
-          style: textTheme.titleMedium?.copyWith(
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
+            letterSpacing: -0.3,
           ),
         ),
         actions: [

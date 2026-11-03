@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -89,10 +90,11 @@ class _WithdrawToBankScreenState extends State<WithdrawToBankScreen> {
                       child: Text(
                         'Withdraw to bank',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: isDark ? AppColors.white : AppColors.black,
+                          letterSpacing: -0.3,
                         ),
                       ),
                     ),

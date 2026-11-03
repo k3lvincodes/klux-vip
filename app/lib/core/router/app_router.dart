@@ -68,6 +68,7 @@ import 'package:kenick_vip/features/verification/driver_id_verification_screen.d
 import 'package:kenick_vip/features/verification/id_verification_documents_screen.dart';
 import 'package:kenick_vip/features/wallet/account_screen.dart';
 import 'package:kenick_vip/features/wallet/add_bank_account_screen.dart';
+import 'package:kenick_vip/features/wallet/transaction_history_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_method_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_to_bank_screen.dart';
 import 'package:kenick_vip/services/fleet_service.dart';
@@ -376,6 +377,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/withdraw-to-bank',
       builder: (context, state) => const WithdrawToBankScreen(),
+    ),
+    GoRoute(
+      path: '/wallet-transactions',
+      builder: (context, state) => const TransactionHistoryScreen(),
     ),
     GoRoute(
       path: '/driver-ride-history',

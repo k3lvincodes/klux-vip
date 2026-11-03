@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/payment_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,9 +75,11 @@ class _AccountScreenState extends State<AccountScreen> {
                           child: Text(
                             'Earnings & Wallet',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                               color: Colors.black,
+                              letterSpacing: -0.3,
                             ),
                           ),
                         ),
@@ -133,7 +136,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             if (index == 1) {
                               context.push('/withdraw-method');
                             } else if (index == 2) {
-                              context.push('/driver-ride-history');
+                              context.push('/wallet-transactions');
                             }
                           },
                           child: Column(

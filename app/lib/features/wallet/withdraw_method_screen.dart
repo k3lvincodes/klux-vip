@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 
 class WithdrawMethodScreen extends StatefulWidget {
@@ -72,10 +73,11 @@ class _WithdrawMethodScreenState extends State<WithdrawMethodScreen> {
                       child: Text(
                         'Withdrawal Method',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                           color: isDark ? AppColors.white : AppColors.black,
+                          letterSpacing: -0.3,
                         ),
                       ),
                     ),

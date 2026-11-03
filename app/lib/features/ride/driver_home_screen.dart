@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:kenick_vip/models/ride.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/repositories/notification_repository.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
@@ -468,18 +469,29 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                     color: isDark ? Colors.white : const Color(0xFF18181B),
                     size: 21,
                   ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 6.5,
-                      height: 6.5,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
+                  if (Supabase.instance.client.auth.currentUser != null)
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: NotificationRepository().listenToNotifications(
+                        Supabase.instance.client.auth.currentUser!.id,
                       ),
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        final hasUnread = items.any((n) => n['is_read'] != true);
+                        if (!hasUnread) return const SizedBox.shrink();
+                        return Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 6.5,
+                            height: 6.5,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
                 ],
               ),
             ),
