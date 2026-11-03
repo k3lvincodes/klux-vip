@@ -67,7 +67,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.black),
                           onPressed: () => context.pop(),
                         ),
                         Expanded(

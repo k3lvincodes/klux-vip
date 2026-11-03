@@ -270,7 +270,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(

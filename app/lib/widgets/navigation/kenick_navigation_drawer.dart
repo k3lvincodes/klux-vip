@@ -10,10 +10,7 @@ import 'package:kenick_vip/features/payment/payment_method_screen.dart';
 import 'package:kenick_vip/features/profile/passenger_profile_screen.dart';
 import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
-import 'package:kenick_vip/repositories/profile_repository.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class KenickNavigationDrawer extends StatefulWidget {
   const KenickNavigationDrawer({
@@ -41,22 +38,6 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
   void _navigateToRoute(String route) {
     Navigator.of(context).pop();
     context.push(route);
-  }
-
-  Future<void> _switchToClientMode() async {
-    Navigator.of(context).pop();
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-    try {
-      final profile = await ProfileRepository().getPassengerProfile(user.id);
-      if (profile == null) {
-        if (mounted) context.push('/passenger-profile-setup');
-      } else {
-        if (mounted) context.go('/passenger-home');
-      }
-    } catch (_) {
-      if (mounted) context.push('/passenger-profile-setup');
-    }
   }
 
   void _navigateTo(Widget screen) {
@@ -249,14 +230,6 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
                     ] else ...[
                       // Driver / Chauffeur Mode
                       _buildPrimaryItem(
-                        title: widget.isAffiliate ? 'Fleet Dispatch' : 'Assignments Radar',
-                        textColor: textPrimary,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      _buildPrimaryItem(
                         title: 'Ride History',
                         textColor: textPrimary,
                         onTap: () => _navigateToRoute('/driver-ride-history'),
@@ -265,7 +238,7 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
                       const SizedBox(height: 20),
 
                       _buildPrimaryItem(
-                        title: 'Performance & Ratings',
+                        title: 'Performance',
                         textColor: textPrimary,
                         onTap: () => _navigateToRoute('/driver-performance'),
                       ),
@@ -353,47 +326,6 @@ class _KenickNavigationDrawerState extends State<KenickNavigationDrawer> {
                           onTap: () => _navigateToRoute('/settings'),
                         ),
                       ],
-
-                      const SizedBox(height: 20),
-
-                      // Signature Gold Pill CTA: Switch to Client mode
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: ElevatedButton(
-                          onPressed: _switchToClientMode,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: const Color(0xFF111827),
-                            elevation: 0,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.swap_horiz_rounded,
-                                size: 18,
-                                color: Color(0xFF111827),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Switch to Client mode',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF111827),
-                                  height: 1.15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                     ],
                   ],
                 ),

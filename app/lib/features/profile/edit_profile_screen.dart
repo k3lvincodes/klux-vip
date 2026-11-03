@@ -125,7 +125,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? AppColors.white : AppColors.black),
           onPressed: () => context.pop(),
         ),
         title: Text(

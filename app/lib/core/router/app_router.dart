@@ -27,6 +27,7 @@ import 'package:kenick_vip/features/legal/legal_notice_screen.dart';
 import 'package:kenick_vip/features/legal/privacy_policy_screen.dart';
 import 'package:kenick_vip/features/legal/terms_of_service_screen.dart';
 import 'package:kenick_vip/features/newsfeed/newsfeed_screen.dart';
+import 'package:kenick_vip/features/notifications/driver_notifications_screen.dart';
 import 'package:kenick_vip/features/notifications/notifications_screen.dart';
 import 'package:kenick_vip/features/onboarding/onboarding_screen.dart';
 import 'package:kenick_vip/features/onboarding/role_selection_screen.dart';
@@ -327,6 +328,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/driver-home',
       builder: (context, state) => const DriverHomeScreen(),
+    ),
+    GoRoute(
+      path: '/driver-notifications',
+      builder: (context, state) => const DriverNotificationsScreen(),
     ),
     GoRoute(
       path: '/driver-profile',

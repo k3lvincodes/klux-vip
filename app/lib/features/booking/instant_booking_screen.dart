@@ -333,7 +333,7 @@ class _InstantBookingScreenState extends State<InstantBookingScreen> {
                   ],
                 ),
                 child: Icon(
-                  Icons.arrow_back_ios_new,
+                  Icons.arrow_back_ios_new_rounded,
                   size: 18,
                   color: isDark ? AppColors.white : AppColors.black,
                 ),

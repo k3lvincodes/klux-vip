@@ -28,7 +28,7 @@ class BookingSelectionScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: 20, color: cs.onSurface),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: cs.onSurface),
           onPressed: () => context.pop(),
         ),
         title: Text(

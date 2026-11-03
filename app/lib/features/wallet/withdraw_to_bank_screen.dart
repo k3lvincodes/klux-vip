@@ -83,7 +83,7 @@ class _WithdrawToBankScreenState extends State<WithdrawToBankScreen> {
                   children: [
                     GestureDetector(
                       onTap: () => context.pop(),
-                      child: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.black),
+                      child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? AppColors.white : AppColors.black),
                     ),
                     Expanded(
                       child: Text(

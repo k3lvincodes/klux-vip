@@ -172,9 +172,9 @@ class _KenickAiChatScreenState extends State<KenickAiChatScreen> {
                 children: [
                   IconButton(
                     icon: Icon(
-                      Icons.arrow_back_rounded,
+                      Icons.arrow_back_ios_new_rounded,
                       color: cs.onSurface,
-                      size: 24,
+                      size: 20,
                     ),
                     onPressed: () {
                       HapticFeedback.lightImpact();

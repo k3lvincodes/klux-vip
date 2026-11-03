@@ -440,7 +440,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
           // Notifications Button (42x42)
           GestureDetector(
-            onTap: () => context.push('/notifications'),
+            onTap: () => context.push('/driver-notifications'),
             behavior: HitTestBehavior.opaque,
             child: Container(
               width: 42,
@@ -641,6 +641,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        dividerColor: Colors.transparent,
+        dividerHeight: 0.0,
         indicator: BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.circular(11),
@@ -672,7 +674,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
                 const SizedBox(width: 7),
                 Flexible(
                   child: Text(
-                    _isAffiliate ? 'Fleet Dispatch' : 'Assignments Radar',
+                    _isAffiliate
+                        ? (_isOnline ? 'Fleet Dispatch' : 'Fleet (Inactive)')
+                        : (_isOnline ? 'Assignments Radar' : 'Radar (Inactive)'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -919,6 +923,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Widget _buildAvailableTab(bool isDark) {
+    if (!_isOnline) {
+      return _buildInactiveRadarState(isDark);
+    }
+
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: RideRepository().listenToRequestedRides(),
       builder: (context, snapshot) {
@@ -1174,6 +1182,148 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInactiveRadarState(bool isDark) {
+    final textMuted = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A);
+    final borderColor = isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7);
+
+    return Center(
+      key: const ValueKey('inactive_radar'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Inactive Radar Icon Container
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? const Color(0xFF1E2026) : const Color(0xFFEFEFEF),
+                border: Border.all(
+                  color: borderColor,
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? const Color(0xFF16181D) : const Color(0xFFE4E4E7),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF3F3F46) : const Color(0xFFD4D4D8),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.sensors_off_rounded,
+                      size: 30,
+                      color: textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Inactive Status Pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'RADAR INACTIVE',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: textMuted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Title
+            Text(
+              _isAffiliate ? 'Fleet Dispatch Inactive' : 'Assignment Radar Inactive',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF18181B),
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Description
+            Text(
+              _isAffiliate
+                  ? 'Your fleet is currently offline and not receiving VIP assignments. Go online to activate live dispatching.'
+                  : 'You are currently offline. Go online to activate the assignment radar and receive incoming VIP booking offers.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: textMuted,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Signature Gold Pill CTA: Go Online
+            SizedBox(
+              height: 44,
+              child: ElevatedButton.icon(
+                onPressed: _toggleOnlineStatus,
+                icon: const Icon(
+                  Icons.power_settings_new_rounded,
+                  size: 18,
+                  color: Color(0xFF111827),
+                ),
+                label: Text(
+                  'Go Online',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF111827),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

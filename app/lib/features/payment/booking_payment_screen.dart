@@ -180,7 +180,7 @@ class _BookingPaymentScreenState extends State<BookingPaymentScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new,
+            Icons.arrow_back_ios_new_rounded,
             size: 20,
             color: isDark ? AppColors.white : AppColors.black,
           ),
