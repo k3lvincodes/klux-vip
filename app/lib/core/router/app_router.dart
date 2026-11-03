@@ -20,6 +20,7 @@ import 'package:kenick_vip/features/booking/special_booking_screen.dart';
 import 'package:kenick_vip/features/booking/trip_summary_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_performance_screen.dart';
 import 'package:kenick_vip/features/driver-performance/driver_ride_history_screen.dart';
+import 'package:kenick_vip/features/fleet/category_cars_screen.dart';
 import 'package:kenick_vip/features/fleet/fleet_selection_screen.dart';
 import 'package:kenick_vip/features/legal/legal_information_screen.dart';
 import 'package:kenick_vip/features/legal/legal_notice_screen.dart';
@@ -68,6 +69,7 @@ import 'package:kenick_vip/features/wallet/account_screen.dart';
 import 'package:kenick_vip/features/wallet/add_bank_account_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_method_screen.dart';
 import 'package:kenick_vip/features/wallet/withdraw_to_bank_screen.dart';
+import 'package:kenick_vip/services/fleet_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -203,6 +205,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/fleet-selection',
       builder: (context, state) => const FleetSelectionScreen(),
+    ),
+    GoRoute(
+      path: '/fleet/category-cars',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final tier = extra['tier'] as FleetCategoryTier;
+        final cars = extra['cars'] as List<FleetVehicleItem>? ?? [];
+        final baseFare = extra['baseFare'] as double?;
+        return CategoryCarsScreen(
+          tier: tier,
+          cars: cars,
+          baseFare: baseFare,
+        );
+      },
     ),
     GoRoute(
       path: '/booking-selection',

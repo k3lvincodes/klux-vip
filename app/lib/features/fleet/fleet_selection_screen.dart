@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/features/rewards/offers_rewards_screen.dart';
@@ -110,6 +111,21 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     if (tierCars.isEmpty) return null;
     final idx = (_categoryCarIndex[tier.name] ?? 0) % tierCars.length;
     return tierCars[idx];
+  }
+
+  void _openCategoryCars(FleetCategoryTier tier) {
+    HapticFeedback.lightImpact();
+    final bookingProv = context.read<BookingProvider>();
+    final baseFare = bookingProv.fareAmount ?? 141.47;
+
+    context.push(
+      '/fleet/category-cars',
+      extra: {
+        'tier': tier,
+        'cars': _fleetCars,
+        'baseFare': baseFare,
+      },
+    );
   }
 
   void _onSelectExperience(FleetCategoryTier tier) {
@@ -374,123 +390,147 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.06),
+      child: GestureDetector(
+        onTap: () => _openCategoryCars(tier),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            // Vehicle Image Gradient Area with animated car transitions
-            Expanded(
-              flex: 5,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: isDark
-                        ? [
-                            tier.gradientColors[0].withValues(alpha: 0.25),
-                            AppColors.darkSurface,
-                          ]
-                        : tier.gradientColors,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              // Vehicle Image Gradient Area with animated car transitions
+              Expanded(
+                flex: 5,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: isDark
+                          ? [
+                              tier.gradientColors[0].withValues(alpha: 0.25),
+                              AppColors.darkSurface,
+                            ]
+                          : tier.gradientColors,
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.all(16),
-                alignment: Alignment.center,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
+                  padding: const EdgeInsets.all(16),
+                  alignment: Alignment.center,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                    child: _buildVehicleImage(activeCar, tier),
                   ),
-                  child: _buildVehicleImage(activeCar, tier),
                 ),
               ),
-            ),
 
-            // Vehicle Category & Specs
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        tier.name,
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
+              // Vehicle Category & Specs
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          tier.name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
                         ),
-                      ),
-                      Text(
-                        fareText,
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
+                        Text(
+                          fareText,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.group_outlined,
-                        size: 18,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${tier.passengers}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: cs.onSurface,
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.group_outlined,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Icon(
-                        Icons.work_outline_rounded,
-                        size: 17,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${tier.luggage}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: cs.onSurface,
+                        const SizedBox(width: 4),
+                        Text(
+                          '${tier.passengers}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurface,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 14),
+                        Icon(
+                          Icons.work_outline_rounded,
+                          size: 17,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${tier.luggage}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'View vehicles',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 11,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

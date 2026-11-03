@@ -150,21 +150,54 @@ class FleetService {
   }
 
   static final List<FleetVehicleItem> fallbackFleet = [
+    // Business Class Fleet
     FleetVehicleItem(
       id: 'mercedes_eqe',
       name: 'Mercedes-Benz EQE',
       make: 'Mercedes-Benz',
-      model: 'EQE',
+      model: 'EQE 350+',
       year: 2024,
-            features: 'Executive Silent Cabin, Ambient Lighting, Fast Charging',
+      features: 'Executive Silent Cabin, Ambient Lighting, Fast Charging',
       localAssetPath: 'assets/images/car1.png',
       hasDriverAssigned: true,
     ),
     FleetVehicleItem(
+      id: 'mercedes_eclass',
+      name: 'Mercedes-Benz E-Class',
+      make: 'Mercedes-Benz',
+      model: 'E-Class AMG Line',
+      year: 2024,
+      features: 'MBUX Superscreen, Panoramic Roof, Active Noise Cancellation',
+      localAssetPath: 'assets/images/car1.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'bmw_5series',
+      name: 'BMW 5 Series',
+      make: 'BMW',
+      model: '530e M Sport',
+      year: 2024,
+      features: 'Acoustic Glazing, Individual Merino Leather, Wireless Charging',
+      localAssetPath: 'assets/images/car1.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'audi_a6',
+      name: 'Audi A6 Limo',
+      make: 'Audi',
+      model: 'A6 Black Edition',
+      year: 2024,
+      features: 'Milano Leather, Bang & Olufsen 3D Sound, Rear Climate Controls',
+      localAssetPath: 'assets/images/car1.png',
+      hasDriverAssigned: true,
+    ),
+
+    // Business Van Fleet
+    FleetVehicleItem(
       id: 'mercedes_vclass',
       name: 'Mercedes-Benz V-Class',
       make: 'Mercedes-Benz',
-      model: 'V-Class',
+      model: 'V-Class Extra Long',
       year: 2024,
       category: 'Business Van',
       features: 'Conference Seating, Massive Luggage Bay, Wi-Fi',
@@ -172,10 +205,45 @@ class FleetService {
       hasDriverAssigned: true,
     ),
     FleetVehicleItem(
+      id: 'gmc_yukon',
+      name: 'GMC Yukon Denali',
+      make: 'GMC',
+      model: 'Yukon Denali XL',
+      year: 2024,
+      category: 'Business Van',
+      features: 'Executive Captain Chairs, Chilled Console, Wi-Fi',
+      localAssetPath: 'assets/images/GMC.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'cadillac_escalade',
+      name: 'Cadillac Escalade',
+      make: 'Cadillac',
+      model: 'Escalade ESV Platinum',
+      year: 2024,
+      category: 'Business Van',
+      features: 'AKG Studio Sound, Heated & Cooled Rear Seats, Massive Luggage',
+      localAssetPath: 'assets/images/cadillac.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'ford_tourneo',
+      name: 'Ford Tourneo Custom',
+      make: 'Ford',
+      model: 'Tourneo Custom VIP',
+      year: 2024,
+      category: 'Business Van',
+      features: 'Executive Lounge, Power Sliding Doors, Privacy Glass',
+      localAssetPath: 'assets/images/ford.png',
+      hasDriverAssigned: true,
+    ),
+
+    // First Class Fleet
+    FleetVehicleItem(
       id: 'mercedes_sclass',
       name: 'Mercedes-Benz S-Class',
       make: 'Mercedes-Benz',
-      model: 'S-Class',
+      model: 'S-Class Long Wheelbase',
       year: 2024,
       category: 'First Class',
       features: 'Rear Chauffeur Package, Executive Recline, Champagne Cooler',
@@ -183,13 +251,36 @@ class FleetService {
       hasDriverAssigned: true,
     ),
     FleetVehicleItem(
-      id: 'gmc_yukon',
-      name: 'GMC Yukon Denali',
-      make: 'GMC',
-      model: 'Yukon Denali',
+      id: 'mercedes_maybach',
+      name: 'Mercedes-Maybach S 580',
+      make: 'Mercedes-Maybach',
+      model: 'S 580 4MATIC',
       year: 2024,
-            features: 'Executive Captain Chairs, Chilled Console, Wi-Fi',
-      localAssetPath: 'assets/images/GMC.png',
+      category: 'First Class',
+      features: 'First-Class Rear Suite, Burmester High-End 4D, Silver Flutes',
+      localAssetPath: 'assets/images/cadillac.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'bmw_7series',
+      name: 'BMW 7 Series',
+      make: 'BMW',
+      model: 'i7 xDrive60 M Sport',
+      year: 2024,
+      category: 'First Class',
+      features: '31.3-inch 8K Theatre Screen, Executive Lounge Seating, Sky Lounge',
+      localAssetPath: 'assets/images/cadillac.png',
+      hasDriverAssigned: true,
+    ),
+    FleetVehicleItem(
+      id: 'rolls_royce_ghost',
+      name: 'Rolls-Royce Ghost',
+      make: 'Rolls-Royce',
+      model: 'Ghost Extended',
+      year: 2024,
+      category: 'First Class',
+      features: 'Starlight Headliner, Effervescence Cooler, Magic Carpet Ride',
+      localAssetPath: 'assets/images/cadillac.png',
       hasDriverAssigned: true,
     ),
   ];
@@ -244,11 +335,11 @@ class FleetService {
           .order('created_at', ascending: false);
 
       if (fleetRows.isNotEmpty) {
-        return fleetRows.map<FleetVehicleItem>((f) {
+        final dbCars = fleetRows.map<FleetVehicleItem>((f) {
           final id = f['id'] as String;
           final make = f['make'] as String? ?? 'VIP';
           final model = f['model'] as String? ?? 'Vehicle';
-          final norm = '${make.trim().toLowerCase()} ${model.trim().toLowerCase()}';
+          const norm = ' ';
           final hasChauffeur = assignedFleetIds.contains(id) || assignedModels.contains(norm);
           final imgUrl = f['image_url'] as String?;
           final features = f['features'] as String? ?? '';
@@ -258,7 +349,7 @@ class FleetService {
 
           return FleetVehicleItem(
             id: id,
-            name: '$make $model',
+            name: ' ',
             make: make,
             model: model,
             year: (f['year'] as num?)?.toInt() ?? 2024,
@@ -269,6 +360,18 @@ class FleetService {
             features: features,
           );
         }).toList();
+
+        final result = List<FleetVehicleItem>.from(dbCars);
+        for (final fb in fallbackFleet) {
+          final alreadyHas = result.any((c) =>
+              c.category == fb.category &&
+              c.make.toLowerCase() == fb.make.toLowerCase() &&
+              c.model.toLowerCase() == fb.model.toLowerCase());
+          if (!alreadyHas) {
+            result.add(fb);
+          }
+        }
+        return result;
       }
     } catch (_) {}
 
