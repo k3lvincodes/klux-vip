@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/auth_provider.dart';
 import 'package:kenick_vip/services/auth_routing_service.dart';
+import 'package:kenick_vip/services/welcome_audio_service.dart';
 import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -63,11 +64,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     final warmLaunch = auth.isInitialized;
     if (warmLaunch) {
+      WelcomeAudioService.playWelcomeIfFirstTime().ignore();
       _resolveImmediately(auth);
       return;
     }
 
     _controller.forward();
+    WelcomeAudioService.playWelcomeIfFirstTime().ignore();
     await _determineNextRoute();
 
     if (!mounted || _resolved) return;

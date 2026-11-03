@@ -12,6 +12,7 @@ import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
 import 'package:kenick_vip/services/fleet_service.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/services/welcome_audio_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
@@ -143,6 +144,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       context.read<RideProvider>().restoreActiveRide(user.id).ignore();
     }
     _loadRecommendations();
+    WelcomeAudioService.playWelcomeIfFirstTime().ignore();
   }
 
   Future<void> _recalculateFare() async {
