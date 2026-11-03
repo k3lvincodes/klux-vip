@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/app_animations.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 
 class ActiveTripChatSheet extends StatefulWidget {
-
   const ActiveTripChatSheet({
     super.key,
     required this.recipientName,
   });
+
   final String recipientName;
 
   static void show(BuildContext context, String recipientName) {
@@ -29,28 +32,36 @@ class ActiveTripChatSheet extends StatefulWidget {
   State<ActiveTripChatSheet> createState() => _ActiveTripChatSheetState();
 }
 
-class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
-    with TickerProviderStateMixin {
+class _ActiveTripChatSheetState extends State<ActiveTripChatSheet> {
   final List<Map<String, dynamic>> _messages = [
     {'text': 'Hello! I am on my way to your pickup location.', 'isMe': false, 'time': '12:31 PM'},
     {'text': 'Great, thank you! I am waiting near the main lobby.', 'isMe': true, 'time': '12:32 PM'},
   ];
 
   final TextEditingController _textController = TextEditingController();
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   final ScrollController _scrollController = ScrollController();
-  
+  final FocusNode _focusNode = FocusNode();
+
   bool _isTyping = false;
   bool _showMediaPanel = false;
+  bool _hasInputText = false;
 
   @override
   void initState() {
     super.initState();
+    _textController.addListener(() {
+      final hasText = _textController.text.trim().isNotEmpty;
+      if (hasText != _hasInputText) {
+        setState(() => _hasInputText = hasText);
+      }
+    });
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     // Simulate chauffeur typing after a short delay
     Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) {
-        setState(() => _isTyping = true);
-      }
+      if (mounted) setState(() => _isTyping = true);
     });
 
     Future.delayed(const Duration(seconds: 8), () {
@@ -65,6 +76,7 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
   void dispose() {
     _textController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -72,365 +84,531 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    HapticFeedback.lightImpact();
     _textController.clear();
-    
-    final newMsg = {
-      'text': text,
-      'isMe': true,
-      'time': 'Just now',
-    };
 
-    _messages.add(newMsg);
-    final insertIndex = _messages.length - 1;
-    _listKey.currentState?.insertItem(
-      insertIndex,
-    );
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _scrollToBottom();
+    setState(() {
+      _messages.add({
+        'text': text,
+        'isMe': true,
+        'time': 'Just now',
+      });
     });
+
+    _scrollToBottom();
   }
 
   void _insertReceivedMessage(String text) {
-    final newMsg = {
-      'text': text,
-      'isMe': false,
-      'time': 'Just now',
-    };
-
-    _messages.add(newMsg);
-    final insertIndex = _messages.length - 1;
-    _listKey.currentState?.insertItem(
-      insertIndex,
-      duration: const Duration(milliseconds: 350),
-    );
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _scrollToBottom();
+    setState(() {
+      _messages.add({
+        'text': text,
+        'isMe': false,
+        'time': 'Just now',
+      });
     });
+
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 100,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 80,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75 + keyboardHeight,
+      height: MediaQuery.of(context).size.height * 0.85 + keyboardHeight,
       padding: EdgeInsets.only(bottom: keyboardHeight),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBackground : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 30,
-            offset: const Offset(0, -10),
-          ),
-        ],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         children: [
-          // Drag Handle & Header
-          _buildHeader(isDark),
+          // Header matching Kenick AI style
+          _buildHeader(isDark, cs),
 
           // Messages List
           Expanded(
             child: _messages.isEmpty
-                ? _buildEmptyState(isDark)
-                : AnimatedList(
-                    key: _listKey,
+                ? _buildEmptyState(cs)
+                : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    initialItemCount: _messages.length,
-                    itemBuilder: (context, index, animation) {
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    itemCount: _messages.length + (_isTyping ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _messages.length && _isTyping) {
+                        return _buildTypingIndicator(isDark, cs);
+                      }
                       final msg = _messages[index];
-                      return _buildMessageItem(msg, animation, isDark);
+                      return _buildMessageItem(msg, isDark, cs);
                     },
                   ),
           ),
 
-          // Typing Indicator Overlay
-          if (_isTyping) _buildTypingIndicator(isDark),
-
-          // Input field and Media attachments
-          _buildInputBar(isDark),
-
           // Quick attachments tray
           if (_showMediaPanel) _buildMediaPanel(isDark),
+
+          // Message input bar with ONLY bottom border line
+          _buildInputBar(isDark, cs),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, ColorScheme cs) {
+    final subtleDivider = isDark
+        ? const Color(0xFF27272A)
+        : const Color(0xFFE4E4E7);
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-          ),
-        ),
+        color: isDark ? AppColors.darkBackground : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(bottom: BorderSide(color: subtleDivider)),
       ),
-      child: Row(
-        children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: isDark ? Colors.grey.shade800 : const Color(0xFFF5F0EF),
-                child: const Icon(Icons.person, color: AppColors.primary, size: 20),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.of(context).pop();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 24,
+                  color: cs.onSurface,
+                ),
               ),
-              const SizedBox(width: 12),
-              Column(
+            ),
+            const SizedBox(width: 6),
+            // Chauffeur Avatar / Badge
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1E2026)
+                    : const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? Colors.white12 : const Color(0xFFE5E7EB),
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.directions_car_rounded,
+                  size: 20,
+                  color: cs.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Chauffeur Name & Active Status
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     widget.recipientName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.white : AppColors.black,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   Text(
-                    'Online · Active Ride',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.green[600],
-                      fontWeight: FontWeight.w500,
+                    'Active VIP Chauffeur • Online',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
-              // Call action touch feedback
-              PressScale(
-                onTap: () {
-                  // Simulate phone call action
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Simulating voice call connection...')),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+            ),
+            // Call Action Button
+            PressScale(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                CustomToast.showInfo(context, 'Connecting secure call to chauffeur...');
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF3F4F6),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : const Color(0xFFE5E7EB),
                   ),
-                  child: const Icon(Icons.phone, color: AppColors.primary, size: 18),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.phone_rounded,
+                    color: cs.onSurface,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Text(
+        'Start conversation with your chauffeur',
+        style: GoogleFonts.poppins(
+          color: cs.onSurfaceVariant,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageItem(
+    Map<String, dynamic> msg,
+    bool isDark,
+    ColorScheme cs,
+  ) {
+    final isMe = msg['isMe'] as bool;
+    final text = msg['text'] as String;
+    final time = msg['time'] as String;
+
+    if (isMe) {
+      // User Message (Right-aligned, black VIP pill)
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 18),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.78,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E2026) : const Color(0xFF121417),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Text(
+                  text,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text(
+                  'You • $time',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      }
+        ),
+      );
+    }
 
-  Widget _buildMessageItem(Map<String, dynamic> msg, Animation<double> animation, bool isDark) {
-    final isMe = msg['isMe'] as bool;
-    final text = msg['text'] as String;
-
-    return SizeTransition(
-      sizeFactor: animation,
-      child: FadeTransition(
-        opacity: animation,
-        child: Align(
-          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (!isMe) ...[
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    child: const Icon(Icons.person, size: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.7,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isMe
-                        ? AppColors.primary
-                        : (isDark ? AppColors.darkSurface : const Color(0xFFF3EEEC)),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isMe ? 20 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 20),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: isMe ? AppColors.black : (isDark ? AppColors.white : Colors.black87),
-                      fontWeight: isMe ? FontWeight.w500 : FontWeight.normal,
-                    ),
-                  ),
-                )
-                    .animate()
-                    .scale(
-                      duration: 350.ms,
-                      curve: Curves.elasticOut,
-                      alignment: isMe ? Alignment.bottomRight : Alignment.bottomLeft,
-                    ),
-              ],
+    // Chauffeur Message (Left-aligned, soft rounded grey card)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.82,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF262A33) : const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                text,
+                style: GoogleFonts.poppins(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
+                  height: 1.45,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                '${widget.recipientName} • $time',
+                style: GoogleFonts.poppins(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w400,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTypingIndicator(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${widget.recipientName} is typing',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-          ),
-          const SizedBox(width: 8),
-          _buildTypingDots(isDark),
-        ],
+  Widget _buildTypingIndicator(bool isDark, ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF262A33) : const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _pulsingDot(0, isDark),
+                  const SizedBox(width: 5),
+                  _pulsingDot(200, isDark),
+                  const SizedBox(width: 5),
+                  _pulsingDot(400, isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                '${widget.recipientName} • Typing...',
+                style: GoogleFonts.poppins(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w400,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTypingDots(bool isDark) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (i) {
-        return Container(
-          width: 5,
-          height: 5,
-          margin: const EdgeInsets.symmetric(horizontal: 1.5),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.primary : Colors.grey.shade600,
-            shape: BoxShape.circle,
+  Widget _pulsingDot(int delayMs, bool isDark) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.3, end: 1.0),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+            ),
           ),
-        )
-            .animate(onPlay: (controller) => controller.repeat(reverse: true))
-            .scaleXY(
-              begin: 0.6,
-              end: 1.4,
-              duration: 400.ms,
-              delay: (i * 150).ms,
-              curve: Curves.easeInOut,
-            );
-      }),
+        );
+      },
     );
   }
 
-  Widget _buildInputBar(bool isDark) {
+  Widget _buildInputBar(bool isDark, ColorScheme cs) {
+    final subtleBorder = isDark
+        ? const Color(0xFF3F3F46)
+        : const Color(0xFFE4E4E7);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBackground : Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-          ),
-        ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Attachment toggler (Tactile pulse)
-          PressScale(
-            onTap: () {
-              setState(() {
-                _showMediaPanel = !_showMediaPanel;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade900 : const Color(0xFFF9F8F8),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _showMediaPanel ? Icons.close : Icons.add_circle_outline,
-                color: Colors.grey.shade600,
-                size: 20,
+          // Text Input Field: ONLY bottom border line (no top, right, or left)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: _focusNode.hasFocus
+                      ? AppColors.primary
+                      : subtleBorder,
+                  width: 1.5,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-
-          // Message input
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : const Color(0xFFF5F0EF),
-                borderRadius: BorderRadius.circular(24),
+            padding: const EdgeInsets.only(bottom: 4),
+            child: TextField(
+              controller: _textController,
+              focusNode: _focusNode,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              style: GoogleFonts.poppins(
+                fontSize: 14.5,
+                color: cs.onSurface,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(scrollPadding: const EdgeInsets.only(bottom: 10), 
-                controller: _textController,
-                style: TextStyle(
-                  color: isDark ? AppColors.white : AppColors.black,
-                  fontSize: 13,
+              decoration: InputDecoration(
+                hintText: 'Message chauffeur...',
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Message chauffeur...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 13,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+              ),
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Toolbar Row: Attachments, GIF, Mic, Send Button
+          Row(
+            children: [
+              // Attachment Paperclip
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  setState(() => _showMediaPanel = !_showMediaPanel);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
+                  child: Icon(
+                    _showMediaPanel ? Icons.close_rounded : Icons.attach_file_rounded,
+                    size: 20,
+                    color: _showMediaPanel
+                        ? AppColors.primary
+                        : (isDark ? Colors.white60 : const Color(0xFF6B7280)),
                   ),
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                onSubmitted: (_) => _sendMessage(),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
 
-          // Send button (Optimistic scaling feedback)
-          PressScale(
-            onTap: _sendMessage,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+              // GIF Badge
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  CustomToast.showInfo(context, 'GIF library coming soon');
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                        width: 1.2,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'GIF',
+                      style: GoogleFonts.poppins(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.send_rounded,
-                color: AppColors.black,
-                size: 18,
+
+              // Microphone
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  CustomToast.showInfo(context, 'Voice recording coming soon');
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
+                  child: Icon(
+                    Icons.mic_none_rounded,
+                    size: 20,
+                    color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                  ),
+                ),
               ),
-            ),
+
+              const Spacer(),
+
+              // Upward Send Button
+              GestureDetector(
+                onTap: _hasInputText ? _sendMessage : null,
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: _hasInputText
+                        ? AppColors.primary
+                        : (isDark ? Colors.white12 : const Color(0xFFF3F4F6)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 19,
+                      color: _hasInputText
+                          ? const Color(0xFF111827)
+                          : (isDark ? Colors.white38 : const Color(0xFF9CA3AF)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -439,16 +617,16 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
 
   Widget _buildMediaPanel(bool isDark) {
     return Container(
-      height: 90,
+      height: 86,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isDark ? AppColors.darkSurface : const Color(0xFFFAF9F9),
+      color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF9FAFB),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildMediaItem(Icons.camera_alt, 'Camera', Colors.orange, isDark),
-          _buildMediaItem(Icons.photo_library, 'Gallery', Colors.blue, isDark),
-          _buildMediaItem(Icons.location_on, 'Location', Colors.green, isDark),
-          _buildMediaItem(Icons.mic, 'Audio', Colors.red, isDark),
+          _buildMediaItem(Icons.camera_alt_outlined, 'Camera', Colors.orange, isDark),
+          _buildMediaItem(Icons.photo_library_outlined, 'Gallery', Colors.blue, isDark),
+          _buildMediaItem(Icons.location_on_outlined, 'Location', Colors.green, isDark),
+          _buildMediaItem(Icons.access_time_rounded, 'ETA update', Colors.purple, isDark),
         ],
       ),
     )
@@ -458,16 +636,17 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
   }
 
   Widget _buildMediaItem(IconData icon, String label, Color color, bool isDark) {
-    return PressScale(
+    return GestureDetector(
       onTap: () {
+        HapticFeedback.lightImpact();
         setState(() => _showMediaPanel = false);
-        _insertReceivedMessage('[Sent $label]');
+        CustomToast.showInfo(context, '$label shared with chauffeur');
       },
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
@@ -477,27 +656,11 @@ class _ActiveTripChatSheetState extends State<ActiveTripChatSheet>
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              color: isDark ? Colors.white70 : Colors.black87,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.chat_bubble_outline, size: 36, color: Colors.grey.shade400),
-          const SizedBox(height: 8),
-          Text(
-            'No messages yet',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
         ],
       ),

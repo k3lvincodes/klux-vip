@@ -34,6 +34,9 @@ class _KenickAiChatScreenState extends State<KenickAiChatScreen> {
         setState(() => _hasInputText = hasText);
       }
     });
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
     _initChat();
   }
 
@@ -510,34 +513,33 @@ class _KenickAiChatScreenState extends State<KenickAiChatScreen> {
   }
 
   Widget _buildInputBar(bool isDark, ColorScheme cs) {
+    final subtleBorder = isDark
+        ? const Color(0xFF3F3F46)
+        : const Color(0xFFE4E4E7);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBackground : Colors.white,
       ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 4, 10, 6),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E2026) : Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: isDark ? Colors.white12 : const Color(0xFFE5E7EB),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Text Input Field: ONLY bottom border line (no top, right, or left)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: _focusNode.hasFocus
+                      ? AppColors.primary
+                      : subtleBorder,
+                  width: 1.5,
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Text Input Field
-            TextField(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: TextField(
               controller: _inputController,
               focusNode: _focusNode,
               minLines: 1,
@@ -555,109 +557,112 @@ class _KenickAiChatScreenState extends State<KenickAiChatScreen> {
                   color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
                 ),
                 isDense: true,
-                contentPadding: const EdgeInsets.only(top: 10, bottom: 6),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
               ),
               onSubmitted: (_) => _handleSendMessage(),
             ),
+          ),
+          const SizedBox(height: 8),
 
-            // Toolbar Row: Paperclip, GIF, Mic, Send Button
-            Row(
-              children: [
-                // Attachment Paperclip
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    CustomToast.showInfo(context, 'Attachments coming soon');
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
-                    child: Icon(
-                      Icons.attach_file_rounded,
-                      size: 20,
-                      color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                    ),
+          // Toolbar Row: Paperclip, GIF, Mic, Send Button
+          Row(
+            children: [
+              // Attachment Paperclip
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  CustomToast.showInfo(context, 'Attachments coming soon');
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
+                  child: Icon(
+                    Icons.attach_file_rounded,
+                    size: 20,
+                    color: isDark ? Colors.white60 : const Color(0xFF6B7280),
                   ),
                 ),
+              ),
 
-                // GIF Badge
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    CustomToast.showInfo(context, 'GIF library coming soon');
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                          width: 1.2,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'GIF',
-                        style: GoogleFonts.poppins(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Microphone
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    CustomToast.showInfo(context, 'Voice recording coming soon');
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
-                    child: Icon(
-                      Icons.mic_none_rounded,
-                      size: 20,
-                      color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Upward Send Button
-                GestureDetector(
-                  onTap: _hasInputText ? _handleSendMessage : null,
+              // GIF Badge
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  CustomToast.showInfo(context, 'GIF library coming soon');
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
                   child: Container(
-                    width: 34,
-                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                     decoration: BoxDecoration(
-                      color: _hasInputText
-                          ? AppColors.primary
-                          : (isDark ? Colors.white12 : const Color(0xFFF3F4F6)),
-                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                        width: 1.2,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.arrow_upward_rounded,
-                        size: 19,
-                        color: _hasInputText
-                            ? const Color(0xFF111827)
-                            : (isDark ? Colors.white38 : const Color(0xFF9CA3AF)),
+                    child: Text(
+                      'GIF',
+                      style: GoogleFonts.poppins(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+
+              // Microphone
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  CustomToast.showInfo(context, 'Voice recording coming soon');
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 4, bottom: 4),
+                  child: Icon(
+                    Icons.mic_none_rounded,
+                    size: 20,
+                    color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+
+              const Spacer(),
+
+              // Upward Send Button
+              GestureDetector(
+                onTap: _hasInputText ? _handleSendMessage : null,
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: _hasInputText
+                        ? AppColors.primary
+                        : (isDark ? Colors.white12 : const Color(0xFFF3F4F6)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 19,
+                      color: _hasInputText
+                          ? const Color(0xFF111827)
+                          : (isDark ? Colors.white38 : const Color(0xFF9CA3AF)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

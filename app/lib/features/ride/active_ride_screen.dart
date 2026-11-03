@@ -5,12 +5,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/widgets/active_trip_chat_sheet.dart';
 import 'package:kenick_vip/widgets/cards/active_trip_card.dart';
 import 'package:kenick_vip/widgets/map/map_memory.dart';
 import 'package:kenick_vip/widgets/map/vip_google_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 class ActiveRideScreen extends StatefulWidget {
   const ActiveRideScreen({super.key});
@@ -305,9 +307,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
               subtitle: const Text('Send an update or ETA notification', style: TextStyle(fontSize: 12)),
               onTap: () {
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening secure messenger...')),
-                );
+                ActiveTripChatSheet.show(context, _passengerName);
               },
             ),
           ],
