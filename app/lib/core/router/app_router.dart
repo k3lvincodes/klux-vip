@@ -53,6 +53,7 @@ import 'package:kenick_vip/features/ride/ride_payment_received_screen.dart';
 import 'package:kenick_vip/features/ride/start_ride_screen.dart';
 import 'package:kenick_vip/features/settings/settings_screen.dart';
 import 'package:kenick_vip/features/support/call_numbers_screen.dart';
+import 'package:kenick_vip/features/support/faq_detail_screen.dart';
 import 'package:kenick_vip/features/support/kenick_ai_chat_screen.dart';
 import 'package:kenick_vip/features/support/messages_screen.dart';
 import 'package:kenick_vip/features/support/support_screen.dart';
@@ -266,6 +267,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/support',
       builder: (context, state) => const SupportScreen(),
+    ),
+    GoRoute(
+      path: '/support/faq',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return FaqDetailScreen(
+          question: extra['question'] as String? ?? 'FAQ',
+        );
+      },
     ),
     GoRoute(
       path: '/support/chat',
