@@ -274,7 +274,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Widget _buildTopBar(ColorScheme cs, bool isDark) {
-    final badgeText = _isAffiliate ? 'AFFILIATE PARTNER' : 'VIP CHAUFFEUR';
     final statusText = _isAffiliate
         ? (_isOnline ? 'FLEET ACTIVE' : 'FLEET STANDBY')
         : (_isOnline ? 'ONLINE' : 'OFFLINE');
@@ -322,36 +321,36 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isAffiliate) ...[
+                if (_isAffiliate) ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             const Icon(Icons.business_outlined, size: 10, color: AppColors.primary),
                             const SizedBox(width: 4),
-                          ],
-                          Text(
-                            badgeText,
-                            style: GoogleFonts.poppins(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                              letterSpacing: 0.8,
+                            Text(
+                              'AFFILIATE PARTNER',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                                letterSpacing: 0.8,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                ],
                 Text(
                   _userName,
                   style: GoogleFonts.poppins(
