@@ -136,7 +136,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
 
     final assignedImage = (activeCar?.imageUrl != null && activeCar!.imageUrl!.isNotEmpty)
         ? activeCar.imageUrl!
-        : (activeCar?.localAssetPath ?? tier.defaultAsset);
+        : null;
     final carDisplayName = activeCar != null ? '${activeCar.make} ${activeCar.model}' : tier.name;
 
     bookingProv.setVehicle(tier.name, assignedImage);
@@ -145,7 +145,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     // Navigate to Confirm Reservation screen
     context.push('/confirm-reservation', extra: {
       'category': tier.name,
-      'subtitle': activeCar != null ? '${activeCar.make} ${activeCar.model} or similar' : tier.subtitle,
+      'subtitle': activeCar != null ? '${activeCar.make} ${activeCar.model}' : tier.subtitle,
       'fare': finalFare,
       'passengers': tier.passengers,
       'luggage': tier.luggage,
@@ -387,6 +387,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     required ColorScheme cs,
   }) {
     final activeCar = _getActiveCarForTier(tier);
+    final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -438,7 +439,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                       opacity: animation,
                       child: child,
                     ),
-                    child: _buildVehicleImage(activeCar, tier),
+                    child: _buildVehicleImage(activeCar, tier, isDark),
                   ),
                 ),
               ),
@@ -472,6 +473,19 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                         ),
                       ],
                     ),
+                    if (activeCar != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        '${activeCar.make} ${activeCar.model} • ${activeCar.year}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -509,7 +523,9 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'View vehicles',
+                              tierCars.isNotEmpty
+                                  ? '${tierCars.length} models'
+                                  : 'View models',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -536,45 +552,53 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     );
   }
 
-  Widget _buildVehicleImage(FleetVehicleItem? car, FleetCategoryTier tier) {
-    Widget imageWidget;
+  Widget _buildVehicleImage(FleetVehicleItem? car, FleetCategoryTier tier, bool isDark) {
     if (car != null && car.imageUrl != null && car.imageUrl!.isNotEmpty) {
-      imageWidget = CachedNetworkImage(
-        imageUrl: car.imageUrl!,
-        key: ValueKey('net_${car.id}_${car.imageUrl}'),
-        fit: BoxFit.contain,
-        placeholder: (ctx, url) => Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.primary.withValues(alpha: 0.6),
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: CachedNetworkImage(
+          imageUrl: car.imageUrl!,
+          key: ValueKey('net_${car.id}_${car.imageUrl}'),
+          fit: BoxFit.contain,
+          placeholder: (ctx, url) => Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary.withValues(alpha: 0.6),
+              ),
             ),
           ),
+          errorWidget: (ctx, err, stack) => _buildPlaceholder(car, tier, isDark),
         ),
-        errorWidget: (ctx, err, stack) => Image.asset(
-          car.localAssetPath.isNotEmpty ? car.localAssetPath : tier.defaultAsset,
-          fit: BoxFit.contain,
-        ),
-      );
-    } else if (car != null && car.localAssetPath.isNotEmpty) {
-      imageWidget = Image.asset(
-        car.localAssetPath,
-        key: ValueKey('asset_${car.id}'),
-        fit: BoxFit.contain,
-      );
-    } else {
-      imageWidget = Image.asset(
-        tier.defaultAsset,
-        key: ValueKey('tier_${tier.name}'),
-        fit: BoxFit.contain,
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: imageWidget,
+    return _buildPlaceholder(car, tier, isDark);
+  }
+
+  Widget _buildPlaceholder(FleetVehicleItem? car, FleetCategoryTier tier, bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.directions_car_rounded,
+            size: 52,
+            color: isDark ? Colors.white24 : Colors.black26,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            car != null ? '${car.make} ${car.model}' : tier.name,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

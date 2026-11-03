@@ -9,7 +9,6 @@ class FleetCategoryTier {
     required this.luggage,
     required this.priceMultiplier,
     required this.gradientColors,
-    required this.defaultAsset,
   });
 
   final String name; // 'Business Class', 'Business Van', 'First Class'
@@ -18,7 +17,6 @@ class FleetCategoryTier {
   final int luggage;
   final double priceMultiplier;
   final List<Color> gradientColors;
-  final String defaultAsset;
 }
 
 class FleetVehicleItem {
@@ -30,7 +28,6 @@ class FleetVehicleItem {
     required this.year,
     this.licensePlate,
     this.imageUrl,
-    required this.localAssetPath,
     this.hasDriverAssigned = false,
     this.category = 'Business Class',
     this.features = '',
@@ -43,7 +40,6 @@ class FleetVehicleItem {
   final int year;
   final String? licensePlate;
   final String? imageUrl;
-  final String localAssetPath;
   final bool hasDriverAssigned;
   final String category;
   final String features;
@@ -56,40 +52,34 @@ class FleetService {
   static const List<FleetCategoryTier> experienceCategories = [
     FleetCategoryTier(
       name: 'Business Class',
-      subtitle: 'Mercedes-Benz EQE or similar',
+      subtitle: 'Executive sedans • Up to 3 passengers',
       passengers: 3,
       luggage: 2,
       priceMultiplier: 1.0,
       gradientColors: [Color(0xFFBBE2D8), Color(0xFFF7F5F0)],
-      defaultAsset: 'assets/images/car1.png',
     ),
     FleetCategoryTier(
       name: 'Business Van',
-      subtitle: 'Mercedes-Benz V-Class or similar',
-      passengers: 5,
+      subtitle: 'Luxury SUVs & Vans • Up to 6 passengers',
+      passengers: 6,
       luggage: 5,
       priceMultiplier: 1.253, // ~€177.29 based on base fare
       gradientColors: [Color(0xFFF6D6B8), Color(0xFFFDFBF7)],
-      defaultAsset: 'assets/images/ford.png',
     ),
     FleetCategoryTier(
       name: 'First Class',
-      subtitle: 'Mercedes-Benz S-Class or similar',
+      subtitle: 'Flagship luxury sedans • Up to 3 passengers',
       passengers: 3,
       luggage: 2,
       priceMultiplier: 1.51, // ~€213.68 based on base fare
       gradientColors: [Color(0xFF9ABDE2), Color(0xFFF5F7FA)],
-      defaultAsset: 'assets/images/cadillac.png',
     ),
   ];
 
   static String autoCategorize(String make, String model, [int? year]) {
     final text = '$make $model'.toLowerCase();
-    final y = year ?? DateTime.now().year;
 
-    // Criteria 2: Business Van
-    // Purpose: Group transportation, corporate travel and airport transfers
-    // Requirement: Luxury passenger van / MPV / large executive SUV (5–7 pax, 4+ medium suitcases, 2019 or newer)
+    // Criteria 2: Business Van / Full-size Luxury SUV
     final isVan = text.contains('van') ||
         text.contains('v-class') ||
         text.contains('v class') ||
@@ -112,9 +102,7 @@ class FleetService {
       return 'Business Van';
     }
 
-    // Criteria 3: First Class
-    // Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
-    // Requirement: Flagship luxury sedan (max 3 pax, 4 doors, full luxury leather, 2021 or newer)
+    // Criteria 3: First Class Flagship Sedans
     final isFlagship = text.contains('s-class') ||
         text.contains('s class') ||
         text.contains('sclass') ||
@@ -135,171 +123,20 @@ class FleetService {
         text.contains('flying spur') ||
         text.contains('phantom') ||
         text.contains('ghost') ||
+        text.contains('continental') ||
         text.contains('rolls') ||
         text.contains('bentley') ||
         text.contains('eqs');
 
-    if (isFlagship && y >= 2021) {
+    if (isFlagship) {
       return 'First Class';
     }
 
-    // Criteria 1: Business Class
-    // Purpose: Premium everyday business transportation
-    // Requirement: Executive sedan (max 3 pax, 4 doors, 2019 or newer, min 2 medium suitcases)
+    // Criteria 1: Business Class Executive Sedans
     return 'Business Class';
   }
 
-  static final List<FleetVehicleItem> fallbackFleet = [
-    // Business Class Fleet
-    FleetVehicleItem(
-      id: 'mercedes_eqe',
-      name: 'Mercedes-Benz EQE',
-      make: 'Mercedes-Benz',
-      model: 'EQE 350+',
-      year: 2024,
-      features: 'Executive Silent Cabin, Ambient Lighting, Fast Charging',
-      localAssetPath: 'assets/images/car1.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'mercedes_eclass',
-      name: 'Mercedes-Benz E-Class',
-      make: 'Mercedes-Benz',
-      model: 'E-Class AMG Line',
-      year: 2024,
-      features: 'MBUX Superscreen, Panoramic Roof, Active Noise Cancellation',
-      localAssetPath: 'assets/images/car1.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'bmw_5series',
-      name: 'BMW 5 Series',
-      make: 'BMW',
-      model: '530e M Sport',
-      year: 2024,
-      features: 'Acoustic Glazing, Individual Merino Leather, Wireless Charging',
-      localAssetPath: 'assets/images/car1.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'audi_a6',
-      name: 'Audi A6 Limo',
-      make: 'Audi',
-      model: 'A6 Black Edition',
-      year: 2024,
-      features: 'Milano Leather, Bang & Olufsen 3D Sound, Rear Climate Controls',
-      localAssetPath: 'assets/images/car1.png',
-      hasDriverAssigned: true,
-    ),
-
-    // Business Van Fleet
-    FleetVehicleItem(
-      id: 'mercedes_vclass',
-      name: 'Mercedes-Benz V-Class',
-      make: 'Mercedes-Benz',
-      model: 'V-Class Extra Long',
-      year: 2024,
-      category: 'Business Van',
-      features: 'Conference Seating, Massive Luggage Bay, Wi-Fi',
-      localAssetPath: 'assets/images/ford.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'gmc_yukon',
-      name: 'GMC Yukon Denali',
-      make: 'GMC',
-      model: 'Yukon Denali XL',
-      year: 2024,
-      category: 'Business Van',
-      features: 'Executive Captain Chairs, Chilled Console, Wi-Fi',
-      localAssetPath: 'assets/images/GMC.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'cadillac_escalade',
-      name: 'Cadillac Escalade',
-      make: 'Cadillac',
-      model: 'Escalade ESV Platinum',
-      year: 2024,
-      category: 'Business Van',
-      features: 'AKG Studio Sound, Heated & Cooled Rear Seats, Massive Luggage',
-      localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'ford_tourneo',
-      name: 'Ford Tourneo Custom',
-      make: 'Ford',
-      model: 'Tourneo Custom VIP',
-      year: 2024,
-      category: 'Business Van',
-      features: 'Executive Lounge, Power Sliding Doors, Privacy Glass',
-      localAssetPath: 'assets/images/ford.png',
-      hasDriverAssigned: true,
-    ),
-
-    // First Class Fleet
-    FleetVehicleItem(
-      id: 'mercedes_sclass',
-      name: 'Mercedes-Benz S-Class',
-      make: 'Mercedes-Benz',
-      model: 'S-Class Long Wheelbase',
-      year: 2024,
-      category: 'First Class',
-      features: 'Rear Chauffeur Package, Executive Recline, Champagne Cooler',
-      localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'mercedes_maybach',
-      name: 'Mercedes-Maybach S 580',
-      make: 'Mercedes-Maybach',
-      model: 'S 580 4MATIC',
-      year: 2024,
-      category: 'First Class',
-      features: 'First-Class Rear Suite, Burmester High-End 4D, Silver Flutes',
-      localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'bmw_7series',
-      name: 'BMW 7 Series',
-      make: 'BMW',
-      model: 'i7 xDrive60 M Sport',
-      year: 2024,
-      category: 'First Class',
-      features: '31.3-inch 8K Theatre Screen, Executive Lounge Seating, Sky Lounge',
-      localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
-    ),
-    FleetVehicleItem(
-      id: 'rolls_royce_ghost',
-      name: 'Rolls-Royce Ghost',
-      make: 'Rolls-Royce',
-      model: 'Ghost Extended',
-      year: 2024,
-      category: 'First Class',
-      features: 'Starlight Headliner, Effervescence Cooler, Magic Carpet Ride',
-      localAssetPath: 'assets/images/cadillac.png',
-      hasDriverAssigned: true,
-    ),
-  ];
-
-  static String matchLocalAsset(String make, String model) {
-    final lower = '$make $model'.toLowerCase();
-    if (lower.contains('cadillac') || lower.contains('s-class') || lower.contains('rolls')) {
-      return 'assets/images/cadillac.png';
-    }
-    if (lower.contains('ford') || lower.contains('v-class') || lower.contains('van')) {
-      return 'assets/images/ford.png';
-    }
-    if (lower.contains('gmc') || lower.contains('yukon')) {
-      return 'assets/images/GMC.png';
-    }
-    return 'assets/images/car1.png';
-  }
-
-  /// Returns all fleet cars from admin catalog with chauffeur availability
+  /// Returns real fleet cars from admin catalog with chauffeur availability
   static Future<List<FleetVehicleItem>> getAllFleetCarsWithChauffeurStatus() async {
     try {
       // 1. Fetch active assigned vehicles with drivers
@@ -325,7 +162,7 @@ class FleetService {
         }
       }
 
-      // 2. Fetch all fleet cars from admin catalog
+      // 2. Fetch all real fleet cars from database catalog
       final fleetRows = await _supabase
           .from('fleet_cars')
           .select('id, make, model, year, image_url, features, is_available, is_featured')
@@ -335,47 +172,33 @@ class FleetService {
           .order('created_at', ascending: false);
 
       if (fleetRows.isNotEmpty) {
-        final dbCars = fleetRows.map<FleetVehicleItem>((f) {
+        return fleetRows.map<FleetVehicleItem>((f) {
           final id = f['id'] as String;
           final make = f['make'] as String? ?? 'VIP';
           final model = f['model'] as String? ?? 'Vehicle';
-          const norm = ' ';
+          final norm = '${make.trim().toLowerCase()} ${model.trim().toLowerCase()}';
           final hasChauffeur = assignedFleetIds.contains(id) || assignedModels.contains(norm);
           final imgUrl = f['image_url'] as String?;
           final features = f['features'] as String? ?? '';
-          final category = (f['category'] as String?)?.isNotEmpty == true
-              ? f['category'] as String
-              : autoCategorize(make, model, (f['year'] as num?)?.toInt());
+          final year = (f['year'] as num?)?.toInt() ?? 2024;
+          final category = autoCategorize(make, model, year);
 
           return FleetVehicleItem(
             id: id,
-            name: ' ',
+            name: '$make $model',
             make: make,
             model: model,
-            year: (f['year'] as num?)?.toInt() ?? 2024,
+            year: year,
             imageUrl: imgUrl,
             category: category,
-            localAssetPath: matchLocalAsset(make, model),
             hasDriverAssigned: hasChauffeur,
             features: features,
           );
         }).toList();
-
-        final result = List<FleetVehicleItem>.from(dbCars);
-        for (final fb in fallbackFleet) {
-          final alreadyHas = result.any((c) =>
-              c.category == fb.category &&
-              c.make.toLowerCase() == fb.make.toLowerCase() &&
-              c.model.toLowerCase() == fb.model.toLowerCase());
-          if (!alreadyHas) {
-            result.add(fb);
-          }
-        }
-        return result;
       }
     } catch (_) {}
 
-    return fallbackFleet;
+    return [];
   }
 
   static Future<List<FleetVehicleItem>> getAvailableFleet() async {
