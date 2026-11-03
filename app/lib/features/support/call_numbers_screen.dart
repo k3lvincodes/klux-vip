@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kenick_vip/features/support/new_chat_sheet.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:kenick_vip/widgets/navigation/kenick_bottom_nav_bar.dart';
@@ -246,7 +245,7 @@ class CallNumbersScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    showNewChatSheet(context);
+                    context.push('/support/chat');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

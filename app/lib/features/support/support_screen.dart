@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kenick_vip/features/support/new_chat_sheet.dart';
 import 'package:kenick_vip/models/support_ticket.dart';
 import 'package:kenick_vip/repositories/support_repository.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
@@ -148,11 +147,8 @@ class _SupportScreenState extends State<SupportScreen> {
 
 
   void _startNewChat({String? initialSubject}) {
-    showNewChatSheet(
-      context,
-      initialSubject: initialSubject,
-      onTicketCreated: _loadTickets,
-    );
+    HapticFeedback.lightImpact();
+    context.push('/support/chat');
   }
 
   @override
