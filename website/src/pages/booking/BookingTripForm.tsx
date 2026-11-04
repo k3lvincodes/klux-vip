@@ -81,6 +81,39 @@ export default function BookingTripForm({
         </p>
       </div>
 
+      {/* ── Ride Service Type Selector ── */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', overflowX: 'auto', paddingBottom: '4px' }}>
+        {(['One way', 'Round trip', 'By-the-hour', 'Event', 'Out of state'] as const).map((type) => {
+          const isSelected = (bookingForm.rideType || 'One way') === type;
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                const syntheticEvent = {
+                  target: { name: 'rideType', value: type },
+                } as unknown as React.ChangeEvent<HTMLInputElement>;
+                onChange(syntheticEvent);
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '20px',
+                fontSize: '0.82rem',
+                fontWeight: isSelected ? 600 : 400,
+                border: isSelected ? '1px solid var(--admin-primary, #F4C522)' : '1px solid rgba(255,255,255,0.12)',
+                backgroundColor: isSelected ? 'rgba(244, 197, 34, 0.15)' : 'rgba(255,255,255,0.04)',
+                color: isSelected ? 'var(--admin-primary, #F4C522)' : '#a1a1aa',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+              }}
+            >
+              {type}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── Connected Route Inputs with 1-Letter Autocomplete & GPS Location ── */}
       <div className="booking-route-box">
         <div className="booking-route-timeline">
@@ -124,11 +157,11 @@ export default function BookingTripForm({
         </div>
       </div>
 
-      {/* ── Schedule (Date & Time) ── */}
+      {/* ── Schedule (Date & Time for all ride types) ── */}
       <div className="booking-form-row" style={{ marginBottom: '18px' }}>
         <div style={{ flex: 1 }}>
           <label htmlFor="booking-date" className="booking-label">
-            <Calendar size={14} /> Date
+            <Calendar size={14} /> {bookingForm.rideType === 'Round trip' ? 'Departure Date' : 'Pickup Date'}
           </label>
           <input
             id="booking-date"
@@ -142,7 +175,7 @@ export default function BookingTripForm({
         </div>
         <div style={{ flex: 1 }}>
           <label htmlFor="booking-time" className="booking-label">
-            <Clock size={14} /> Time
+            <Clock size={14} /> {bookingForm.rideType === 'Round trip' ? 'Departure Time' : 'Pickup Time'}
           </label>
           <input
             id="booking-time"
@@ -155,6 +188,94 @@ export default function BookingTripForm({
           />
         </div>
       </div>
+
+      {/* ── Return Schedule for Round Trip ── */}
+      {bookingForm.rideType === 'Round trip' && (
+        <div className="booking-form-row" style={{ marginBottom: '18px' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="booking-return-date" className="booking-label">
+              <Calendar size={14} /> Return Date
+            </label>
+            <input
+              id="booking-return-date"
+              type="date"
+              name="returnDate"
+              value={bookingForm.returnDate || ''}
+              onChange={onChange}
+              required
+              className="booking-input"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="booking-return-time" className="booking-label">
+              <Clock size={14} /> Return Time
+            </label>
+            <input
+              id="booking-return-time"
+              type="time"
+              name="returnTime"
+              value={bookingForm.returnTime || ''}
+              onChange={onChange}
+              required
+              className="booking-input"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Event Type & Custom Event Selection ── */}
+      {bookingForm.rideType === 'Event' && (
+        <div style={{ marginBottom: '18px' }}>
+          <label htmlFor="booking-event-type" className="booking-label">
+            Type of Event
+          </label>
+          <select
+            id="booking-event-type"
+            name="eventType"
+            value={bookingForm.eventType || 'Wedding'}
+            onChange={onChange}
+            className="booking-input"
+            style={{ marginBottom: bookingForm.eventType === 'Other' ? '10px' : 0 }}
+          >
+            <option value="Wedding">Wedding</option>
+            <option value="Corporate Event / Gala">Corporate Event / Gala</option>
+            <option value="Concert & Festival">Concert & Festival</option>
+            <option value="Sporting Event">Sporting Event</option>
+            <option value="Birthday / Celebration">Birthday / Celebration</option>
+            <option value="Prom & Graduation">Prom & Graduation</option>
+            <option value="VIP Night Out">VIP Night Out</option>
+            <option value="Airport Delegation">Airport Delegation</option>
+            <option value="Other">Other (Custom Event)</option>
+          </select>
+          {bookingForm.eventType === 'Other' && (
+            <input
+              type="text"
+              name="customEventType"
+              value={bookingForm.customEventType || ''}
+              onChange={onChange}
+              placeholder="Specify event type (e.g. Charity Gala, Film Premiere)..."
+              className="booking-input"
+              required
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── Out of State Notice ── */}
+      {bookingForm.rideType === 'Out of state' && (
+        <div style={{
+          marginBottom: '18px',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(244, 197, 34, 0.08)',
+          border: '1px solid rgba(244, 197, 34, 0.25)',
+          fontSize: '0.8rem',
+          color: '#e4e4e7',
+          lineHeight: 1.4,
+        }}>
+          <strong>Interstate Chauffeur Service:</strong> Includes dedicated long-distance route preparation, driver rest pauses, and highway toll management.
+        </div>
+      )}
 
       {/* ── Executive Fleet Class Selection ── */}
       <div className="booking-fleet-section">

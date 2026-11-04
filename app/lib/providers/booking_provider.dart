@@ -21,6 +21,8 @@ class BookingProvider extends ChangeNotifier {
   String _bookingType = 'instant';
   DateTime? _scheduledTime;
   String? _eventType;
+  String _rideType = 'One way';
+  DateTime? _returnTime;
 
   // Vehicle details
   String _vehicleType = 'GMC Yukon';
@@ -43,6 +45,8 @@ class BookingProvider extends ChangeNotifier {
   String get bookingType => _bookingType;
   DateTime? get scheduledTime => _scheduledTime;
   String? get eventType => _eventType;
+  String get rideType => _rideType;
+  DateTime? get returnTime => _returnTime;
   String get vehicleType => _vehicleType;
   String? get vehicleImage => _vehicleImage;
   String? get rideId => _rideId;
@@ -90,10 +94,18 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setBookingType(String type, {DateTime? scheduledTime, String? eventType}) {
+  void setBookingType(
+    String type, {
+    DateTime? scheduledTime,
+    String? eventType,
+    String? rideType,
+    DateTime? returnTime,
+  }) {
     _bookingType = type;
     _scheduledTime = scheduledTime;
     _eventType = eventType;
+    if (rideType != null) _rideType = rideType;
+    _returnTime = returnTime;
     notifyListeners();
   }
 
@@ -117,6 +129,8 @@ class BookingProvider extends ChangeNotifier {
     _bookingType = 'instant';
     _scheduledTime = null;
     _eventType = null;
+    _rideType = 'One way';
+    _returnTime = null;
     _rideId = null;
     notifyListeners();
   }

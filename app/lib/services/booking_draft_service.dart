@@ -16,6 +16,10 @@ class BookingDraft {
     this.passengerMode,
     this.guestName,
     this.guestPhone,
+    this.scheduledTime,
+    this.returnTime,
+    this.eventType,
+    this.customEventType,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -31,6 +35,14 @@ class BookingDraft {
         passengerMode: json['passengerMode'] as String?,
         guestName: json['guestName'] as String?,
         guestPhone: json['guestPhone'] as String?,
+        scheduledTime: json['scheduledTime'] != null
+            ? DateTime.tryParse(json['scheduledTime'] as String)
+            : null,
+        returnTime: json['returnTime'] != null
+            ? DateTime.tryParse(json['returnTime'] as String)
+            : null,
+        eventType: json['eventType'] as String?,
+        customEventType: json['customEventType'] as String?,
         createdAt: json['createdAt'] != null
             ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
             : DateTime.now(),
@@ -42,11 +54,15 @@ class BookingDraft {
   final double? pickupLng;
   final double? dropoffLat;
   final double? dropoffLng;
-  final String rideType; // 'One way' or 'By-the-hour'
+  final String rideType; // 'One way', 'Round trip', 'By-the-hour', 'Event', 'Out of state'
   final int byTheHourDuration;
   final String? passengerMode;
   final String? guestName;
   final String? guestPhone;
+  final DateTime? scheduledTime;
+  final DateTime? returnTime;
+  final String? eventType;
+  final String? customEventType;
   final DateTime createdAt;
 
   Map<String, dynamic> toJson() => {
@@ -61,6 +77,10 @@ class BookingDraft {
         'passengerMode': passengerMode,
         'guestName': guestName,
         'guestPhone': guestPhone,
+        'scheduledTime': scheduledTime?.toIso8601String(),
+        'returnTime': returnTime?.toIso8601String(),
+        'eventType': eventType,
+        'customEventType': customEventType,
         'createdAt': createdAt.toIso8601String(),
       };
 

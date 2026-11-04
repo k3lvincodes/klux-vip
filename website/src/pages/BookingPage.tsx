@@ -38,6 +38,11 @@ export default function BookingPage() {
     name: '',
     email: '',
     phone: '',
+    rideType: 'One way',
+    returnDate: '',
+    returnTime: '',
+    eventType: 'Wedding',
+    customEventType: '',
   });
 
   const [isCalculating, setIsCalculating] = useState(false);

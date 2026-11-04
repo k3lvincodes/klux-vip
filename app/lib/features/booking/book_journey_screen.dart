@@ -1,20 +1,23 @@
-import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kenick_vip/features/booking/add_guest_screen.dart';
-import 'package:kenick_vip/providers/booking_provider.dart';
-import 'package:kenick_vip/providers/ride_provider.dart';
-import 'package:kenick_vip/services/location_search_service.dart';
-import 'package:kenick_vip/theme/app_colors.dart';
-import 'package:kenick_vip/utils/custom_toast.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:kenick_vip/features/booking/add_guest_screen.dart';
+import 'package:kenick_vip/providers/booking_provider.dart';
+import 'package:kenick_vip/providers/ride_provider.dart';
+import 'package:kenick_vip/services/booking_draft_service.dart';
+import 'package:kenick_vip/services/location_search_service.dart';
+import 'package:kenick_vip/theme/app_colors.dart';
+import 'package:kenick_vip/utils/custom_toast.dart';
 
 class BookJourneyScreen extends StatefulWidget {
   const BookJourneyScreen({super.key});
@@ -25,12 +28,36 @@ class BookJourneyScreen extends StatefulWidget {
 
 class _BookJourneyScreenState extends State<BookJourneyScreen> {
   // Booking options
-  String _rideType = 'One way'; // 'One way' or 'By-the-hour'
+  String _rideType = 'One way'; // 'One way', 'Round trip', 'By-the-hour', 'Event', 'Out of state'
   int _byTheHourDuration = 2; // Default 2 hours
   bool _isDurationDropdownOpen = false;
   String _passengerMode = 'For myself'; // 'For myself' or guest name
   String? _guestName;
   String? _guestPhone;
+
+  // Schedule options (available for ALL ride types)
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.fromDateTime(
+    DateTime.now().add(const Duration(minutes: 30)),
+  );
+  // Round trip return schedule
+  DateTime _returnDate = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay _returnTime = const TimeOfDay(hour: 18, minute: 0);
+
+  // Event options
+  String _selectedEventType = 'Wedding';
+  final TextEditingController _customEventController = TextEditingController();
+  final List<String> _eventOptions = const [
+    'Wedding',
+    'Corporate Event / Gala',
+    'Concert & Festival',
+    'Sporting Event',
+    'Birthday / Celebration',
+    'Prom & Graduation',
+    'VIP Night Out',
+    'Airport Delegation',
+    'Other',
+  ];
 
   // Controllers and Focus Nodes
   final TextEditingController _pickupController = TextEditingController();
@@ -85,8 +112,32 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
       _dropoffController.text = _dropoffLocation!.placeName;
     }
 
-    if (bookingProv.bookingType == 'schedule') {
+    // Restore scheduled time if previously set
+    final initialTime = bookingProv.scheduledTime ??
+        DateTime.now().add(const Duration(minutes: 30));
+    _selectedDate = DateTime(initialTime.year, initialTime.month, initialTime.day);
+    _selectedTime = TimeOfDay.fromDateTime(initialTime);
+
+    if (bookingProv.returnTime != null) {
+      final ret = bookingProv.returnTime!;
+      _returnDate = DateTime(ret.year, ret.month, ret.day);
+      _returnTime = TimeOfDay.fromDateTime(ret);
+    }
+
+    if (bookingProv.rideType.isNotEmpty) {
+      _rideType = bookingProv.rideType;
+    } else if (bookingProv.bookingType == 'schedule') {
       _rideType = 'By-the-hour';
+    }
+
+    if (bookingProv.eventType != null && bookingProv.eventType!.startsWith('Event: ')) {
+      final evName = bookingProv.eventType!.replaceFirst('Event: ', '').trim();
+      if (_eventOptions.contains(evName)) {
+        _selectedEventType = evName;
+      } else {
+        _selectedEventType = 'Other';
+        _customEventController.text = evName;
+      }
     }
 
     _pickupFocusNode.addListener(() {
@@ -132,6 +183,26 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         passengerMode: _passengerMode,
         guestName: _guestName,
         guestPhone: _guestPhone,
+        scheduledTime: DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime.hour,
+          _selectedTime.minute,
+        ),
+        returnTime: _rideType == 'Round trip'
+            ? DateTime(
+                _returnDate.year,
+                _returnDate.month,
+                _returnDate.day,
+                _returnTime.hour,
+                _returnTime.minute,
+              )
+            : null,
+        eventType: _rideType == 'Event' ? _selectedEventType : null,
+        customEventType: _rideType == 'Event' && _selectedEventType == 'Other'
+            ? _customEventController.text.trim()
+            : null,
         createdAt: DateTime.now(),
       );
       BookingDraftService.saveDraft(draft);
@@ -146,6 +217,7 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     _dropoffController.dispose();
     _pickupFocusNode.dispose();
     _dropoffFocusNode.dispose();
+    _customEventController.dispose();
     super.dispose();
   }
 
@@ -325,9 +397,32 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         return;
       }
     }
-    if (_rideType == 'One way' && _dropoffLocation == null) {
-      CustomToast.showError(context, 'Please enter a drop-off destination');
-      _dropoffFocusNode.requestFocus();
+
+    if (_rideType != 'By-the-hour' && _dropoffLocation == null) {
+      if (_dropoffController.text.trim().isNotEmpty) {
+        _dropoffLocation = LocationSearchResult(
+          placeName: _dropoffController.text.trim(),
+          latitude: 37.42796,
+          longitude: -122.08574,
+        );
+      } else {
+        final destLabel = _rideType == 'Round trip'
+            ? 'destination for your return trip'
+            : (_rideType == 'Event'
+                ? 'event venue location'
+                : (_rideType == 'Out of state'
+                    ? 'out-of-state destination'
+                    : 'drop-off destination'));
+        CustomToast.showError(context, 'Please enter a $destLabel');
+        _dropoffFocusNode.requestFocus();
+        return;
+      }
+    }
+
+    if (_rideType == 'Event' &&
+        _selectedEventType == 'Other' &&
+        _customEventController.text.trim().isEmpty) {
+      CustomToast.showError(context, 'Please specify your event type');
       return;
     }
 
@@ -341,9 +436,48 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     final dropoffLat = _dropoffLocation?.latitude ?? pickupLat;
     final dropoffLng = _dropoffLocation?.longitude ?? pickupLng;
 
+    final scheduledDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    final returnDateTime = _rideType == 'Round trip'
+        ? DateTime(
+            _returnDate.year,
+            _returnDate.month,
+            _returnDate.day,
+            _returnTime.hour,
+            _returnTime.minute,
+          )
+        : null;
+
+    String dropoffText = _dropoffLocation?.placeName ?? '';
+    if (_rideType == 'By-the-hour') {
+      dropoffText = 'Hourly Service ($_byTheHourDuration hrs)';
+    } else if (_rideType == 'Round trip') {
+      dropoffText = '${_dropoffLocation?.placeName ?? 'Destination'} (Round Trip)';
+    }
+
+    String? effectiveEventType;
+    if (_rideType == 'Event') {
+      effectiveEventType = _selectedEventType == 'Other' &&
+              _customEventController.text.trim().isNotEmpty
+          ? 'Event: ${_customEventController.text.trim()}'
+          : 'Event: $_selectedEventType';
+    } else if (_rideType == 'By-the-hour') {
+      effectiveEventType = 'Hourly Hire ($_byTheHourDuration h)';
+    } else if (_rideType == 'Out of state') {
+      effectiveEventType = 'Out of State Travel';
+    } else if (_rideType == 'Round trip') {
+      effectiveEventType = 'Round Trip';
+    }
+
     bookingProv.setTripDetails(
       pickupAddress: _pickupLocation!.placeName,
-      dropoffAddress: _dropoffLocation?.placeName ?? 'Hourly Service ($_byTheHourDuration hrs)',
+      dropoffAddress: dropoffText,
       pickupLat: pickupLat,
       pickupLng: pickupLng,
       dropoffLat: dropoffLat,
@@ -352,9 +486,14 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     );
 
     bookingProv.setBookingType(
-      _rideType == 'By-the-hour' ? 'schedule' : 'instant',
-      eventType: _rideType == 'By-the-hour' ? 'Hourly Hire ($_byTheHourDuration h)' : null,
+      'schedule',
+      scheduledTime: scheduledDateTime,
+      eventType: effectiveEventType,
+      rideType: _rideType,
+      returnTime: returnDateTime,
     );
+
+    _saveDraft();
 
     context.push('/fleet-selection');
   }
@@ -367,6 +506,7 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -374,55 +514,370 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Want to take a one way or\nby-the-hour ride?',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                    height: 1.3,
-                    letterSpacing: -0.3,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _buildRideTypeOption(
-                  context: ctx,
-                  icon: Icons.directions_rounded,
-                  title: 'One way',
-                  subtitle: 'One direction from A to B.',
-                  isSelected: _rideType == 'One way',
-                  onTap: () {
-                    setState(() => _rideType = 'One way');
-                    Navigator.pop(ctx);
-                  },
-                ),
-                const SizedBox(height: 12),
-                _buildRideTypeOption(
-                  context: ctx,
-                  icon: Icons.access_time_rounded,
-                  title: 'By-the-hour',
-                  subtitle: 'Time-based ride. Min 2h, max 24h.',
-                  isSelected: _rideType == 'By-the-hour',
-                  onTap: () {
-                    setState(() {
-                      _rideType = 'By-the-hour';
-                      _isDurationDropdownOpen = false;
-                    });
-                    Navigator.pop(ctx);
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
+                  Text(
+                    'Select ride service',
+                    style: GoogleFonts.poppins(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Kenick luxury chauffeur options for every journey',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildRideTypeOption(
+                    context: ctx,
+                    icon: Icons.arrow_forward_rounded,
+                    title: 'One way',
+                    subtitle: 'Point A to Point B direct luxury transit.',
+                    isSelected: _rideType == 'One way',
+                    onTap: () {
+                      setState(() => _rideType = 'One way');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRideTypeOption(
+                    context: ctx,
+                    icon: Icons.sync_alt_rounded,
+                    title: 'Round trip',
+                    subtitle: 'Two-way journey with scheduled return pickup.',
+                    isSelected: _rideType == 'Round trip',
+                    onTap: () {
+                      setState(() => _rideType = 'Round trip');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRideTypeOption(
+                    context: ctx,
+                    icon: Icons.access_time_rounded,
+                    title: 'By-the-hour',
+                    subtitle: 'Dedicated chauffeur at your disposal. Min 2h, max 24h.',
+                    isSelected: _rideType == 'By-the-hour',
+                    onTap: () {
+                      setState(() {
+                        _rideType = 'By-the-hour';
+                        _isDurationDropdownOpen = false;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRideTypeOption(
+                    context: ctx,
+                    icon: Icons.celebration_rounded,
+                    title: 'Event',
+                    subtitle: 'VIP transport for weddings, galas & celebrations.',
+                    isSelected: _rideType == 'Event',
+                    onTap: () {
+                      setState(() => _rideType = 'Event');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRideTypeOption(
+                    context: ctx,
+                    icon: Icons.alt_route_rounded,
+                    title: 'Out of state',
+                    subtitle: 'Interstate & long-distance executive travel.',
+                    isSelected: _rideType == 'Out of state',
+                    onTap: () {
+                      setState(() => _rideType = 'Out of state');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  // --- Bottom Sheet: Event Type Selection ---
+  void _showEventTypeModal() {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Select event type',
+                    style: GoogleFonts.poppins(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choose the occasion for tailored chauffeur presentation',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._eventOptions.map((opt) {
+                    final isSelected = _selectedEventType == opt;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedEventType = opt;
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.09)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : cs.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _getEventIcon(opt),
+                                size: 20,
+                                color: isSelected ? AppColors.primary : cs.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  opt,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14.5,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                    color: isSelected ? AppColors.primary : cs.onSurface,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickDate({bool isReturn = false}) async {
+    HapticFeedback.lightImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initial = isReturn ? _returnDate : _selectedDate;
+    final first = isReturn ? _selectedDate : DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(first) ? first : initial,
+      firstDate: first,
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme(
+              brightness: isDark ? Brightness.dark : Brightness.light,
+              primary: AppColors.primary,
+              onPrimary: const Color(0xFF111827),
+              surface: isDark ? AppColors.darkSurface : Colors.white,
+              onSurface: isDark ? Colors.white : const Color(0xFF111827),
+              secondary: AppColors.primary,
+              onSecondary: const Color(0xFF111827),
+              error: Colors.redAccent,
+              onError: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isReturn) {
+          _returnDate = picked;
+        } else {
+          _selectedDate = picked;
+          if (_returnDate.isBefore(_selectedDate)) {
+            _returnDate = _selectedDate.add(const Duration(days: 1));
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> _pickTime({bool isReturn = false}) async {
+    HapticFeedback.lightImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initial = isReturn ? _returnTime : _selectedTime;
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme(
+              brightness: isDark ? Brightness.dark : Brightness.light,
+              primary: AppColors.primary,
+              onPrimary: const Color(0xFF111827),
+              surface: isDark ? AppColors.darkSurface : Colors.white,
+              onSurface: isDark ? Colors.white : const Color(0xFF111827),
+              secondary: AppColors.primary,
+              onSecondary: const Color(0xFF111827),
+              error: Colors.redAccent,
+              onError: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isReturn) {
+          _returnTime = picked;
+        } else {
+          _selectedTime = picked;
+        }
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final diff = target.difference(today).inDays;
+    if (diff == 0) {
+      return 'Today, ${DateFormat('MMM d').format(date)}';
+    } else if (diff == 1) {
+      return 'Tomorrow, ${DateFormat('MMM d').format(date)}';
+    } else {
+      return DateFormat('EEE, MMM d').format(date);
+    }
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    return DateFormat('h:mm a').format(dt);
+  }
+
+  IconData _getRideTypeIcon(String type) {
+    switch (type) {
+      case 'Round trip':
+        return Icons.sync_alt_rounded;
+      case 'By-the-hour':
+        return Icons.access_time_rounded;
+      case 'Event':
+        return Icons.celebration_rounded;
+      case 'Out of state':
+        return Icons.alt_route_rounded;
+      case 'One way':
+      default:
+        return Icons.arrow_forward_rounded;
+    }
+  }
+
+  IconData _getEventIcon(String type) {
+    switch (type) {
+      case 'Wedding':
+        return Icons.favorite_rounded;
+      case 'Corporate Event / Gala':
+        return Icons.business_center_rounded;
+      case 'Concert & Festival':
+        return Icons.music_note_rounded;
+      case 'Sporting Event':
+        return Icons.sports_soccer_rounded;
+      case 'Birthday / Celebration':
+        return Icons.cake_rounded;
+      case 'Prom & Graduation':
+        return Icons.school_rounded;
+      case 'VIP Night Out':
+        return Icons.nightlife_rounded;
+      case 'Airport Delegation':
+        return Icons.flight_takeoff_rounded;
+      case 'Other':
+      default:
+        return Icons.stars_rounded;
+    }
   }
 
   Widget _buildRideTypeOption({
@@ -730,8 +1185,12 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.08);
 
-    final showContinue = _pickupLocation != null &&
-        (_rideType == 'By-the-hour' || _dropoffLocation != null);
+    final hasPickup = _pickupLocation != null ||
+        _pickupController.text.trim().isNotEmpty;
+    final hasDropoff = _dropoffLocation != null ||
+        _dropoffController.text.trim().isNotEmpty;
+    final showContinue = hasPickup &&
+        (_rideType == 'By-the-hour' || hasDropoff);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -824,17 +1283,13 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      _rideType == 'One way'
-                                          ? Icons.directions_rounded
-                                          : Icons.access_time_rounded,
+                                      _getRideTypeIcon(_rideType),
                                       size: 16,
                                       color: AppColors.primary,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      _rideType == 'By-the-hour'
-                                          ? 'By-the-hour'
-                                          : 'One way',
+                                      _rideType,
                                       style: GoogleFonts.poppins(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -1184,9 +1639,15 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
 
                                     const SizedBox(height: 20),
 
-                                    // Drop-off Location
+                                    // Drop-off / Destination Location
                                     Text(
-                                      'Drop-off location',
+                                      _rideType == 'Round trip'
+                                          ? 'Turnaround destination'
+                                          : (_rideType == 'Event'
+                                              ? 'Event venue or destination'
+                                              : (_rideType == 'Out of state'
+                                                  ? 'Out of state destination'
+                                                  : 'Drop-off location')),
                                       style: GoogleFonts.poppins(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -1213,7 +1674,13 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                                               color: cs.onSurface,
                                             ),
                                             decoration: InputDecoration(
-                                              hintText: 'Where to?',
+                                              hintText: _rideType == 'Round trip'
+                                                  ? 'Where are you traveling to?'
+                                                  : (_rideType == 'Event'
+                                                      ? 'Ballroom, hotel, estate, stadium...'
+                                                      : (_rideType == 'Out of state'
+                                                          ? 'City, State or address (e.g. Chicago, IL)'
+                                                          : 'Where to?')),
                                               hintStyle: GoogleFonts.poppins(
                                                 fontSize: 15,
                                                 color: cs.onSurfaceVariant.withValues(alpha: 0.6),
@@ -1300,6 +1767,17 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                           ),
                         ),
                       ],
+
+                      // Event Type Dropdown & Custom Field (when Event is selected)
+                      if (_rideType == 'Event')
+                        _buildEventSection(isDark, cs, subtleBorder, cardColor),
+
+                      // Out of State Logistics Info Banner
+                      if (_rideType == 'Out of state')
+                        _buildOutOfStateBadge(isDark, cs, subtleBorder, cardColor),
+
+                      // Schedule (Date & Time) Section - Applicable for ALL ride types!
+                      _buildDateTimeSection(isDark, cs, subtleBorder, cardColor),
 
                       const SizedBox(height: 28),
 
@@ -1474,86 +1952,57 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
               ),
             ),
 
-            // Bottom CTA
-            if (_rideType == 'By-the-hour') ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: (_pickupLocation != null ||
-                            _pickupController.text.trim().isNotEmpty)
-                        ? _confirmAndProceed
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: const Color(0xFF111827),
-                      disabledBackgroundColor: isDark
-                          ? const Color(0xFF2C2C32)
-                          : const Color(0xFFB0B3B8),
-                      disabledForegroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(26),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Select $_byTheHourDuration-hour ride',
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.1,
-                      ),
-                    ),
+            // Bottom CTA (Sticky for all ride types)
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              decoration: BoxDecoration(
+                color: cardColor,
+                border: Border(top: BorderSide(color: subtleBorder)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
                   ),
-                ),
+                ],
               ),
-            ] else if (showContinue)
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  border: Border(top: BorderSide(color: subtleBorder)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, -3),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: showContinue ? _confirmAndProceed : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF111827),
+                    disabledBackgroundColor: isDark
+                        ? const Color(0xFF2C2C32)
+                        : const Color(0xFFB0B3B8),
+                    disabledForegroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _confirmAndProceed,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: const Color(0xFF111827),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Continue to Fleet',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.1,
-                          ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _getCtaButtonText(showContinue),
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.1,
                         ),
+                      ),
+                      if (showContinue) ...[
                         const SizedBox(width: 8),
                         const Icon(Icons.arrow_forward_rounded, size: 18),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -1725,6 +2174,372 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
             Icon(Icons.north_west_rounded, size: 16, color: cs.onSurfaceVariant),
           ],
         ),
+      ),
+    );
+  }
+
+  String _getCtaButtonText(bool canContinue) {
+    if (!canContinue) {
+      if (_pickupLocation == null && _pickupController.text.trim().isEmpty) {
+        return 'Enter pickup location';
+      }
+      if (_rideType != 'By-the-hour' && _dropoffLocation == null && _dropoffController.text.trim().isEmpty) {
+        return 'Enter destination';
+      }
+    }
+    switch (_rideType) {
+      case 'By-the-hour':
+        return 'Select $_byTheHourDuration-hour ride';
+      case 'Round trip':
+        return 'Continue Round Trip';
+      case 'Event':
+        final ev = _selectedEventType == 'Other' && _customEventController.text.trim().isNotEmpty
+            ? _customEventController.text.trim()
+            : _selectedEventType;
+        return 'Continue for $ev';
+      case 'Out of state':
+        return 'Continue Out of State';
+      case 'One way':
+      default:
+        return 'Continue to Fleet';
+    }
+  }
+
+  Widget _buildDateTimeSection(
+    bool isDark,
+    ColorScheme cs,
+    Color subtleBorder,
+    Color cardColor,
+  ) {
+    if (_rideType == 'Round trip') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 18),
+          Text(
+            'Schedule Departure & Return',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildDateTimeDualBox(
+            label: 'DEPARTURE PICKUP',
+            dateText: _formatDate(_selectedDate),
+            timeText: _formatTime(_selectedTime),
+            onDateTap: _pickDate,
+            onTimeTap: _pickTime,
+            isDark: isDark,
+            cs: cs,
+            subtleBorder: subtleBorder,
+            cardColor: cardColor,
+          ),
+          const SizedBox(height: 10),
+          _buildDateTimeDualBox(
+            label: 'RETURN PICKUP',
+            dateText: _formatDate(_returnDate),
+            timeText: _formatTime(_returnTime),
+            onDateTap: () => _pickDate(isReturn: true),
+            onTimeTap: () => _pickTime(isReturn: true),
+            isDark: isDark,
+            cs: cs,
+            subtleBorder: subtleBorder,
+            cardColor: cardColor,
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        Text(
+          'Date & Pickup Time',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildDateTimeDualBox(
+          label: _rideType == 'Event'
+              ? 'EVENT DATE & TIME'
+              : (_rideType == 'By-the-hour'
+                  ? 'SERVICE START SCHEDULE'
+                  : 'PICKUP SCHEDULE'),
+          dateText: _formatDate(_selectedDate),
+          timeText: _formatTime(_selectedTime),
+          onDateTap: _pickDate,
+          onTimeTap: _pickTime,
+          isDark: isDark,
+          cs: cs,
+          subtleBorder: subtleBorder,
+          cardColor: cardColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateTimeDualBox({
+    required String label,
+    required String dateText,
+    required String timeText,
+    required VoidCallback onDateTap,
+    required VoidCallback onTimeTap,
+    required bool isDark,
+    required ColorScheme cs,
+    required Color subtleBorder,
+    required Color cardColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: subtleBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              // Date picker
+              Expanded(
+                flex: 5,
+                child: InkWell(
+                  onTap: onDateTap,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            dateText,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 22,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: subtleBorder,
+              ),
+              // Time picker
+              Expanded(
+                flex: 4,
+                child: InkWell(
+                  onTap: onTimeTap,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            timeText,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventSection(
+    bool isDark,
+    ColorScheme cs,
+    Color subtleBorder,
+    Color cardColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        Text(
+          'Type of event',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: _showEventTypeModal,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: subtleBorder),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _getEventIcon(_selectedEventType),
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _selectedEventType,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: cs.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_selectedEventType == 'Other') ...[
+          const SizedBox(height: 12),
+          Text(
+            'Describe your event',
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.6),
+              ),
+            ),
+            child: TextField(
+              controller: _customEventController,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: cs.onSurface,
+              ),
+              decoration: InputDecoration(
+                hintText: 'e.g. Charity Gala, Film Premiere, Fashion Show...',
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildOutOfStateBadge(
+    bool isDark,
+    ColorScheme cs,
+    Color subtleBorder,
+    Color cardColor,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.1 : 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.alt_route_rounded,
+            size: 20,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Interstate Travel: Long-distance chauffeur itinerary, highway toll passes and driver rotation included.',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: cs.onSurface,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

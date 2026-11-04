@@ -550,13 +550,21 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
     final date = bookingProv.scheduledTime ?? DateTime.now();
     final dateFormatted = DateFormat('EEE, d MMM y').format(date);
     final pickupTimeFormatted = DateFormat('h:mm a').format(date);
-    final dropoffTimeFormatted = DateFormat('h:mm a').format(date.add(const Duration(hours: 2)));
+    final dropoffTimeFormatted = bookingProv.returnTime != null
+        ? 'Return: ${DateFormat('h:mm a').format(bookingProv.returnTime!)}'
+        : DateFormat('h:mm a').format(date.add(const Duration(hours: 2)));
 
-    final pickupAddress = bookingProv.pickupAddress ?? 'Poststraße 30, Berlin';
-    final dropoffOrDuration = bookingProv.dropoffAddress?.contains('Hourly') == true ||
-            bookingProv.bookingType == 'schedule'
-        ? '2 hours'
-        : (bookingProv.dropoffAddress ?? 'Destination');
+    final pickupAddress = bookingProv.pickupAddress ?? 'Pickup Address';
+    String dropoffOrDuration = bookingProv.dropoffAddress ?? 'Destination';
+    if (bookingProv.rideType == 'By-the-hour') {
+      dropoffOrDuration = bookingProv.eventType ?? 'Hourly Service';
+    } else if (bookingProv.rideType == 'Round trip') {
+      dropoffOrDuration = bookingProv.dropoffAddress ?? 'Destination';
+    } else if (bookingProv.rideType == 'Event') {
+      dropoffOrDuration = bookingProv.dropoffAddress ?? 'Event Venue';
+    } else if (dropoffOrDuration.contains('Hourly')) {
+      dropoffOrDuration = 'Hourly Service';
+    }
 
     // Extract guest name if any
     String passengerLabel =
@@ -668,17 +676,40 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Top row: Date + Passenger pill
+                          // Top row: Date + Ride Type Badge + Passenger pill
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                dateFormatted,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: cs.onSurface,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    dateFormatted,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                  if (bookingProv.rideType.isNotEmpty && bookingProv.rideType != 'One way') ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: isDark ? 0.22 : 0.14),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        bookingProv.rideType.toUpperCase(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               GestureDetector(
                                 onTap: _openGuestSelectionSheet,

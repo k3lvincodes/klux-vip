@@ -30,6 +30,11 @@ export interface BookingFormData {
   name: string;
   email: string;
   phone: string;
+  rideType?: 'One way' | 'Round trip' | 'By-the-hour' | 'Event' | 'Out of state';
+  returnDate?: string;
+  returnTime?: string;
+  eventType?: string;
+  customEventType?: string;
   pickupCoords?: { lat: number; lng: number };
   dropoffCoords?: { lat: number; lng: number };
 }
