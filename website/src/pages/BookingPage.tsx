@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { STEPS, type Step, type BookingFormData, type FareBreakdown, type BookingConfirmation as BookingConfirmationData, type AssignedChauffeur } from './booking/types';
@@ -15,17 +13,38 @@ import '../styles/booking.css';
 
 
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+const GOOGLE_MAP_DARK_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#18191d" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#8a8d98" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#18191d" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#2d3038" }] },
+  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#a1a1aa" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d4d4d8" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#71717a" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#131417" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#52525b" }] },
+  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#24262c" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8d98" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#2a2d35" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#32353e" }] },
+  { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#3c404b" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#52525b" }] },
+  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#71717a" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0d0e11" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3f3f46" }] }
+];
 
 export default function BookingPage() {
   const [searchParams] = useSearchParams();
   const initialVehicle = searchParams.get('vehicle') || 'Standard SUV';
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const googleMapRef = useRef<any>(null);
   const leafletRef = useRef<{ map: unknown; script: HTMLScriptElement | null } | null>(null);
   const pickupMarkerRef = useRef<any>(null);
   const dropoffMarkerRef = useRef<any>(null);
+  const polylineRef = useRef<any>(null);
 
   const [step, setStep] = useState<Step>(STEPS.TRIP);
   const [bookingForm, setBookingForm] = useState<BookingFormData>({
@@ -105,18 +124,18 @@ export default function BookingPage() {
     }
   }, [searchParams]);
 
-  // Initialize Mapbox / Fallback Map
+  // Initialize Google Maps with Graceful Fallback
   useEffect(() => {
     if (!mapContainerRef.current) return;
-    if (mapRef.current) return;
+    if (googleMapRef.current || leafletRef.current?.map) return;
 
     mapContainerRef.current.innerHTML = '';
 
-    let leafletLoaded = false;
+    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     const loadLeafletFallback = () => {
-      if (leafletLoaded) return;
-      leafletLoaded = true;
+      if (!mapContainerRef.current) return;
+      if (leafletRef.current?.map) return;
 
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link');
@@ -132,50 +151,28 @@ export default function BookingPage() {
       script.onload = () => {
         if (!mapContainerRef.current) return;
         mapContainerRef.current.innerHTML = '';
-        
+
         const L = (window as any).L;
         if (!L) return;
 
-        leafletRef.current = { map: null, script };
-
         const lMap = L.map(mapContainerRef.current, {
-          zoomControl: false
-        }).setView([40.7128, -74.006], 12);
+          zoomControl: false,
+        }).setView([39.7684, -86.1581], 12); // Indianapolis center
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          attribution: '&copy; CartoDB',
           subdomains: 'abcd',
-          maxZoom: 20
+          maxZoom: 20,
         }).addTo(lMap);
 
-        L.control.zoom({
-          position: 'bottomleft'
-        }).addTo(lMap);
-
-        leafletRef.current!.map = lMap;
-
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div style="display:flex;flex-direction:column;align-items:center;">
-              <div style="background:#F4C522;color:#000;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:12px;margin-bottom:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:Poppins,sans-serif;white-space:nowrap;transform:translateY(-10px);">
-                You are here
-              </div>
-              <div style="width:20px;height:20px;background:#F4C522;border:3px solid #000;border-radius:50%;box-shadow:0 0 0 6px rgba(244,197,34,0.3);"></div>
-            </div>
-          `,
-          iconSize: [20, 20],
-          iconAnchor: [10, 20]
-        });
-
-        const marker = L.marker([40.7128, -74.006], { icon: customIcon }).addTo(lMap);
+        L.control.zoom({ position: 'bottomleft' }).addTo(lMap);
+        leafletRef.current = { map: lMap, script };
 
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               const { latitude, longitude } = pos.coords;
-              lMap.setView([latitude, longitude], 14);
-              marker.setLatLng([latitude, longitude]);
+              lMap.setView([latitude, longitude], 13);
             },
             () => {},
             { enableHighAccuracy: true, timeout: 5000 }
@@ -185,117 +182,170 @@ export default function BookingPage() {
       document.head.appendChild(script);
     };
 
-    try {
-      const testMap = new mapboxgl.Map({
-        container: document.createElement('div'),
-        style: 'mapbox://styles/mapbox/dark-v11',
-        accessToken: mapboxgl.accessToken || '',
-      });
-      
-      const timeout = setTimeout(() => {
-        try { testMap.remove(); } catch {}
-        loadLeafletFallback();
-      }, 4000);
-
-      testMap.on('load', () => {
-        clearTimeout(timeout);
-        try { testMap.remove(); } catch {}
-        
+    const loadGoogleMaps = () => {
+      const initGMap = () => {
         if (!mapContainerRef.current) return;
+        const google = (window as any).google;
+        if (!google?.maps) {
+          loadLeafletFallback();
+          return;
+        }
 
-        const map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/dark-v11',
+        const map = new google.maps.Map(mapContainerRef.current, {
+          center: { lat: 39.7684, lng: -86.1581 },
           zoom: 12,
-          center: [-74.006, 40.7128],
-          attributionControl: false,
+          styles: GOOGLE_MAP_DARK_STYLE,
+          disableDefaultUI: true,
+          zoomControl: true,
+          zoomControlOptions: {
+            position: google.maps.ControlPosition.LEFT_BOTTOM,
+          },
         });
 
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-left');
-
-        const marker = new mapboxgl.Marker({ color: '#F4C522' })
-          .setLngLat([-74.006, 40.7128])
-          .addTo(map);
+        googleMapRef.current = map;
 
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               const { latitude, longitude } = pos.coords;
-              map.setCenter([longitude, latitude]);
-              map.setZoom(14);
-              marker.setLngLat([longitude, latitude]);
+              map.setCenter({ lat: latitude, lng: longitude });
+              map.setZoom(13);
             },
             () => {},
             { enableHighAccuracy: true, timeout: 5000 }
           );
         }
+      };
 
-        mapRef.current = map;
-      });
+      if ((window as any).google?.maps) {
+        initGMap();
+        return;
+      }
 
-      testMap.on('error', () => {
+      if (!googleApiKey) {
         loadLeafletFallback();
-      });
-    } catch {
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleApiKey)}&libraries=places,geometry`;
+      script.async = true;
+      script.defer = true;
+      script.onload = initGMap;
+      script.onerror = () => loadLeafletFallback();
+      document.head.appendChild(script);
+    };
+
+    if (googleApiKey) {
+      loadGoogleMaps();
+    } else {
       loadLeafletFallback();
     }
 
     return () => {
-      if (mapRef.current) {
-        try { mapRef.current.remove(); } catch {}
-        mapRef.current = null;
-      }
-      if (leafletRef.current?.script) {
-        leafletRef.current.script.remove();
+      googleMapRef.current = null;
+      if (leafletRef.current?.map) {
+        try {
+          (leafletRef.current.map as any).remove();
+        } catch {}
         leafletRef.current = null;
       }
     };
   }, []);
 
   const updateMapLocation = (type: 'pickup' | 'dropoff', lat: number, lng: number) => {
-    if (mapRef.current) {
-      const map = mapRef.current;
+    const google = (window as any).google;
+    if (googleMapRef.current && google?.maps) {
+      const map = googleMapRef.current;
+      const pos = new google.maps.LatLng(lat, lng);
+
       if (type === 'pickup') {
-        if (!pickupMarkerRef.current) {
-          pickupMarkerRef.current = new mapboxgl.Marker({ color: '#F4C522' })
-            .setLngLat([lng, lat])
-            .addTo(map);
+        if (pickupMarkerRef.current) {
+          pickupMarkerRef.current.setPosition(pos);
         } else {
-          pickupMarkerRef.current.setLngLat([lng, lat]);
+          pickupMarkerRef.current = new google.maps.Marker({
+            position: pos,
+            map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#F4C522',
+              fillOpacity: 1,
+              strokeColor: '#000000',
+              strokeWeight: 2,
+            },
+            title: 'Pickup Location',
+          });
         }
       } else {
-        if (!dropoffMarkerRef.current) {
-          dropoffMarkerRef.current = new mapboxgl.Marker({ color: '#ffffff' })
-            .setLngLat([lng, lat])
-            .addTo(map);
+        if (dropoffMarkerRef.current) {
+          dropoffMarkerRef.current.setPosition(pos);
         } else {
-          dropoffMarkerRef.current.setLngLat([lng, lat]);
+          dropoffMarkerRef.current = new google.maps.Marker({
+            position: pos,
+            map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#10b981',
+              fillOpacity: 1,
+              strokeColor: '#000000',
+              strokeWeight: 2,
+            },
+            title: 'Drop-off Destination',
+          });
         }
       }
 
       if (pickupMarkerRef.current && dropoffMarkerRef.current) {
-        const pLngLat = pickupMarkerRef.current.getLngLat();
-        const dLngLat = dropoffMarkerRef.current.getLngLat();
-        const bounds = new mapboxgl.LngLatBounds();
-        bounds.extend(pLngLat);
-        bounds.extend(dLngLat);
-        map.fitBounds(bounds, { padding: 120, maxZoom: 15 });
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(pickupMarkerRef.current.getPosition());
+        bounds.extend(dropoffMarkerRef.current.getPosition());
+        map.fitBounds(bounds, 100);
+
+        if (polylineRef.current) {
+          polylineRef.current.setMap(null);
+        }
+        polylineRef.current = new google.maps.Polyline({
+          path: [pickupMarkerRef.current.getPosition(), dropoffMarkerRef.current.getPosition()],
+          geodesic: true,
+          strokeColor: '#F4C522',
+          strokeOpacity: 0.85,
+          strokeWeight: 4,
+          map,
+        });
       } else {
-        map.flyTo({ center: [lng, lat], zoom: 14, essential: true });
+        map.panTo(pos);
+        map.setZoom(14);
       }
-    } else if (leafletRef.current?.map) {
+      return;
+    }
+
+    if (leafletRef.current?.map) {
       const lMap = leafletRef.current.map as any;
       const L = (window as any).L;
       if (L && lMap) {
         if (type === 'pickup') {
           if (!pickupMarkerRef.current) {
-            pickupMarkerRef.current = L.marker([lat, lng]).addTo(lMap);
+            pickupMarkerRef.current = L.circleMarker([lat, lng], {
+              radius: 8,
+              fillColor: '#F4C522',
+              color: '#000000',
+              weight: 2,
+              fillOpacity: 1,
+            }).addTo(lMap);
           } else {
             pickupMarkerRef.current.setLatLng([lat, lng]);
           }
         } else {
           if (!dropoffMarkerRef.current) {
-            dropoffMarkerRef.current = L.marker([lat, lng]).addTo(lMap);
+            dropoffMarkerRef.current = L.circleMarker([lat, lng], {
+              radius: 8,
+              fillColor: '#10b981',
+              color: '#000000',
+              weight: 2,
+              fillOpacity: 1,
+            }).addTo(lMap);
           } else {
             dropoffMarkerRef.current.setLatLng([lat, lng]);
           }
