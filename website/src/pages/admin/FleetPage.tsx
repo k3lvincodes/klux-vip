@@ -35,8 +35,8 @@ import type {
 
 const MAX_FEATURED = 6;
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dgo9zcbd6';
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'Klux_vip';
 
 export type { FleetCategory };
 export const autoCategorizeVehicle = categorizeVehicleFallback;
@@ -146,7 +146,11 @@ async function uploadToCloudinary(file: File): Promise<string | null> {
     method: 'POST',
     body: formData,
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    console.error('Cloudinary upload response failed:', res.status, errData);
+    return null;
+  }
   const data = await res.json();
   return data.secure_url || null;
 }
@@ -317,11 +321,14 @@ export default function FleetPage() {
       const url = await uploadToCloudinary(file);
       if (url) {
         setForm((prev) => ({ ...prev, image_url: url }));
+        toast.success('Car image uploaded successfully');
       } else {
-        setError('Failed to upload image');
+        setError('Failed to upload image to Cloudinary');
+        toast.error('Failed to upload image. Please try again.');
       }
     } catch (err) {
       setError('Failed to upload image');
+      toast.error('An error occurred while uploading');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
