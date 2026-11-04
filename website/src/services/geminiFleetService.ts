@@ -1,4 +1,4 @@
-export type FleetCategory = 'None' | 'Business Class' | 'Business Van' | 'First Class';
+export type FleetCategory = 'None' | 'Sedans' | 'SUVs' | 'Vans' | 'Buses' | 'Business Class' | 'Business Van' | 'First Class';
 
 export interface VehicleCategorizationResult {
   category: FleetCategory;
@@ -129,40 +129,35 @@ export async function categorizeVehicleWithGemini(vehicle: {
 
   const systemInstructions = `
 You are Kenick AI, the Chief Fleet Inspection AI for Kenick VIP, a world-class luxury chauffeur service.
-Categorize the given vehicle into exactly ONE of these 3 VIP categories based strictly on these criteria:
+Categorize the given vehicle into exactly ONE of these 4 VIP categories based strictly on these criteria:
 
-1. Business Class
-- Purpose: Premium everyday business transportation
-- Vehicle type: Executive sedan
-- Seating: 3 passengers maximum
-- Doors: 4
-- Model year: 2019 or newer
-- Luggage: Minimum 2 medium suitcases
-- Safety: Functional airbags, ABS, stability control
-- Appearance: Excellent condition
-- Examples: Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.
+1. Sedans (Baseline / Lowest Pricing)
+- Purpose: Premium executive and luxury sedan transportation
+- Vehicle type: Executive or flagship sedan
+- Seating: 3-4 passengers
+- Luggage: 2-3 medium suitcases
+- Examples: Mercedes-Benz E-Class, S-Class, BMW 5/7 Series, Audi A6/A8, Lexus ES/LS, Genesis G80/G90.
 
-2. Business Van
-- Purpose: Group transportation, corporate travel and airport transfers
+2. SUVs (Premium Pricing - ~25% above Sedans)
+- Purpose: Elevated comfort, high road presence, family or executive VIP travel
+- Vehicle type: Luxury SUV
+- Seating: 4-6 passengers
+- Luggage: 3-5 suitcases
+- Examples: Cadillac Escalade, Range Rover, Mercedes-Benz GLE/GLS/G-Wagon, BMW X5/X7, Audi Q7/Q8, Lincoln Navigator.
+
+3. Vans (Executive Group Pricing - ~45% above Sedans)
+- Purpose: Corporate delegation travel, airport group transfers, luxury touring
 - Vehicle type: Luxury passenger van / MPV
-- Seating: 5–7 passengers
-- Doors: 4 or more
-- Model year: 2019 or newer
-- Luggage: Minimum 4 medium suitcases
-- Safety: Functional airbags, ABS, stability control
-- Appearance: Excellent exterior and interior condition
-- Examples: Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.
+- Seating: 6-8 passengers
+- Luggage: 5-8 suitcases
+- Examples: Mercedes-Benz V-Class, Toyota Alphard, Toyota Vellfire, Lexus LM, Chevrolet Suburban, GMC Yukon XL.
 
-3. First Class
-- Purpose: Ultra-premium transportation for executives, VIPs and high-profile clients
-- Vehicle type: Flagship luxury sedan
-- Seating: 3 passengers maximum
-- Doors: 4
-- Model year: 2021 or newer (Strict: If a flagship sedan is older than 2021, categorize as Business Class instead)
-- Interior: Full luxury/premium leather, exceptional passenger comfort, multi-zone climate control
-- Safety: Advanced driver assistance systems
-- Appearance: Immaculate condition
-- Examples: Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.
+4. Buses (Maximum Capacity & Highest Pricing - ~80% above Sedans)
+- Purpose: Large group transportation, events, VIP shuttle operations
+- Vehicle type: Executive minibus, luxury coach, passenger van 10+ pax
+- Seating: 9-24+ passengers
+- Luggage: 10+ suitcases
+- Examples: Mercedes-Benz Sprinter Passenger (12-15 seater), Ford Transit Minibus, Toyota Coaster, VIP Executive Coach.
 
 VEHICLE TO CATEGORIZE:
 - Make: ${vehicle.make || 'Unknown'}
@@ -172,7 +167,7 @@ VEHICLE TO CATEGORIZE:
 
 Respond ONLY with valid JSON in this exact structure:
 {
-  "category": "First Class" | "Business Van" | "Business Class",
+  "category": "Sedans" | "SUVs" | "Vans" | "Buses",
   "reason": "1-2 concise sentences explaining why the vehicle meets the criteria for this category"
 }
 `;
@@ -219,13 +214,15 @@ Respond ONLY with valid JSON in this exact structure:
         const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(cleaned);
 
-        let validatedCategory: FleetCategory = 'Business Class';
-        if (parsed.category === 'First Class') {
-          validatedCategory = 'First Class';
-        } else if (parsed.category === 'Business Van') {
-          validatedCategory = 'Business Van';
+        let validatedCategory: FleetCategory = 'Sedans';
+        if (parsed.category === 'Buses' || parsed.category === 'Bus') {
+          validatedCategory = 'Buses';
+        } else if (parsed.category === 'Vans' || parsed.category === 'Van' || parsed.category === 'Business Van') {
+          validatedCategory = 'Vans';
+        } else if (parsed.category === 'SUVs' || parsed.category === 'SUV') {
+          validatedCategory = 'SUVs';
         } else {
-          validatedCategory = 'Business Class';
+          validatedCategory = 'Sedans';
         }
 
         const reason =

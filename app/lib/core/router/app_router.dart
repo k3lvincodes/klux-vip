@@ -439,8 +439,8 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>? ?? {};
         return ConfirmReservationScreen(
-          category: extra['category'] as String? ?? 'Business Class',
-          subtitle: extra['subtitle'] as String? ?? 'Mercedes-Benz EQE or similar',
+          category: extra['category'] as String? ?? 'Sedans',
+          subtitle: extra['subtitle'] as String? ?? 'Executive sedan or similar',
           fare: (extra['fare'] as num?)?.toDouble() ?? 141.47,
           passengers: (extra['passengers'] as num?)?.toInt() ?? 3,
           luggage: (extra['luggage'] as num?)?.toInt() ?? 2,

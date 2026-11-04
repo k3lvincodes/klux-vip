@@ -11,7 +11,7 @@ class FleetCategoryTier {
     required this.gradientColors,
   });
 
-  final String name; // 'Business Class', 'Business Van', 'First Class'
+  final String name; // 'Sedans', 'SUVs', 'Vans', 'Buses'
   final String subtitle;
   final int passengers;
   final int luggage;
@@ -30,7 +30,7 @@ class FleetVehicleItem {
     this.imageUrl,
     this.localAssetPath,
     this.hasDriverAssigned = false,
-    this.category = 'Business Class',
+    this.category = 'Sedans',
     this.features = '',
   });
 
@@ -50,38 +50,79 @@ class FleetVehicleItem {
 class FleetService {
   static final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// The 3 official Kenick VIP experience categories
+  /// The official Kenick VIP client categories (Sedans, SUVs, Vans, Buses)
+  /// Pricing order: Sedans (lowest) < SUVs < Vans < Buses (highest)
   static const List<FleetCategoryTier> experienceCategories = [
     FleetCategoryTier(
-      name: 'Business Class',
-      subtitle: 'Executive sedans • Up to 3 passengers',
+      name: 'Sedans',
+      subtitle: 'Executive & luxury sedans • Up to 3 passengers',
       passengers: 3,
       luggage: 2,
-      priceMultiplier: 1.0,
+      priceMultiplier: 1.0, // Lowest pricing
       gradientColors: [Color(0xFFBBE2D8), Color(0xFFF7F5F0)],
     ),
     FleetCategoryTier(
-      name: 'Business Van',
-      subtitle: 'Luxury SUVs & Vans • Up to 6 passengers',
-      passengers: 6,
-      luggage: 5,
-      priceMultiplier: 1.253, // ~€177.29 based on base fare
+      name: 'SUVs',
+      subtitle: 'Prestige full-size & luxury SUVs • Up to 5 passengers',
+      passengers: 5,
+      luggage: 4,
+      priceMultiplier: 1.25, // Higher than Sedans
+      gradientColors: [Color(0xFF9ABDE2), Color(0xFFF5F7FA)],
+    ),
+    FleetCategoryTier(
+      name: 'Vans',
+      subtitle: 'Executive MPVs & luxury Sprinters • Up to 7 passengers',
+      passengers: 7,
+      luggage: 6,
+      priceMultiplier: 1.45, // Higher than SUVs
       gradientColors: [Color(0xFFF6D6B8), Color(0xFFFDFBF7)],
     ),
     FleetCategoryTier(
-      name: 'First Class',
-      subtitle: 'Flagship luxury sedans • Up to 3 passengers',
-      passengers: 3,
-      luggage: 2,
-      priceMultiplier: 1.51, // ~€213.68 based on base fare
-      gradientColors: [Color(0xFF9ABDE2), Color(0xFFF5F7FA)],
+      name: 'Buses',
+      subtitle: 'VIP coaches & delegation minibuses • Up to 16+ passengers',
+      passengers: 16,
+      luggage: 14,
+      priceMultiplier: 1.80, // Highest pricing
+      gradientColors: [Color(0xFFD8B4E2), Color(0xFFFAF5FD)],
     ),
   ];
+
+  static String normalizeCategory(String? rawCategory, String make, String model, [int? year]) {
+    if (rawCategory != null && rawCategory.isNotEmpty) {
+      final c = rawCategory.trim().toLowerCase();
+      if (c == 'sedans' || c == 'sedan') return 'Sedans';
+      if (c == 'suvs' || c == 'suv') return 'SUVs';
+      if (c == 'vans' || c == 'van') return 'Vans';
+      if (c == 'buses' || c == 'bus') return 'Buses';
+    }
+    return autoCategorize(make, model, year);
+  }
 
   static String autoCategorize(String make, String model, [int? year]) {
     final text = '$make $model'.toLowerCase();
 
-    // Criteria 2: Business Van / Full-size Luxury SUV
+    // 1. Buses: Minibuses, Coaches, High-capacity Shuttles (highest tier)
+    final isBus = text.contains('bus') ||
+        text.contains('minibus') ||
+        text.contains('coach') ||
+        text.contains('coaster') ||
+        text.contains('rosa') ||
+        text.contains('tourliner') ||
+        text.contains('setra') ||
+        text.contains('sprinter 15') ||
+        text.contains('sprinter 16') ||
+        text.contains('sprinter 18') ||
+        text.contains('sprinter 20') ||
+        text.contains('transit 15') ||
+        text.contains('transit 14') ||
+        text.contains('crafter 16') ||
+        text.contains('intercity');
+
+    if (isBus) {
+      return 'Buses';
+    }
+
+    // 2. Vans: Executive MPVs, Passenger Vans, Standard Sprinters
     final isVan = text.contains('van') ||
         text.contains('v-class') ||
         text.contains('v class') ||
@@ -94,48 +135,60 @@ class FleetService {
         text.contains('metris') ||
         text.contains('alphard') ||
         text.contains('vellfire') ||
-        text.contains('escalade') ||
-        text.contains('suburban') ||
-        text.contains('navigator') ||
-        text.contains('yukon') ||
-        text.contains('tahoe');
+        text.contains('carnival') ||
+        text.contains('sienna') ||
+        text.contains('odyssey') ||
+        text.contains('pacifica') ||
+        text.contains('transporter');
 
     if (isVan) {
-      return 'Business Van';
+      return 'Vans';
     }
 
-    // Criteria 3: First Class Flagship Sedans
-    final isFlagship = text.contains('s-class') ||
-        text.contains('s class') ||
-        text.contains('sclass') ||
-        text.contains('maybach') ||
-        text.contains('s 580') ||
-        text.contains('s 680') ||
-        text.contains('s580') ||
-        text.contains('s680') ||
-        text.contains('7 series') ||
-        text.contains('7-series') ||
-        text.contains('740') ||
-        text.contains('750') ||
-        text.contains('760') ||
-        text.contains('i7') ||
-        text.contains('a8') ||
-        text.contains('s8') ||
-        text.contains('panamera') ||
-        text.contains('flying spur') ||
-        text.contains('phantom') ||
-        text.contains('ghost') ||
-        text.contains('continental') ||
-        text.contains('rolls') ||
-        text.contains('bentley') ||
-        text.contains('eqs');
+    // 3. SUVs: Full-size & luxury SUVs
+    final isSuv = text.contains('suv') ||
+        text.contains('escalade') ||
+        text.contains('suburban') ||
+        text.contains('yukon') ||
+        text.contains('tahoe') ||
+        text.contains('navigator') ||
+        text.contains('expedition') ||
+        text.contains('gle') ||
+        text.contains('gls') ||
+        text.contains('g-class') ||
+        text.contains('g class') ||
+        text.contains('g-wagon') ||
+        text.contains('gwagon') ||
+        text.contains('x5') ||
+        text.contains('x7') ||
+        text.contains('q7') ||
+        text.contains('q8') ||
+        text.contains('cayenne') ||
+        text.contains('urus') ||
+        text.contains('cullinan') ||
+        text.contains('bentayga') ||
+        text.contains('range rover') ||
+        text.contains('land rover') ||
+        text.contains('defender') ||
+        text.contains('discovery') ||
+        text.contains('lx 600') ||
+        text.contains('lx 570') ||
+        text.contains('gx') ||
+        text.contains('sequoia') ||
+        text.contains('cherokee') ||
+        text.contains('patrol') ||
+        text.contains('land cruiser') ||
+        text.contains('armada') ||
+        text.contains('telluride') ||
+        text.contains('palisade') ||
+        text.contains('aviator');
 
-    if (isFlagship) {
-      return 'First Class';
+    if (isSuv) {
+      return 'SUVs';
     }
 
-    // Criteria 1: Business Class Executive Sedans
-    return 'Business Class';
+    // 4. Sedans: Default for executive & luxury sedans (lowest pricing)
+    return 'Sedans';
   }
 
   /// Returns real fleet cars from admin catalog with chauffeur availability
@@ -183,7 +236,8 @@ class FleetService {
           final imgUrl = f['image_url'] as String?;
           final features = f['features'] as String? ?? '';
           final year = (f['year'] as num?)?.toInt() ?? 2024;
-          final category = autoCategorize(make, model, year);
+          final rawCategory = f['category'] as String?;
+          final category = normalizeCategory(rawCategory, make, model, year);
 
           return FleetVehicleItem(
             id: id,

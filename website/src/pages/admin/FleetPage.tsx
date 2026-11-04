@@ -72,19 +72,28 @@ const emptyCar = { make: '', model: '', year: new Date().getFullYear(), image_ur
 
 function getCategoryBadgeStyle(cat?: FleetCategory | string) {
   switch (cat) {
-    case 'First Class':
+    case 'Buses':
       return {
-        background: 'rgba(234, 179, 8, 0.12)',
-        color: '#EAB308',
-        border: '1px solid rgba(234, 179, 8, 0.35)',
+        background: 'rgba(168, 85, 247, 0.12)',
+        color: '#c084fc',
+        border: '1px solid rgba(168, 85, 247, 0.35)',
       };
+    case 'Vans':
     case 'Business Van':
       return {
         background: 'rgba(249, 115, 22, 0.12)',
         color: '#f97316',
         border: '1px solid rgba(249, 115, 22, 0.35)',
       };
+    case 'SUVs':
+      return {
+        background: 'rgba(234, 179, 8, 0.12)',
+        color: '#EAB308',
+        border: '1px solid rgba(234, 179, 8, 0.35)',
+      };
+    case 'Sedans':
     case 'Business Class':
+    case 'First Class':
       return {
         background: 'rgba(59, 130, 246, 0.12)',
         color: '#60a5fa',
@@ -696,7 +705,7 @@ export default function FleetPage() {
               <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Category:
               </span>
-              {(['all', 'None', 'Business Class', 'Business Van', 'First Class'] as const).map((cat) => {
+              {(['all', 'Sedans', 'SUVs', 'Vans', 'Buses', 'None'] as const).map((cat) => {
                 const isSelected = categoryFilter === cat;
                 const count = cat === 'all'
                   ? fleetCars.length
@@ -1249,9 +1258,12 @@ export default function FleetPage() {
                 style={{ cursor: 'pointer', background: '#121316', color: '#fff' }}
               >
                 <option value="None">None (Unassigned — No badge shown to clients)</option>
-                <option value="Business Class">Business Class (Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80)</option>
-                <option value="Business Van">Business Van (Mercedes-Benz V-Class, VW Multivan, Toyota Alphard, Lexus LM)</option>
-                <option value="First Class">First Class (Mercedes-Benz S-Class, Maybach, BMW 7 Series, Audi A8, Lexus LS, Panamera)</option>
+                <option value="Sedans">Sedans (Lowest Pricing • Mercedes S/E-Class, BMW 7/5 Series, Audi A8/A6)</option>
+                <option value="SUVs">SUVs (Prestige SUVs • Cadillac Escalade, GMC Yukon, Lincoln Navigator, Range Rover)</option>
+                <option value="Vans">Vans (Executive MPVs & Sprinters • Mercedes V-Class, Metris)</option>
+                <option value="Buses">Buses (Highest Pricing • VIP Minibuses & Coaches 16+ Pax)</option>
+
+
               </select>
             </div>
 

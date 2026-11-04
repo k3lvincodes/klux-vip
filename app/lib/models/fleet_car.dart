@@ -1,3 +1,5 @@
+import 'package:kenick_vip/services/fleet_service.dart';
+
 class FleetCar {
   FleetCar({
     required this.id,
@@ -6,21 +8,26 @@ class FleetCar {
     required this.year,
     this.imageUrl,
     this.features,
-    this.category = 'Business Class',
+    this.category = 'Sedans',
     this.isAvailable = true,
     this.isFeatured = false,
     required this.createdAt,
   });
 
   factory FleetCar.fromJson(Map<String, dynamic> json) {
+    final make = json['make'] as String? ?? '';
+    final model = json['model'] as String? ?? '';
+    final year = json['year'] as int? ?? DateTime.now().year;
+    final rawCat = json['category'] as String?;
+
     return FleetCar(
       id: json['id'] as String,
-      make: json['make'] as String? ?? '',
-      model: json['model'] as String? ?? '',
-      year: json['year'] as int? ?? DateTime.now().year,
+      make: make,
+      model: model,
+      year: year,
       imageUrl: json['image_url'] as String?,
       features: json['features'] as String?,
-      category: json['category'] as String? ?? 'Business Class',
+      category: FleetService.normalizeCategory(rawCat, make, model, year),
       isAvailable: json['is_available'] as bool? ?? true,
       isFeatured: json['is_featured'] as bool? ?? false,
       createdAt: json['created_at'] != null

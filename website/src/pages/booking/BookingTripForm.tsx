@@ -41,7 +41,7 @@ const VEHICLES = [
   {
     id: 'Standard SUV',
     name: 'Standard Executive SUV',
-    tag: 'Business Class',
+    tag: 'SUVs',
     passengers: '5',
     luggage: '4',
     desc: 'Refined comfort for executive airport transit',

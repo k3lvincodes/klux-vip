@@ -38,8 +38,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class ConfirmReservationScreen extends StatefulWidget {
   const ConfirmReservationScreen({
     super.key,
-    this.category = 'Business Class',
-    this.subtitle = 'Mercedes-Benz EQE or similar',
+    this.category = 'Sedans',
+    this.subtitle = 'Executive sedan or similar',
     this.fare = 141.47,
     this.passengers = 3,
     this.luggage = 2,

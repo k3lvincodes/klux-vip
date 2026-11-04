@@ -945,9 +945,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      _buildTierPill('Business Class'),
-                      _buildTierPill('Business Van'),
-                      _buildTierPill('First Class'),
+                      _buildTierPill('Sedans'),
+                      _buildTierPill('SUVs'),
+                      _buildTierPill('Vans'),
+                      _buildTierPill('Buses'),
                     ],
                   ),
                   const SizedBox(height: 18),

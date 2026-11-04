@@ -181,9 +181,10 @@ class _FaqDetailScreenState extends State<FaqDetailScreen> {
           FaqSection(
             title: 'Executive VIP Categories',
             bullets: [
-              'Business Class: Mercedes-Benz EQE or E-Class sedan (seats 3 passengers, fits 2 medium luggage pieces). Equipped with leather seating, climate control, and bottled water.',
-              'Business Van: Mercedes-Benz V-Class MPV (seats up to 5 passengers, fits 5 large luggage pieces). Ideal for executive teams, golf tours, or traveling families.',
-              'First Class: Mercedes-Benz S-Class or Maybach (seats 3 passengers, fits 2 luggage pieces). Ultra-luxury appointments, acoustic comfort, reclining rear seats, and executive ambiance.',
+              'Sedans (Lowest Pricing): Mercedes-Benz S-Class, E-Class, or BMW 7 Series sedan (seats 3 passengers, fits 2 medium luggage pieces). Equipped with leather seating, climate control, and bottled water.',
+              'SUVs: Full-size luxury SUVs like Cadillac Escalade or GMC Yukon Denali (seats up to 5 passengers, fits 4 luggage pieces).',
+              'Vans: Mercedes-Benz V-Class MPV or VIP Sprinters (seats up to 7 passengers, fits 6 luggage pieces). Ideal for executive teams and traveling delegations.',
+              'Buses (Highest Pricing): Executive minibuses & luxury VIP coaches (seats 16+ passengers with extensive luggage capacity) for large delegation movements.',
             ],
             paragraphs: [
               'Every vehicle in our fleet is smoke-free, sanitized before every assignment, equipped with high-speed smartphone charging, and piloted by a certified professional chauffeur in formal attire.',
