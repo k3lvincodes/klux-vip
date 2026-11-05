@@ -652,8 +652,15 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                             color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                           ),
                           isDense: true,
+                          filled: false,
+                          fillColor: Colors.transparent,
                           contentPadding: const EdgeInsets.symmetric(vertical: 8),
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
                           suffixIcon: _flightNumberController.text.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.close_rounded, size: 18),
@@ -832,8 +839,15 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                               color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                             ),
                             isDense: true,
+                            filled: false,
+                            fillColor: Colors.transparent,
                             contentPadding: const EdgeInsets.symmetric(vertical: 8),
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
                             suffixIcon: _flightNumberController.text.isNotEmpty
                                 ? IconButton(
                                     icon: const Icon(Icons.close_rounded, size: 18),
