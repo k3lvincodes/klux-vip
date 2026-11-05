@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/providers/ride_provider.dart';
 import 'package:kenick_vip/repositories/profile_repository.dart';
+import 'package:kenick_vip/services/airport_detection_service.dart';
 import 'package:kenick_vip/services/booking_draft_service.dart';
 import 'package:kenick_vip/services/currency_service.dart';
 import 'package:kenick_vip/services/fare_rate_service.dart';
@@ -1906,6 +1907,40 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                                     if (_estimatedFare != null) {
                                       bookingProv.setFare(
                                           _estimatedFare!, _distanceKm);
+                                    }
+
+                                    // Auto Airport Transfer detection
+                                    final dropoffText = _dropoffLocation?.placeName ?? '';
+                                    final pickupText = _pickupLocation?.placeName ?? '';
+                                    final isDropoffAirport = AirportDetectionService.isAirport(dropoffText);
+                                    final isPickupAirport = AirportDetectionService.isAirport(pickupText);
+
+                                    if (isDropoffAirport) {
+                                      final code = AirportDetectionService.extractAirportCode(dropoffText);
+                                      bookingProv.setAirportTransfer(
+                                        isAirportTransfer: true,
+                                        airportTransferType: 'dropoff',
+                                        airportCode: code,
+                                      );
+                                      context.push('/airport-transfer', extra: {
+                                        'isDropoff': true,
+                                        'airportName': dropoffText,
+                                        'airportCode': code,
+                                      });
+                                      return;
+                                    } else if (isPickupAirport) {
+                                      final code = AirportDetectionService.extractAirportCode(pickupText);
+                                      bookingProv.setAirportTransfer(
+                                        isAirportTransfer: true,
+                                        airportTransferType: 'pickup',
+                                        airportCode: code,
+                                      );
+                                      context.push('/airport-transfer', extra: {
+                                        'isDropoff': false,
+                                        'airportName': pickupText,
+                                        'airportCode': code,
+                                      });
+                                      return;
                                     }
 
                                     if (_bookingMode == 'schedule') {

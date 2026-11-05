@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:kenick_vip/providers/booking_provider.dart';
 import 'package:kenick_vip/repositories/ride_repository.dart';
+import 'package:kenick_vip/services/airport_detection_service.dart';
 import 'package:kenick_vip/theme/app_colors.dart';
 import 'package:kenick_vip/utils/custom_toast.dart';
 import 'package:provider/provider.dart';
@@ -215,6 +216,39 @@ class _ScheduleBookingScreenState extends State<ScheduleBookingScreen> {
           if (mounted) setState(() => _isSubmitting = false);
         }
         return;
+      }
+
+      // If airport transfer detected, route to dedicated airport flow
+      final dropoffText = bookingProv.dropoffAddress ?? '';
+      final pickupText = bookingProv.pickupAddress ?? '';
+      if (!bookingProv.isAirportTransfer) {
+        if (AirportDetectionService.isAirport(dropoffText)) {
+          final code = AirportDetectionService.extractAirportCode(dropoffText);
+          bookingProv.setAirportTransfer(
+            isAirportTransfer: true,
+            airportTransferType: 'dropoff',
+            airportCode: code,
+          );
+          context.push('/airport-transfer', extra: {
+            'isDropoff': true,
+            'airportName': dropoffText,
+            'airportCode': code,
+          });
+          return;
+        } else if (AirportDetectionService.isAirport(pickupText)) {
+          final code = AirportDetectionService.extractAirportCode(pickupText);
+          bookingProv.setAirportTransfer(
+            isAirportTransfer: true,
+            airportTransferType: 'pickup',
+            airportCode: code,
+          );
+          context.push('/airport-transfer', extra: {
+            'isDropoff': false,
+            'airportName': pickupText,
+            'airportCode': code,
+          });
+          return;
+        }
       }
 
       // Proceed to fleet selection if fare/car not picked yet
