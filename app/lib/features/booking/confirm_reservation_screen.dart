@@ -24,9 +24,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///   - Upper section: Map preview with route polyline & pickup pin
 ///   - Floating Card on map:
 ///       • Date (e.g. Wed, 21 Oct 2026) + Passenger pill [👤 For myself v]
-///       • Timeline row: Pickup (address & time) ─── 🚗 BUSINESS CLASS ───> Dropoff / Duration
+///       • Timeline row: Pickup (address & time) ─── 🚗 VEHICLE CATEGORY ───> Dropoff / Duration
 ///   - Lower section:
-///       • Category title & formatted fare (e.g. Business Class  € 141.47)
+///       • Category title & formatted fare (e.g. Sedans  € 141.47)
 ///       • Payment method selector [💳 Select payment method v]
 ///       • Options row: [📄 Pickup notes v]   [+ Apply offer v]
 ///       • Bottom CTA: [Book now] pill button + recurring booking icon button

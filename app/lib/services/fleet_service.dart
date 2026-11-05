@@ -87,15 +87,16 @@ class FleetService {
     ),
   ];
 
-  static String normalizeCategory(String? rawCategory, String make, String model, [int? year]) {
+  static String? normalizeCategory(String? rawCategory, [String? make, String? model, int? year]) {
     if (rawCategory != null && rawCategory.isNotEmpty) {
       final c = rawCategory.trim().toLowerCase();
+      if (c == 'none') return null;
       if (c == 'sedans' || c == 'sedan') return 'Sedans';
       if (c == 'suvs' || c == 'suv') return 'SUVs';
       if (c == 'vans' || c == 'van') return 'Vans';
       if (c == 'buses' || c == 'bus') return 'Buses';
     }
-    return autoCategorize(make, model, year);
+    return null;
   }
 
   static String autoCategorize(String make, String model, [int? year]) {
@@ -220,14 +221,20 @@ class FleetService {
       // 2. Fetch all real fleet cars from database catalog
       final fleetRows = await _supabase
           .from('fleet_cars')
-          .select('id, make, model, year, image_url, features, is_available, is_featured')
+          .select('id, make, model, year, image_url, features, category, is_available, is_featured')
           .eq('is_available', true)
           .isFilter('deleted_at', null)
           .order('is_featured', ascending: false)
           .order('created_at', ascending: false);
 
       if (fleetRows.isNotEmpty) {
-        return fleetRows.map<FleetVehicleItem>((f) {
+        final items = <FleetVehicleItem>[];
+        for (final f in fleetRows) {
+          final rawCategory = f['category'] as String?;
+          final category = normalizeCategory(rawCategory);
+          // Only show cars with a valid category set in admin
+          if (category == null) continue;
+
           final id = f['id'] as String;
           final make = f['make'] as String? ?? 'VIP';
           final model = f['model'] as String? ?? 'Vehicle';
@@ -236,10 +243,8 @@ class FleetService {
           final imgUrl = f['image_url'] as String?;
           final features = f['features'] as String? ?? '';
           final year = (f['year'] as num?)?.toInt() ?? 2024;
-          final rawCategory = f['category'] as String?;
-          final category = normalizeCategory(rawCategory, make, model, year);
 
-          return FleetVehicleItem(
+          items.add(FleetVehicleItem(
             id: id,
             name: '$make $model',
             make: make,
@@ -249,8 +254,9 @@ class FleetService {
             category: category,
             hasDriverAssigned: hasChauffeur,
             features: features,
-          );
-        }).toList();
+          ));
+        }
+        return items;
       }
     } catch (_) {}
 

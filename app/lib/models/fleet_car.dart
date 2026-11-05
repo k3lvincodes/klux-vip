@@ -27,7 +27,7 @@ class FleetCar {
       year: year,
       imageUrl: json['image_url'] as String?,
       features: json['features'] as String?,
-      category: FleetService.normalizeCategory(rawCat, make, model, year),
+      category: FleetService.normalizeCategory(rawCat) ?? 'None',
       isAvailable: json['is_available'] as bool? ?? true,
       isFeatured: json['is_featured'] as bool? ?? false,
       createdAt: json['created_at'] != null
@@ -88,7 +88,7 @@ class FleetCar {
   String get tierLabel {
     final lower = '$make $model'.toLowerCase();
     if (lower.contains('escalade') || lower.contains('yukon') || lower.contains('navigator')) {
-      return 'First Class VIP SUV';
+      return 'Prestige VIP SUV';
     } else if (lower.contains('maybach') || lower.contains('s-class') || lower.contains('7-series') || lower.contains('a8')) {
       return 'Executive Flagship Sedan';
     } else if (lower.contains('sprinter')) {

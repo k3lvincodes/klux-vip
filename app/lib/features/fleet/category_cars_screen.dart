@@ -38,7 +38,12 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
     super.initState();
     _pageController = PageController(viewportFraction: 0.85);
 
-    final matched = widget.cars.where((c) => c.category == widget.tier.name).toList();
+    final matched = widget.cars
+        .where((c) =>
+            c.category == widget.tier.name &&
+            c.category.isNotEmpty &&
+            c.category.toLowerCase() != 'none')
+        .toList();
     if (matched.isNotEmpty) {
       _tierCars = matched;
     } else {
@@ -51,7 +56,12 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
     final allCars = await FleetService.getAllFleetCarsWithChauffeurStatus();
     if (mounted) {
       setState(() {
-        _tierCars = allCars.where((c) => c.category == widget.tier.name).toList();
+        _tierCars = allCars
+            .where((c) =>
+                c.category == widget.tier.name &&
+                c.category.isNotEmpty &&
+                c.category.toLowerCase() != 'none')
+            .toList();
         _isLoading = false;
       });
     }
@@ -99,6 +109,7 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
   }
 
   void _onSelectAnyCarInCategory() {
+    if (_tierCars.isEmpty) return;
     HapticFeedback.lightImpact();
     final bookingProv = context.read<BookingProvider>();
     final baseFare = widget.baseFare ?? bookingProv.fareAmount ?? 141.47;
@@ -606,7 +617,7 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
 
           // Secondary Option: Any car in the category can pick user
           TextButton(
-            onPressed: _onSelectAnyCarInCategory,
+            onPressed: _tierCars.isNotEmpty ? _onSelectAnyCarInCategory : null,
             child: Text(
               'Any ${widget.tier.name} Vehicle (Chauffeur Choice)',
               style: GoogleFonts.poppins(

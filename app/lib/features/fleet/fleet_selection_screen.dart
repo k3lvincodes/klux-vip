@@ -16,10 +16,11 @@ import 'package:provider/provider.dart';
 
 /// "Your experience" screen matching reference designs (Images 1, 4, 5):
 ///   - Top header with circular back button and "Your experience" title
-///   - Swipeable card carousel displaying the 3 VIP categories:
-///       • Business Class (mint gradient, 3 pax, 2 bags, e.g. Mercedes-Benz EQE or similar)
-///       • Business Van   (peach gradient, 5 pax, 5 bags, e.g. Mercedes-Benz V-Class or similar)
-///       • First Class    (powder blue gradient, 3 pax, 2 bags, e.g. Mercedes-Benz S-Class or similar)
+///   - Swipeable card carousel displaying the VIP categories:
+///       • Sedans (mint gradient, 3 pax, 2 bags)
+///       • SUVs   (blue gradient, 5 pax, 4 bags)
+///       • Vans   (peach gradient, 7 pax, 6 bags)
+///       • Buses  (purple gradient, 16 pax, 14 bags)
 ///   - Under card: vehicle subtitle, subtle divider, and "+ Apply offer" button
 ///   - Bottom CTA button: "Select Category Name"
 ///
@@ -67,13 +68,21 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
         _fleetCars = cars;
         _isLoading = false;
 
-        // Initialize random car index for each category tier from real fleet
+        final availableCategories = FleetService.experienceCategories
+            .where((tier) => _fleetCars.any((c) => c.category == tier.name))
+            .toList();
+
+        // Initialize random car index for each available category tier from real fleet
         final random = math.Random();
-        for (final tier in FleetService.experienceCategories) {
+        for (final tier in availableCategories) {
           final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
           if (tierCars.isNotEmpty) {
             _categoryCarIndex[tier.name] = random.nextInt(tierCars.length);
           }
+        }
+
+        if (_currentPage >= availableCategories.length) {
+          _currentPage = math.max(0, availableCategories.length - 1);
         }
       });
 
@@ -86,8 +95,11 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
     // Smoothly cycle cars every 4 seconds to showcase real fleet options
     _carCycleTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (!mounted) return;
+      final availableCategories = FleetService.experienceCategories
+          .where((tier) => _fleetCars.any((c) => c.category == tier.name))
+          .toList();
       setState(() {
-        for (final tier in FleetService.experienceCategories) {
+        for (final tier in availableCategories) {
           final tierCars = _fleetCars.where((c) => c.category == tier.name).toList();
           if (tierCars.length > 1) {
             final current = _categoryCarIndex[tier.name] ?? 0;
@@ -122,7 +134,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
       '/fleet/category-cars',
       extra: {
         'tier': tier,
-        'cars': _fleetCars,
+        'cars': _fleetCars.where((c) => c.category == tier.name).toList(),
         'baseFare': baseFare,
       },
     );
@@ -191,11 +203,18 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
 
     final bgColor = isDark ? AppColors.darkBackground : const Color(0xFFFBF8F4);
     final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    const categories = FleetService.experienceCategories;
+    final availableCategories = FleetService.experienceCategories
+        .where((tier) => _fleetCars.any((c) => c.category == tier.name))
+        .toList();
 
     final bookingProv = context.watch<BookingProvider>();
     final baseFare = bookingProv.fareAmount ?? 141.47;
-    final currentTier = categories[_currentPage];
+    final safeIndex = availableCategories.isEmpty
+        ? 0
+        : _currentPage.clamp(0, availableCategories.length - 1);
+    final currentTier = availableCategories.isNotEmpty
+        ? availableCategories[safeIndex]
+        : null;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -264,115 +283,151 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                   ? const Center(
                       child: CircularProgressIndicator(color: AppColors.primary),
                     )
-                  : Column(
-                      children: [
-                        // PageView Carousel
-                        Expanded(
-                          child: PageView.builder(
-                            controller: _pageController,
-                            itemCount: categories.length,
-                            onPageChanged: (idx) => setState(() => _currentPage = idx),
-                            itemBuilder: (ctx, idx) {
-                              final tier = categories[idx];
-                              final fare = _calculateFareForTier(tier, baseFare);
-                              final formattedFare = CurrencyService.format(fare);
-
-                              return _buildCarouselCard(
-                                tier: tier,
-                                fareText: formattedFare,
-                                isDark: isDark,
-                                cs: cs,
-                              );
-                            },
-                          ),
-                        ),
-
-                        // Subtitle & "+ Apply offer" Section below card
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 350),
-                                child: Text(
-                                  _getActiveCarForTier(currentTier) != null
-                                      ? '${_getActiveCarForTier(currentTier)!.make} ${_getActiveCarForTier(currentTier)!.model} or similar'
-                                      : currentTier.subtitle,
-                                  key: ValueKey(
-                                    '${currentTier.name}_${_getActiveCarForTier(currentTier)?.id ?? ""}',
+                  : availableCategories.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.directions_car_outlined,
+                                  size: 56,
+                                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No vehicles available',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: cs.onSurface,
                                   ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'There are currently no vehicle categories with active fleet cars.',
+                                  textAlign: TextAlign.center,
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w400,
                                     color: cs.onSurfaceVariant,
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            // PageView Carousel
+                            Expanded(
+                              child: PageView.builder(
+                                controller: _pageController,
+                                itemCount: availableCategories.length,
+                                onPageChanged: (idx) => setState(() => _currentPage = idx),
+                                itemBuilder: (ctx, idx) {
+                                  final tier = availableCategories[idx];
+                                  final fare = _calculateFareForTier(tier, baseFare);
+                                  final formattedFare = CurrencyService.format(fare);
+
+                                  return _buildCarouselCard(
+                                    tier: tier,
+                                    fareText: formattedFare,
+                                    isDark: isDark,
+                                    cs: cs,
+                                  );
+                                },
                               ),
-                              const SizedBox(height: 10),
-                              Divider(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.black.withValues(alpha: 0.1),
-                                height: 1,
-                              ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: _showApplyOfferSheet,
-                                behavior: HitTestBehavior.opaque,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                            ),
+
+                            // Subtitle & "+ Apply offer" Section below card
+                            if (currentTier != null)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.add_rounded,
-                                      size: 18,
-                                      color: cs.onSurfaceVariant,
+                                    AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 350),
+                                      child: Text(
+                                        _getActiveCarForTier(currentTier) != null
+                                            ? '${_getActiveCarForTier(currentTier)!.make} ${_getActiveCarForTier(currentTier)!.model} or similar'
+                                            : currentTier.subtitle,
+                                        key: ValueKey(
+                                          '${currentTier.name}_${_getActiveCarForTier(currentTier)?.id ?? ""}',
+                                        ),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                          color: cs.onSurfaceVariant,
+                                        ),
+                                      ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Apply offer',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: cs.onSurfaceVariant,
+                                    const SizedBox(height: 10),
+                                    Divider(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.1)
+                                          : Colors.black.withValues(alpha: 0.1),
+                                      height: 1,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    GestureDetector(
+                                      onTap: _showApplyOfferSheet,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.add_rounded,
+                                            size: 18,
+                                            color: cs.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Apply offer',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14.5,
+                                              fontWeight: FontWeight.w500,
+                                              color: cs.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
             ),
 
             // ── Bottom Action Button: Select <Category> ─────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () => _onSelectExperience(currentTier),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: const Color(0xFF111827),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
+            if (currentTier != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => _onSelectExperience(currentTier),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: const Color(0xFF111827),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Select ${currentTier.name}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
+                    child: Text(
+                      'Select ${currentTier.name}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

@@ -79,7 +79,6 @@ function getCategoryBadgeStyle(cat?: FleetCategory | string) {
         border: '1px solid rgba(168, 85, 247, 0.35)',
       };
     case 'Vans':
-    case 'Business Van':
       return {
         background: 'rgba(249, 115, 22, 0.12)',
         color: '#f97316',
@@ -92,8 +91,6 @@ function getCategoryBadgeStyle(cat?: FleetCategory | string) {
         border: '1px solid rgba(234, 179, 8, 0.35)',
       };
     case 'Sedans':
-    case 'Business Class':
-    case 'First Class':
       return {
         background: 'rgba(59, 130, 246, 0.12)',
         color: '#60a5fa',
@@ -1284,18 +1281,27 @@ export default function FleetPage() {
               alignItems: 'flex-start',
               gap: '0.65rem'
             }}>
-              <Sparkles size={16} style={{ color: form.category === 'First Class' ? '#EAB308' : form.category === 'Business Class' ? '#60A5FA' : form.category === 'Business Van' ? '#A78BFA' : '#71717A', marginTop: 2, flexShrink: 0 }} />
+              <Sparkles size={16} style={{ 
+                color: form.category === 'Buses' ? '#c084fc' : 
+                       form.category === 'Vans' ? '#f97316' : 
+                       form.category === 'SUVs' ? '#EAB308' : 
+                       form.category === 'Sedans' ? '#60A5FA' : '#71717A', 
+                marginTop: 2, 
+                flexShrink: 0 
+              }} />
               <div style={{ fontSize: '0.75rem', lineHeight: 1.45 }}>
                 <span style={{ fontWeight: 600, color: '#fff' }}>
-                  {form.category === 'First Class' ? 'First Class Standard:' :
-                   form.category === 'Business Class' ? 'Business Class Standard:' :
-                   form.category === 'Business Van' ? 'Business Van Standard:' :
+                  {form.category === 'Buses' ? 'Buses Standard:' :
+                   form.category === 'Vans' ? 'Vans Standard:' :
+                   form.category === 'SUVs' ? 'SUVs Standard:' :
+                   form.category === 'Sedans' ? 'Sedans Standard:' :
                    'Unassigned Category:'}
                 </span>{' '}
                 <span style={{ color: '#A1A1AA' }}>
-                  {form.category === 'First Class' ? 'Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.' :
-                   form.category === 'Business Class' ? 'Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.' :
-                   form.category === 'Business Van' ? 'Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.' :
+                  {form.category === 'Buses' ? 'VIP coaches, passenger minibuses, delegation shuttles (16+ passengers).' :
+                   form.category === 'Vans' ? 'Mercedes-Benz V-Class, Vito, Sprinter, Multivan, Alphard (up to 7 passengers).' :
+                   form.category === 'SUVs' ? 'Cadillac Escalade, GMC Yukon, Lincoln Navigator, Range Rover, Suburban (up to 5 passengers).' :
+                   form.category === 'Sedans' ? 'Executive & luxury sedans • Mercedes-Benz S-Class, E-Class, BMW 7/5 Series, Audi A8/A6 (up to 3 passengers).' :
                    'Vehicle will not show a tier badge on customer dispatch and search results.'}
                 </span>
               </div>

@@ -1,4 +1,4 @@
-export type FleetCategory = 'None' | 'Sedans' | 'SUVs' | 'Vans' | 'Buses' | 'Business Class' | 'Business Van' | 'First Class';
+export type FleetCategory = 'None' | 'Sedans' | 'SUVs' | 'Vans' | 'Buses';
 
 export interface VehicleCategorizationResult {
   category: FleetCategory;
@@ -13,105 +13,122 @@ const GEMINI_API_KEY =
 export function categorizeVehicleFallback(
   make: string,
   model: string,
-  year?: number
+  _year?: number
 ): { category: FleetCategory; reason: string } {
   const text = `${make} ${model}`.toLowerCase();
-  const y = typeof year === 'number' && !isNaN(year) && year > 1900 ? year : new Date().getFullYear();
 
-  // 2. Business Van
-  // Examples: Mercedes-Benz V-Class, Volkswagen Multivan, Toyota Alphard, Lexus LM.
-  const isVanOrMpv =
+  // 1. Buses: Minibuses, Coaches, High-capacity Shuttles (highest tier)
+  const isBus =
+    text.includes('bus') ||
+    text.includes('minibus') ||
+    text.includes('coach') ||
+    text.includes('coaster') ||
+    text.includes('rosa') ||
+    text.includes('tourliner') ||
+    text.includes('setra') ||
+    text.includes('sprinter 15') ||
+    text.includes('sprinter 16') ||
+    text.includes('sprinter 18') ||
+    text.includes('sprinter 20') ||
+    text.includes('transit 15') ||
+    text.includes('transit 14') ||
+    text.includes('crafter 16') ||
+    text.includes('intercity');
+
+  if (isBus) {
+    return {
+      category: 'Buses',
+      reason: 'VIP executive coach / minibus • High capacity delegation transport (16+ pax)',
+    };
+  }
+
+  // 2. Vans: Executive MPVs, Passenger Vans, Standard Sprinters
+  const isVan =
     text.includes('van') ||
     text.includes('v-class') ||
     text.includes('v class') ||
     text.includes('vclass') ||
+    text.includes('vito') ||
+    text.includes('sprinter') ||
+    text.includes('transit') ||
     text.includes('multivan') ||
+    text.includes('caravelle') ||
+    text.includes('metris') ||
     text.includes('alphard') ||
+    text.includes('vellfire') ||
+    text.includes('carnival') ||
+    text.includes('sienna') ||
+    text.includes('odyssey') ||
+    text.includes('pacifica') ||
+    text.includes('transporter') ||
+    text.includes('hiace') ||
+    text.includes('granvia') ||
+    text.includes('staria') ||
+    text.includes('h-1') ||
     text.includes('lexus lm') ||
     text.includes('lm 350') ||
     text.includes('lm 500') ||
     text.includes('lm350') ||
-    text.includes('lm500') ||
-    text.includes('vellfire') ||
-    text.includes('vito') ||
-    text.includes('sprinter') ||
-    text.includes('transit') ||
-    text.includes('caravelle') ||
-    text.includes('metris') ||
+    text.includes('lm500');
+
+  if (isVan) {
+    return {
+      category: 'Vans',
+      reason: 'Luxury passenger MPV / van • Executive group transfer (up to 7 pax)',
+    };
+  }
+
+  // 3. SUVs: Full-size & luxury SUVs
+  const isSuv =
+    text.includes('suv') ||
     text.includes('escalade') ||
     text.includes('suburban') ||
-    text.includes('navigator') ||
+    text.includes('tahoe') ||
     text.includes('yukon') ||
-    text.includes('tahoe');
+    text.includes('navigator') ||
+    text.includes('expedition') ||
+    text.includes('range rover') ||
+    text.includes('land cruiser') ||
+    text.includes('lexus lx') ||
+    text.includes('lx 600') ||
+    text.includes('lx 570') ||
+    text.includes('lx600') ||
+    text.includes('lx570') ||
+    text.includes('gls') ||
+    text.includes('gle') ||
+    text.includes('g-wagon') ||
+    text.includes('g63') ||
+    text.includes('g-class') ||
+    text.includes('g class') ||
+    text.includes('x7') ||
+    text.includes('x5') ||
+    text.includes('q7') ||
+    text.includes('q8') ||
+    text.includes('cullinan') ||
+    text.includes('bentayga') ||
+    text.includes('urus');
 
-  if (isVanOrMpv) {
-    const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
+  if (isSuv) {
     return {
-      category: 'Business Van',
-      reason: `Luxury passenger van / MPV • 5–7 passengers • 4+ suitcases${yearNote}`,
+      category: 'SUVs',
+      reason: 'Prestige luxury SUV • Elevated road presence and comfort (up to 5 pax)',
     };
   }
 
-  // 3. First Class
-  // Examples: Mercedes-Benz S-Class, Mercedes-Maybach, BMW 7 Series, Audi A8, Lexus LS, Porsche Panamera.
-  const isFlagshipSedan =
-    text.includes('s-class') ||
-    text.includes('s class') ||
-    text.includes('sclass') ||
-    text.includes('maybach') ||
-    text.includes('s 580') ||
-    text.includes('s 680') ||
-    text.includes('s580') ||
-    text.includes('s680') ||
-    text.includes('7 series') ||
-    text.includes('7-series') ||
-    text.includes('740') ||
-    text.includes('750') ||
-    text.includes('760') ||
-    text.includes('i7') ||
-    text.includes('a8') ||
-    text.includes('s8') ||
-    text.includes('lexus ls') ||
-    text.includes('ls 500') ||
-    text.includes('ls500') ||
-    text.includes('ls 600') ||
-    text.includes('panamera') ||
-    text.includes('flying spur') ||
-    text.includes('phantom') ||
-    text.includes('ghost') ||
-    text.includes('rolls') ||
-    text.includes('bentley') ||
-    text.includes('eqs');
-
-  if (isFlagshipSedan && y >= 2021) {
-    return {
-      category: 'First Class',
-      reason: `Flagship luxury sedan • Model year ${y} (2021+) • Max 3 passengers • Ultra-luxury`,
-    };
-  }
-
-  if (isFlagshipSedan && y < 2021) {
-    return {
-      category: 'Business Class',
-      reason: `Flagship sedan model year ${y} (First Class requires 2021+) • Classified as Business Class`,
-    };
-  }
-
-  // 1. Business Class
-  // Examples: Mercedes-Benz E-Class, BMW 5 Series, Audi A6, Lexus ES, Genesis G80.
-  const yearNote = y < 2019 ? ` (Model year ${y} is below 2019+ requirement)` : '';
+  // 4. Sedans: Executive & Luxury sedans (lowest pricing baseline)
   return {
-    category: 'Business Class',
-    reason: `Executive sedan • Max 3 passengers • 2 medium suitcases${yearNote}`,
+    category: 'Sedans',
+    reason: 'Executive luxury sedan • Quiet, refined chauffeur ride (up to 3 pax)',
   };
 }
 
 /**
  * Sends vehicle details directly to Google Gemini AI to evaluate and classify into:
- * - "First Class"
- * - "Business Van"
- * - "Business Class"
- * adhering strictly to the Kenick VIP fleet criteria.
+ * - "Sedans"
+ * - "SUVs"
+ * - "Vans"
+ * - "Buses"
+ * adhering strictly to the official Kenick VIP fleet criteria.
  */
 export async function categorizeVehicleWithGemini(vehicle: {
   make: string;
@@ -150,7 +167,7 @@ Categorize the given vehicle into exactly ONE of these 4 VIP categories based st
 - Vehicle type: Luxury passenger van / MPV
 - Seating: 6-8 passengers
 - Luggage: 5-8 suitcases
-- Examples: Mercedes-Benz V-Class, Toyota Alphard, Toyota Vellfire, Lexus LM, Chevrolet Suburban, GMC Yukon XL.
+- Examples: Mercedes-Benz V-Class, Toyota Alphard, Toyota Vellfire, Lexus LM.
 
 4. Buses (Maximum Capacity & Highest Pricing - ~80% above Sedans)
 - Purpose: Large group transportation, events, VIP shuttle operations
@@ -217,7 +234,7 @@ Respond ONLY with valid JSON in this exact structure:
         let validatedCategory: FleetCategory = 'Sedans';
         if (parsed.category === 'Buses' || parsed.category === 'Bus') {
           validatedCategory = 'Buses';
-        } else if (parsed.category === 'Vans' || parsed.category === 'Van' || parsed.category === 'Business Van') {
+        } else if (parsed.category === 'Vans' || parsed.category === 'Van') {
           validatedCategory = 'Vans';
         } else if (parsed.category === 'SUVs' || parsed.category === 'SUV') {
           validatedCategory = 'SUVs';

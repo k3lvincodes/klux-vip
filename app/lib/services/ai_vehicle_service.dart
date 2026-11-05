@@ -115,7 +115,7 @@ Strict Fleet Criteria:
 Respond ONLY with a valid JSON object in this exact schema (no markdown, no backticks):
 {
   "is_approved": boolean,
-  "executive_tier": "string (e.g. First Class Executive SUV, Disqualified)",
+  "executive_tier": "string (e.g. Prestige VIP SUV, Executive Flagship Sedan, Disqualified)",
   "reason": "string (Clear, professional explanation addressed to the chauffeur explaining why it was approved or why it was declined)"
 }
 ''';
