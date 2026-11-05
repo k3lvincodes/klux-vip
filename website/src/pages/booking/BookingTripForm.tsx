@@ -241,7 +241,7 @@ export default function BookingTripForm({
             <option value="Corporate Event / Gala">Corporate Event / Gala</option>
             <option value="Concert & Festival">Concert & Festival</option>
             <option value="Sporting Event">Sporting Event</option>
-            <option value="Birthday / Celebration">Birthday / Celebration</option>
+            <option value="Birthday / Anniversary">Birthday / Anniversary</option>
             <option value="Prom & Graduation">Prom & Graduation</option>
             <option value="VIP Night Out">VIP Night Out</option>
             <option value="Airport Delegation">Airport Delegation</option>

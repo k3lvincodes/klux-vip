@@ -5,9 +5,15 @@
   "rules": {
     "bottom_sheets": {
       "drag_handle": {
-        "rule": "Every bottom sheet / bottom card modal must have exactly ONE horizontal drag handle line at the top.",
-        "implementation": "The app-level theme in lib/app.dart already enables `showDragHandle: true` on `BottomSheetThemeData`. Therefore, modal bottom sheets should NEVER render an additional manual Container drag handle line inside their child content, ensuring there is always exactly one horizontal drag handle line at the top of every bottom sheet/card.",
+        "rule": "Every bottom sheet / bottom card modal must have exactly ONE horizontal drag handle line at the top, never two.",
+        "implementation": "The app-level theme in lib/app.dart already enables `showDragHandle: true` on `BottomSheetThemeData`. Therefore, modal bottom sheets must NEVER render an additional manual Container drag handle line inside their child content. Both 'Select ride service' and 'Select event type' bottom sheets rely exclusively on the theme's built-in drag handle so that only one horizontal line appears at the top.",
         "max_drag_handles": 1
+      }
+    },
+    "inputs": {
+      "text_fields": {
+        "rule": "Secondary and custom input fields (such as 'Describe your event') must match the styling of the primary pickup location input.",
+        "specification": "Use a subtle label above the field (GoogleFonts.poppins, fontSize 13, w500, cs.onSurfaceVariant), a transparent TextField with no outer border box (isDense: true, fontSize 15, w400), an optional suffix close button to clear input, and an AnimatedContainer bottom underline that illuminates in primary gold (AppColors.primary, 2px) on focus and subtle border color (1.5px) when unfocused."
       }
     },
     "typography": {

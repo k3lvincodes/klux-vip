@@ -47,12 +47,13 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
   // Event options
   String _selectedEventType = 'Wedding';
   final TextEditingController _customEventController = TextEditingController();
+  final FocusNode _customEventFocusNode = FocusNode();
   final List<String> _eventOptions = const [
     'Wedding',
     'Corporate Event / Gala',
     'Concert & Festival',
     'Sporting Event',
-    'Birthday / Celebration',
+    'Birthday / Anniversary',
     'Prom & Graduation',
     'VIP Night Out',
     'Airport Delegation',
@@ -140,6 +141,10 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
       }
     }
 
+    _customEventFocusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     _pickupFocusNode.addListener(() {
       if (_pickupFocusNode.hasFocus) {
         setState(() {
@@ -217,6 +222,7 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
     _dropoffController.dispose();
     _pickupFocusNode.dispose();
     _dropoffFocusNode.dispose();
+    _customEventFocusNode.dispose();
     _customEventController.dispose();
     super.dispose();
   }
@@ -520,17 +526,6 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
                   Text(
                     'Select ride service',
                     style: GoogleFonts.poppins(
@@ -643,17 +638,6 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
                   Text(
                     'Select event type',
                     style: GoogleFonts.poppins(
@@ -866,6 +850,7 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         return Icons.music_note_rounded;
       case 'Sporting Event':
         return Icons.sports_soccer_rounded;
+      case 'Birthday / Anniversary':
       case 'Birthday / Celebration':
         return Icons.cake_rounded;
       case 'Prom & Graduation':
@@ -2463,42 +2448,71 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
           ),
         ),
         if (_selectedEventType == 'Other') ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             'Describe your event',
             style: GoogleFonts.poppins(
-              fontSize: 12.5,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
               color: cs.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.6),
-              ),
-            ),
-            child: TextField(
-              controller: _customEventController,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: cs.onSurface,
-              ),
-              decoration: InputDecoration(
-                hintText: 'e.g. Charity Gala, Film Premiere, Fashion Show...',
-                hintStyle: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customEventController,
+                  focusNode: _customEventFocusNode,
+                  onChanged: (val) => setState(() {}),
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: cs.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Charity Gala, Film Premiere, Fashion Show...',
+                    hintStyle: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                    isDense: true,
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    suffixIcon: _customEventController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              setState(() {
+                                _customEventController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
                 ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-            ),
+            ],
+          ),
+          // Bottom underline line matching Pickup location (highlighted in gold on focus)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: _customEventFocusNode.hasFocus ? 2.0 : 1.5,
+            width: double.infinity,
+            color: _customEventFocusNode.hasFocus
+                ? AppColors.primary
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : Colors.black.withValues(alpha: 0.15)),
           ),
         ],
       ],
