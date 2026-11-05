@@ -1976,15 +1976,14 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                color: cardColor,
-                border: Border(top: BorderSide(color: subtleBorder)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
+                color: bgColor,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : subtleBorder,
                   ),
-                ],
+                ),
               ),
               child: SizedBox(
                 width: double.infinity,
