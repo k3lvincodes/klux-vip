@@ -85,6 +85,10 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
     _flightNumberController.addListener(() {
       setState(() {});
     });
+
+    _flightFocusNode.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -206,12 +210,12 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0B63CE).withValues(alpha: 0.12),
+                        color: AppColors.primary.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.flight_takeoff_rounded,
-                        color: Color(0xFF0B63CE),
+                        color: AppColors.primary,
                         size: 22,
                       ),
                     ),
@@ -259,8 +263,8 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(ctx),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0B63CE),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: const Color(0xFF111827),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -293,7 +297,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF0B63CE)),
+        Icon(icon, size: 20, color: AppColors.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -330,7 +334,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark ? AppColors.darkBackground : const Color(0xFFFBF8F4);
+    final bgColor = isDark ? AppColors.darkBackground : AppColors.background;
     final cardColor = isDark ? AppColors.darkSurface : Colors.white;
     final subtleBorder = isDark
         ? Colors.white.withValues(alpha: 0.12)
@@ -409,10 +413,10 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                       child: Text(
                         widget.isDropoff ? 'Airport drop-off' : 'Airport pickup',
                         style: GoogleFonts.poppins(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                           color: cs.onSurface,
-                          letterSpacing: -0.3,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ),
@@ -454,7 +458,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                       ? 'Your flight to $_effectiveAirportCode'
                       : 'Your pickup from $_effectiveAirportCode'),
               style: GoogleFonts.poppins(
-                fontSize: 14.5,
+                fontSize: 14,
                 fontWeight: FontWeight.w400,
                 color: cs.onSurfaceVariant,
               ),
@@ -462,7 +466,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
 
             const SizedBox(height: 14),
 
-            // ── Pill Segmented Switcher for Airport Pickup (Images 2, 4) ───
+            // ── Pill Segmented Switcher for Airport Pickup (Kenick Gold) ───
             if (!widget.isDropoff)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -497,7 +501,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
                               color: _isByFlightArrival
-                                  ? const Color(0xFF0B63CE)
+                                  ? AppColors.primary
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -509,7 +513,9 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                 fontWeight: _isByFlightArrival
                                     ? FontWeight.w600
                                     : FontWeight.w400,
-                                color: _isByFlightArrival ? Colors.white : cs.onSurface,
+                                color: _isByFlightArrival
+                                    ? const Color(0xFF111827)
+                                    : cs.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -531,7 +537,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
                               color: !_isByFlightArrival
-                                  ? const Color(0xFF0B63CE)
+                                  ? AppColors.primary
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -543,7 +549,9 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                 fontWeight: !_isByFlightArrival
                                     ? FontWeight.w600
                                     : FontWeight.w400,
-                                color: !_isByFlightArrival ? Colors.white : cs.onSurface,
+                                color: !_isByFlightArrival
+                                    ? const Color(0xFF111827)
+                                    : cs.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -562,7 +570,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. DATE SECTION (Images 1, 2, 3, 4, 6)
+                    // 1. DATE SECTION
                     _buildSectionLabel('Date', cs),
                     const SizedBox(height: 6),
                     GestureDetector(
@@ -587,7 +595,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                               Text(
                                 _formatDate(_selectedDate),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 16,
+                                  fontSize: 15.5,
                                   fontWeight: FontWeight.w400,
                                   color: cs.onSurface,
                                 ),
@@ -604,17 +612,17 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                           const SizedBox(height: 8),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            height: _isDateExpanded ? 2.0 : 1.0,
+                            height: _isDateExpanded ? 2.0 : 1.5,
                             width: double.infinity,
                             color: _isDateExpanded
-                                ? const Color(0xFF0B63CE)
+                                ? AppColors.primary
                                 : subtleBorder,
                           ),
                         ],
                       ),
                     ),
 
-                    // Inline Expandable Date Picker Card (Images 3 & 6)
+                    // Inline Expandable Date Picker Card
                     if (_isDateExpanded) ...[
                       const SizedBox(height: 12),
                       _buildInlineDatePicker(cardColor, isDark, cs),
@@ -625,7 +633,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
 
                     // 2. PICKUP FLOW: By flight arrival vs By time
                     if (!widget.isDropoff && _isByFlightArrival) ...[
-                      // FLIGHT NUMBER SECTION (Mandatory in arrival tracking)
+                      // FLIGHT NUMBER SECTION - Strictly styled per rules.json
                       _buildSectionLabel('Flight number', cs),
                       const SizedBox(height: 4),
                       TextField(
@@ -633,14 +641,14 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                         focusNode: _flightFocusNode,
                         textCapitalization: TextCapitalization.characters,
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w400,
                           color: cs.onSurface,
                         ),
                         decoration: InputDecoration(
                           hintText: 'e.g. LH 202, BA2490',
                           hintStyle: GoogleFonts.poppins(
-                            fontSize: 16,
+                            fontSize: 15,
                             color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                           ),
                           isDense: true,
@@ -656,10 +664,10 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        height: _flightFocusNode.hasFocus ? 2.0 : 1.0,
+                        height: _flightFocusNode.hasFocus ? 2.0 : 1.5,
                         width: double.infinity,
                         color: _flightFocusNode.hasFocus
-                            ? const Color(0xFF0B63CE)
+                            ? AppColors.primary
                             : subtleBorder,
                       ),
                       const SizedBox(height: 6),
@@ -698,7 +706,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                 Text(
                                   '$_bufferMinutes minutes after flight arrival',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 16,
+                                    fontSize: 15.5,
                                     fontWeight: FontWeight.w400,
                                     color: cs.onSurface,
                                   ),
@@ -715,17 +723,17 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                             const SizedBox(height: 8),
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              height: _isBufferExpanded ? 2.0 : 1.0,
+                              height: _isBufferExpanded ? 2.0 : 1.5,
                               width: double.infinity,
                               color: _isBufferExpanded
-                                  ? const Color(0xFF0B63CE)
+                                  ? AppColors.primary
                                   : subtleBorder,
                             ),
                           ],
                         ),
                       ),
 
-                      // Inline Expandable Buffer List Card (Image 5)
+                      // Inline Expandable Buffer List Card (Kenick Gold active)
                       if (_isBufferExpanded) ...[
                         const SizedBox(height: 10),
                         _buildInlineBufferDropdown(cardColor, isDark, cs),
@@ -756,7 +764,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                 Text(
                                   _formatTime(_selectedTime),
                                   style: GoogleFonts.poppins(
-                                    fontSize: 16,
+                                    fontSize: 15.5,
                                     fontWeight: FontWeight.w400,
                                     color: cs.onSurface,
                                   ),
@@ -773,17 +781,17 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                             const SizedBox(height: 8),
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              height: _isTimeExpanded ? 2.0 : 1.0,
+                              height: _isTimeExpanded ? 2.0 : 1.5,
                               width: double.infinity,
                               color: _isTimeExpanded
-                                  ? const Color(0xFF0B63CE)
+                                  ? AppColors.primary
                                   : subtleBorder,
                             ),
                           ],
                         ),
                       ),
 
-                      // Inline Expandable Clock Time Picker Card (Image 7)
+                      // Inline Expandable Clock Time Picker Card (Kenick Gold)
                       if (_isTimeExpanded) ...[
                         const SizedBox(height: 12),
                         _InlineClockTimePickerCard(
@@ -803,23 +811,24 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                         const SizedBox(height: 12),
                       ],
 
-                      // Optional Flight number for Drop-off (Image 1)
+                      // Optional Flight number for Drop-off - Strictly styled per rules.json
                       if (widget.isDropoff) ...[
                         const SizedBox(height: 24),
                         _buildSectionLabel('Flight number (optional)', cs),
                         const SizedBox(height: 4),
                         TextField(
                           controller: _flightNumberController,
+                          focusNode: _flightFocusNode,
                           textCapitalization: TextCapitalization.characters,
                           style: GoogleFonts.poppins(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w400,
                             color: cs.onSurface,
                           ),
                           decoration: InputDecoration(
                             hintText: 'e.g. LH 202, BA2490',
                             hintStyle: GoogleFonts.poppins(
-                              fontSize: 16,
+                              fontSize: 15,
                               color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                             ),
                             isDense: true,
@@ -833,10 +842,13 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                 : null,
                           ),
                         ),
-                        Container(
-                          height: 1.0,
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: _flightFocusNode.hasFocus ? 2.0 : 1.5,
                           width: double.infinity,
-                          color: subtleBorder,
+                          color: _flightFocusNode.hasFocus
+                              ? AppColors.primary
+                              : subtleBorder,
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -850,7 +862,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
 
                         const SizedBox(height: 28),
 
-                        // Journey Duration & Approx Drop-off estimation row (Image 1)
+                        // Ride Duration & Approx Drop-off estimation row
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -886,7 +898,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Estimated journey duration of $estimatedDurationMinutes minutes',
+                                    'Estimated ride duration of $estimatedDurationMinutes minutes',
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w400,
@@ -905,7 +917,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
               ),
             ),
 
-            // ── Bottom Action Button (Images 1, 2, 4) ───────────────────────
+            // ── Bottom Action Button (Kenick Gold CTA) ───────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: SizedBox(
@@ -915,11 +927,12 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                   onPressed: isCtaActive ? _onConfirm : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isCtaActive
-                        ? const Color(0xFF0B63CE)
-                        : (isDark ? Colors.white12 : const Color(0xFFB0B0B0)),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: isDark ? Colors.white12 : const Color(0xFFB0B0B0),
-                    disabledForegroundColor: isDark ? Colors.white38 : Colors.white70,
+                        ? AppColors.primary
+                        : (isDark ? const Color(0xFF2C2C32) : const Color(0xFFB0B3B8)),
+                    foregroundColor: const Color(0xFF111827),
+                    disabledBackgroundColor:
+                        isDark ? const Color(0xFF2C2C32) : const Color(0xFFB0B3B8),
+                    disabledForegroundColor: Colors.white60,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
                     ),
@@ -945,14 +958,14 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
     return Text(
       label,
       style: GoogleFonts.poppins(
-        fontSize: 13.5,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: cs.onSurfaceVariant,
       ),
     );
   }
 
-  // ── Inline Calendar DatePicker Card (Image 3 & 6) ─────────────────────────
+  // ── Inline Calendar DatePicker Card (Kenick Gold) ─────────────────────────
   Widget _buildInlineDatePicker(Color cardColor, bool isDark, ColorScheme cs) {
     return Container(
       decoration: BoxDecoration(
@@ -978,8 +991,8 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
           Theme(
             data: Theme.of(context).copyWith(
               colorScheme: cs.copyWith(
-                primary: const Color(0xFF0B63CE),
-                onPrimary: Colors.white,
+                primary: AppColors.primary,
+                onPrimary: const Color(0xFF111827),
               ),
             ),
             child: CalendarDatePicker(
@@ -1002,7 +1015,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF0B63CE),
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -1019,7 +1032,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0B63CE),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -1030,7 +1043,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
     );
   }
 
-  // ── Inline Buffer Dropdown Card (Image 5) ─────────────────────────────────
+  // ── Inline Buffer Dropdown Card (Kenick Gold) ─────────────────────────────
   Widget _buildInlineBufferDropdown(Color cardColor, bool isDark, ColorScheme cs) {
     return Container(
       height: 220,
@@ -1081,13 +1094,13 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? const Color(0xFF0B63CE) : cs.onSurface,
+                        color: isSelected ? AppColors.primary : cs.onSurface,
                       ),
                     ),
                     if (isSelected)
                       const Icon(
                         Icons.check_rounded,
-                        color: Color(0xFF0B63CE),
+                        color: AppColors.primary,
                         size: 20,
                       ),
                   ],
@@ -1101,7 +1114,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
   }
 }
 
-// ── Inline Clock Time Picker Card (Image 7) ─────────────────────────────────
+// ── Inline Clock Time Picker Card (Kenick Gold) ─────────────────────────────
 class _InlineClockTimePickerCard extends StatefulWidget {
   const _InlineClockTimePickerCard({
     required this.cardColor,
@@ -1223,7 +1236,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Digital Display Box (Image 7) ─────────────────────────────────
+          // ── Digital Display Box (Kenick Gold active) ─────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1238,13 +1251,13 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                   height: 58,
                   decoration: BoxDecoration(
                     color: _isSelectingHour
-                        ? const Color(0xFFE9F2FD)
+                        ? AppColors.primary.withValues(alpha: widget.isDark ? 0.2 : 0.12)
                         : (widget.isDark
                             ? Colors.white.withValues(alpha: 0.08)
                             : const Color(0xFFF1F4F8)),
                     borderRadius: BorderRadius.circular(12),
                     border: _isSelectingHour
-                        ? Border.all(color: const Color(0xFF0B63CE).withValues(alpha: 0.3), width: 1.5)
+                        ? Border.all(color: AppColors.primary, width: 1.5)
                         : null,
                   ),
                   alignment: Alignment.center,
@@ -1254,7 +1267,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                       fontSize: 34,
                       fontWeight: FontWeight.w600,
                       color: _isSelectingHour
-                          ? const Color(0xFF0B63CE)
+                          ? AppColors.primary
                           : cs.onSurface,
                     ),
                   ),
@@ -1284,13 +1297,13 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                   height: 58,
                   decoration: BoxDecoration(
                     color: !_isSelectingHour
-                        ? const Color(0xFFE9F2FD)
+                        ? AppColors.primary.withValues(alpha: widget.isDark ? 0.2 : 0.12)
                         : (widget.isDark
                             ? Colors.white.withValues(alpha: 0.08)
                             : const Color(0xFFF1F4F8)),
                     borderRadius: BorderRadius.circular(12),
                     border: !_isSelectingHour
-                        ? Border.all(color: const Color(0xFF0B63CE).withValues(alpha: 0.3), width: 1.5)
+                        ? Border.all(color: AppColors.primary, width: 1.5)
                         : null,
                   ),
                   alignment: Alignment.center,
@@ -1300,7 +1313,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                       fontSize: 34,
                       fontWeight: FontWeight.w600,
                       color: !_isSelectingHour
-                          ? const Color(0xFF0B63CE)
+                          ? AppColors.primary
                           : cs.onSurface,
                     ),
                   ),
@@ -1309,7 +1322,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
 
               const SizedBox(width: 14),
 
-              // AM / PM Selector
+              // AM / PM Selector (Kenick Gold active)
               Container(
                 width: 48,
                 height: 58,
@@ -1328,7 +1341,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: !_isPm ? const Color(0xFF0B63CE) : Colors.transparent,
+                            color: !_isPm ? AppColors.primary : Colors.transparent,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                           ),
                           alignment: Alignment.center,
@@ -1337,7 +1350,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: !_isPm ? Colors.white : cs.onSurfaceVariant,
+                              color: !_isPm ? const Color(0xFF111827) : cs.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1353,7 +1366,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: _isPm ? const Color(0xFF0B63CE) : Colors.transparent,
+                            color: _isPm ? AppColors.primary : Colors.transparent,
                             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
                           ),
                           alignment: Alignment.center,
@@ -1362,7 +1375,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: _isPm ? Colors.white : cs.onSurfaceVariant,
+                              color: _isPm ? const Color(0xFF111827) : cs.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1376,7 +1389,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
 
           const SizedBox(height: 20),
 
-          // ── Clock Dial Face OR Keypad (Image 7) ───────────────────────────
+          // ── Clock Dial Face OR Keypad (Kenick Gold) ───────────────────────
           if (!_isKeypadMode)
             GestureDetector(
               onPanUpdate: (details) => _onDialTap(details.localPosition, dialRadius),
@@ -1467,7 +1480,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF0B63CE),
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -1479,7 +1492,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0B63CE),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -1491,7 +1504,7 @@ class _InlineClockTimePickerCardState extends State<_InlineClockTimePickerCard> 
   }
 }
 
-// ── Custom Dial Painter for Clock ───────────────────────────────────────────
+// ── Custom Dial Painter for Clock (Kenick Gold) ─────────────────────────────
 class _ClockDialPainter extends CustomPainter {
   _ClockDialPainter({
     required this.isSelectingHour,
@@ -1515,8 +1528,8 @@ class _ClockDialPainter extends CustomPainter {
     // Dial background circle
     final dialBgPaint = Paint()
       ..color = isDark
-          ? Colors.white.withValues(alpha: 0.06)
-          : const Color(0xFFEEF3F8)
+          ? Colors.white.withValues(alpha: 0.05)
+          : const Color(0xFFF3F4F6)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, dialRadius, dialBgPaint);
 
@@ -1537,20 +1550,20 @@ class _ClockDialPainter extends CustomPainter {
 
     // Needle line
     final linePaint = Paint()
-      ..color = const Color(0xFF0B63CE)
+      ..color = AppColors.primary
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(center, selectedCenter, linePaint);
 
     // Center pivot dot
     final pivotPaint = Paint()
-      ..color = const Color(0xFF0B63CE)
+      ..color = AppColors.primary
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, 3.5, pivotPaint);
 
-    // Selected circle highlight
+    // Selected circle highlight (Kenick Gold)
     final circlePaint = Paint()
-      ..color = const Color(0xFF0B63CE)
+      ..color = AppColors.primary
       ..style = PaintingStyle.fill;
     canvas.drawCircle(selectedCenter, 18, circlePaint);
 
@@ -1570,7 +1583,7 @@ class _ClockDialPainter extends CustomPainter {
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: isSelected ? Colors.white : cs.onSurface,
+              color: isSelected ? const Color(0xFF111827) : cs.onSurface,
             ),
           ),
           textDirection: ui.TextDirection.ltr,
@@ -1595,7 +1608,7 @@ class _ClockDialPainter extends CustomPainter {
             style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: isSelected ? Colors.white : cs.onSurface,
+              color: isSelected ? const Color(0xFF111827) : cs.onSurface,
             ),
           ),
           textDirection: ui.TextDirection.ltr,
