@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:kenick_vip/features/airport/airport_transfer_screen.dart';
 import 'package:kenick_vip/features/auth/forgot_password_screen.dart';
 import 'package:kenick_vip/features/auth/new_password_screen.dart';
 import 'package:kenick_vip/features/auth/otp_screen.dart';
@@ -433,6 +434,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/book-journey',
       builder: (context, state) => const BookJourneyScreen(),
+    ),
+    GoRoute(
+      path: '/airport-transfer',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return AirportTransferScreen(
+          isDropoff: extra['isDropoff'] as bool? ?? true,
+          airportName: extra['airportName'] as String?,
+          airportCode: extra['airportCode'] as String?,
+        );
+      },
     ),
     GoRoute(
       path: '/confirm-reservation',

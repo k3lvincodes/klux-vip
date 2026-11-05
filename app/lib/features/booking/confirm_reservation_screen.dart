@@ -483,6 +483,18 @@ class _ConfirmReservationScreenState extends State<ConfirmReservationScreen> {
 
       // Build comprehensive passenger notes
       final notesList = <String>[];
+      if (bookingProv.isAirportTransfer) {
+        final airportType = bookingProv.airportTransferType == 'dropoff'
+            ? 'Airport Drop-off'
+            : 'Airport Pickup';
+        final flightStr = bookingProv.flightNumber != null
+            ? 'Flight: ${bookingProv.flightNumber}'
+            : 'Flight: N/A';
+        final bufferStr = bookingProv.flightBufferMinutes != null
+            ? ' (+${bookingProv.flightBufferMinutes}m after landing)'
+            : '';
+        notesList.add('[$airportType ${bookingProv.airportCode ?? ''}: $flightStr$bufferStr]');
+      }
       if (_guestName != null && _guestName!.isNotEmpty) {
         final guestContact = _guestPhone != null && _guestPhone!.isNotEmpty
             ? ' ($_guestPhone)'

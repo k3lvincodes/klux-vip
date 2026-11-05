@@ -24,6 +24,14 @@ class BookingProvider extends ChangeNotifier {
   String _rideType = 'One way';
   DateTime? _returnTime;
 
+  // Airport transfer details
+  bool _isAirportTransfer = false;
+  String? _airportTransferType; // 'dropoff' or 'pickup'
+  String? _airportCode; // e.g. 'IND'
+  String? _flightNumber; // e.g. 'LH 202'
+  String? _airportPickupMode = 'flight_arrival'; // 'flight_arrival' or 'time'
+  int? _flightBufferMinutes = 15; // e.g. 15, 30, 45...
+
   // Vehicle details
   String _vehicleType = 'GMC Yukon';
   String? _vehicleImage = 'assets/images/GMC.png';
@@ -47,6 +55,12 @@ class BookingProvider extends ChangeNotifier {
   String? get eventType => _eventType;
   String get rideType => _rideType;
   DateTime? get returnTime => _returnTime;
+  bool get isAirportTransfer => _isAirportTransfer;
+  String? get airportTransferType => _airportTransferType;
+  String? get airportCode => _airportCode;
+  String? get flightNumber => _flightNumber;
+  String? get airportPickupMode => _airportPickupMode;
+  int? get flightBufferMinutes => _flightBufferMinutes;
   String get vehicleType => _vehicleType;
   String? get vehicleImage => _vehicleImage;
   String? get rideId => _rideId;
@@ -114,6 +128,23 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setAirportTransfer({
+    required bool isAirportTransfer,
+    String? airportTransferType,
+    String? airportCode,
+    String? flightNumber,
+    String? airportPickupMode,
+    int? flightBufferMinutes,
+  }) {
+    _isAirportTransfer = isAirportTransfer;
+    _airportTransferType = airportTransferType;
+    _airportCode = airportCode;
+    _flightNumber = flightNumber;
+    _airportPickupMode = airportPickupMode;
+    _flightBufferMinutes = flightBufferMinutes;
+    notifyListeners();
+  }
+
   void clear() {
     _pickupAddress = null;
     _dropoffAddress = null;
@@ -131,6 +162,12 @@ class BookingProvider extends ChangeNotifier {
     _eventType = null;
     _rideType = 'One way';
     _returnTime = null;
+    _isAirportTransfer = false;
+    _airportTransferType = null;
+    _airportCode = null;
+    _flightNumber = null;
+    _airportPickupMode = 'flight_arrival';
+    _flightBufferMinutes = 15;
     _rideId = null;
     notifyListeners();
   }
