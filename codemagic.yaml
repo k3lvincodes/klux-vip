@@ -63,16 +63,18 @@ workflows:
 
       - name: Build iOS IPA
         script: |
-          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" 2>/dev/null || echo 2)
-          if [ -z "$LATEST_BUILD" ] || [ "$LATEST_BUILD" -lt 2 ] 2>/dev/null; then
-            LATEST_BUILD=2
-          fi
+          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" 2>/dev/null || echo 3)
+          case "$LATEST_BUILD" in
+            ''|*[!0-9]*) LATEST_BUILD=3 ;;
+            *) [ "$LATEST_BUILD" -lt 3 ] && LATEST_BUILD=3 ;;
+          esac
           NEXT_BUILD=$((LATEST_BUILD + 1))
           if [ -n "$BUILD_NUMBER" ] && [ "$BUILD_NUMBER" -gt "$NEXT_BUILD" ] 2>/dev/null; then
             NEXT_BUILD=$BUILD_NUMBER
           fi
           echo "Building iOS IPA with build number: $NEXT_BUILD"
           flutter build ipa --release \
+            --build-name=1.0.1 \
             --build-number=$NEXT_BUILD \
             --export-options-plist=/Users/builder/export_options.plist
 
@@ -120,7 +122,12 @@ workflows:
 
       - name: Build Android App Bundle (.aab)
         script: |
-          flutter build appbundle --release
+          BUILD_NUM=${BUILD_NUMBER:-4}
+          if [ "$BUILD_NUM" -lt 4 ] 2>/dev/null; then
+            BUILD_NUM=4
+          fi
+          echo "Building Android AAB with build number: $BUILD_NUM"
+          flutter build appbundle --release --build-name=1.0.1 --build-number=$BUILD_NUM
 
     artifacts:
       - build/app/outputs/bundle/release/*.aab
