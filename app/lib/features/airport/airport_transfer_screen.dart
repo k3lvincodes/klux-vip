@@ -181,30 +181,20 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Exactly 1 drag handle
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black26,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
                 Row(
                   children: [
                     Container(
@@ -256,7 +246,7 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                       'Your chauffeur will await you inside arrivals or at the curbside holding a personalized digital name sign to assist with luggage.',
                   cs: cs,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
