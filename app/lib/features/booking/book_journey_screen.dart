@@ -2002,22 +2002,13 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _getCtaButtonText(showContinue),
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                      if (showContinue) ...[
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
-                    ],
+                  child: Text(
+                    _getCtaButtonText(showContinue),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.1,
+                    ),
                   ),
                 ),
               ),
@@ -2220,7 +2211,7 @@ class _BookJourneyScreenState extends State<BookJourneyScreen> {
         return 'Continue Out of State';
       case 'One way':
       default:
-        return 'Continue to Fleet';
+        return 'Continue';
     }
   }
 

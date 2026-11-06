@@ -998,6 +998,40 @@ class _AirportTransferScreenState extends State<AirportTransferScreen> {
                 primary: AppColors.primary,
                 onPrimary: const Color(0xFF111827),
               ),
+              datePickerTheme: DatePickerThemeData(
+                headerForegroundColor: cs.onSurface,
+                dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return const Color(0xFF111827);
+                  }
+                  return cs.onSurface;
+                }),
+                dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.primary;
+                  }
+                  return null;
+                }),
+                todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return const Color(0xFF111827);
+                  }
+                  return AppColors.primary;
+                }),
+                todayBorder: const BorderSide(color: AppColors.primary, width: 1.5),
+                yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return const Color(0xFF111827);
+                  }
+                  return cs.onSurface;
+                }),
+                yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.primary;
+                  }
+                  return null;
+                }),
+              ),
             ),
             child: CalendarDatePicker(
               initialDate: _tempDate,
