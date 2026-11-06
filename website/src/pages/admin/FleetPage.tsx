@@ -181,12 +181,32 @@ export default function FleetPage() {
 
       const { data: cars, error: carsError } = await supabase
         .from('fleet_cars')
-        .select('id, make, model, year, image_url, features, is_featured, created_at')
+        .select('id, make, model, year, image_url, features, category, is_featured, created_at')
         .is('deleted_at', null)
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (carsError) throw carsError;
+
+      // One-time automatic sync: if browser had locally stored categories from earlier AI categorization,
+      // push them directly to Supabase so database and mobile app are up to date, then purge local storage.
+      try {
+        const rawLocal = localStorage.getItem('kenick_fleet_car_categories');
+        if (rawLocal) {
+          const localMap: Record<string, string> = JSON.parse(rawLocal);
+          const entries = Object.entries(localMap);
+          for (const [id, cat] of entries) {
+            const serverCar = (cars || []).find((c) => c.id === id);
+            if (serverCar && (!serverCar.category || serverCar.category === 'None' || serverCar.category !== cat)) {
+              await supabase.from('fleet_cars').update({ category: cat }).eq('id', id);
+              (serverCar as any).category = cat;
+            }
+          }
+          localStorage.removeItem('kenick_fleet_car_categories');
+        }
+      } catch (syncErr) {
+        console.warn('Fleet category localStorage migration notice:', syncErr);
+      }
 
       const carIds = (cars || []).map((c) => c.id);
       const { data: assignedVehicles } = await supabase
@@ -202,18 +222,10 @@ export default function FleetPage() {
         }
       });
 
-      const localCatMap: Record<string, FleetCategory> = (() => {
-        try {
-          return JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
-        } catch {
-          return {};
-        }
-      })();
-
       setFleetCars(
         (cars || []).map((c) => ({
           ...c,
-          category: localCatMap[c.id] || ((c as any).category as FleetCategory) || 'None',
+          category: ((c as any).category as FleetCategory) || 'None',
           chauffeur_count: chauffeurCountMap.get(c.id) || 0,
         }))
       );
@@ -367,16 +379,33 @@ export default function FleetPage() {
     }
   };
 
-  const handleSetAllToNone = () => {
-    setFleetCars((prev) => prev.map((c) => ({ ...c, category: 'None' })));
+  const handleSetAllToNone = async () => {
     try {
-      localStorage.removeItem('kenick_fleet_car_categories');
-    } catch {}
-    toast.info('All vehicles set to "None" category');
+      const { error } = await supabase
+        .from('fleet_cars')
+        .update({ category: 'None' })
+        .is('deleted_at', null);
+      if (error) throw error;
+
+      setFleetCars((prev) => prev.map((c) => ({ ...c, category: 'None' })));
+      try {
+        localStorage.removeItem('kenick_fleet_car_categories');
+      } catch {}
+      toast.info('All vehicles set to "None" category in database');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update categories in database');
+    }
   };
 
   const handleAcceptSuggestion = async (car: FleetCar, suggestedCat: FleetCategory) => {
     try {
+      const { error } = await supabase
+        .from('fleet_cars')
+        .update({ category: suggestedCat })
+        .eq('id', car.id);
+
+      if (error) throw error;
+
       setFleetCars((prev) =>
         prev.map((c) => (c.id === car.id ? { ...c, category: suggestedCat } : c))
       );
@@ -386,24 +415,9 @@ export default function FleetPage() {
         return next;
       });
 
-      try {
-        const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
-        currentLocal[car.id] = suggestedCat;
-        localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
-      } catch {}
-
-      const { error } = await supabase
-        .from('fleet_cars')
-        .update({ category: suggestedCat })
-        .eq('id', car.id);
-
-      if (!error) {
-        toast.success(`Category updated to ${suggestedCat}`);
-      } else {
-        toast.success(`Category set to ${suggestedCat} (active)`);
-      }
-    } catch {
-      toast.success(`Category set to ${suggestedCat}`);
+      toast.success(`Category updated to ${suggestedCat} in database`);
+    } catch (err: any) {
+      toast.error(err.message || `Failed to update category for ${car.make} ${car.model}`);
     }
   };
 
@@ -420,47 +434,28 @@ export default function FleetPage() {
     if (!form.make || !form.model || !form.year) return;
     setSaving(true);
     try {
-      const basePayload: Record<string, any> = {
+      const payload: Record<string, any> = {
         make: form.make,
         model: form.model,
         year: form.year,
         image_url: form.image_url || null,
         features: form.features || '',
+        category: form.category || 'None',
       };
-      const cat = form.category || 'None';
-      const payloadWithCat = { ...basePayload, category: cat };
 
       if (editCar) {
-        try {
-          const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
-          currentLocal[editCar.id] = cat;
-          localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
-        } catch {}
-        let res = await supabase
+        const { error } = await supabase
           .from('fleet_cars')
-          .update(payloadWithCat)
+          .update(payload)
           .eq('id', editCar.id);
-        if (res.error) {
-          res = await supabase.from('fleet_cars').update(basePayload).eq('id', editCar.id);
-          if (res.error) throw res.error;
-        }
+        if (error) throw error;
       } else {
-        let res = await supabase
+        const { error } = await supabase
           .from('fleet_cars')
-          .insert(payloadWithCat)
+          .insert(payload)
           .select()
           .single();
-        if (res.error) {
-          res = await supabase.from('fleet_cars').insert(basePayload).select().single();
-          if (res.error) throw res.error;
-        }
-        if (res.data?.id) {
-          try {
-            const currentLocal = JSON.parse(localStorage.getItem('kenick_fleet_car_categories') || '{}');
-            currentLocal[res.data.id] = cat;
-            localStorage.setItem('kenick_fleet_car_categories', JSON.stringify(currentLocal));
-          } catch {}
-        }
+        if (error) throw error;
       }
       setShowAddModal(false);
       toast.success(editCar ? 'Fleet model updated successfully' : 'Vehicle model registered');
