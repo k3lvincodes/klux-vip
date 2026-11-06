@@ -528,7 +528,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                               : tier.gradientColors,
                         ),
                       ),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 48, 16, 12),
                       alignment: Alignment.center,
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 500),
@@ -541,7 +541,7 @@ class _FleetSelectionScreenState extends State<FleetSelectionScreen> {
                     ),
                     if (activeCar != null)
                       Positioned(
-                        top: 14,
+                        top: 12,
                         left: 14,
                         child: _buildChauffeurStatusPill(
                           hasChauffeur: activeCar.hasDriverAssigned,

@@ -411,7 +411,7 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
                             : widget.tier.gradientColors,
                       ),
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 48, 16, 12),
                     alignment: Alignment.center,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
@@ -419,7 +419,7 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
                     ),
                   ),
                   Positioned(
-                    top: 14,
+                    top: 12,
                     left: 14,
                     child: _buildChauffeurStatusPill(
                       hasChauffeur: car.hasDriverAssigned,

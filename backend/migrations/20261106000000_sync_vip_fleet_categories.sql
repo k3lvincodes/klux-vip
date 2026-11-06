@@ -38,3 +38,4 @@ CREATE POLICY "Fleet cars are viewable by everyone."
 DROP POLICY IF EXISTS "Admins can manage fleet cars." ON public.fleet_cars;
 CREATE POLICY "Admins can manage fleet cars."
   ON public.fleet_cars FOR ALL USING (public.is_admin());
+
