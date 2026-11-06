@@ -394,26 +394,40 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
             // Top Image Area with Category Gradient
             Expanded(
               flex: 5,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: isDark
-                        ? [
-                            widget.tier.gradientColors[0].withValues(alpha: 0.25),
-                            AppColors.darkSurface,
-                          ]
-                        : widget.tier.gradientColors,
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: isDark
+                            ? [
+                                widget.tier.gradientColors[0].withValues(alpha: 0.25),
+                                AppColors.darkSurface,
+                              ]
+                            : widget.tier.gradientColors,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.center,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: _buildVehicleImage(car, isDark),
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.all(16),
-                alignment: Alignment.center,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: _buildVehicleImage(car, isDark),
-                ),
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: _buildChauffeurStatusPill(
+                      hasChauffeur: car.hasDriverAssigned,
+                      isDark: isDark,
+                      cs: cs,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -570,6 +584,69 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
     );
   }
 
+  Widget _buildChauffeurStatusPill({
+    required bool hasChauffeur,
+    required bool isDark,
+    required ColorScheme cs,
+  }) {
+    final statusColor = hasChauffeur ? const Color(0xFF22C55E) : const Color(0xFF9CA3AF);
+    final bgColor = hasChauffeur
+        ? (isDark ? const Color(0xFF14532D).withValues(alpha: 0.75) : const Color(0xFFDCFCE7))
+        : (isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.9));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: statusColor,
+              shape: BoxShape.circle,
+              boxShadow: hasChauffeur
+                  ? [
+                      BoxShadow(
+                        color: statusColor.withValues(alpha: 0.6),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            hasChauffeur ? 'Active chauffeur' : 'No active chauffeur',
+            style: GoogleFonts.poppins(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: hasChauffeur
+                  ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                  : cs.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomBar(
     FleetVehicleItem? car,
     String fareText,
@@ -577,6 +654,7 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
     ColorScheme cs,
   ) {
     final carLabel = car != null ? '${car.make} ${car.model}' : widget.tier.name;
+    final hasChauffeur = car?.hasDriverAssigned ?? false;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
@@ -586,6 +664,48 @@ class _CategoryCarsScreenState extends State<CategoryCarsScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (car != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: hasChauffeur
+                          ? const Color(0xFF22C55E)
+                          : cs.onSurfaceVariant.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                      boxShadow: hasChauffeur
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF22C55E).withValues(alpha: 0.5),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    hasChauffeur
+                        ? 'Chauffeur on duty • Immediate dispatch ready'
+                        : 'No active chauffeur currently assigned',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: hasChauffeur
+                          ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                          : cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // Primary Button: Select this specific car
           SizedBox(
             width: double.infinity,
