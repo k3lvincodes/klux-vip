@@ -43,6 +43,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
 
   BookingDraft? _activeDraft;
   RecentDestination? _recentDestination;
+  List<String> _suvImageUrls = [];
 
   String _userName = '';
   String? _profileImageUrl;
@@ -145,7 +146,41 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       context.read<RideProvider>().restoreActiveRide(user.id).ignore();
     }
     _loadRecommendations();
+    _fetchSuvImages();
     WelcomeAudioService.playWelcomeIfFirstTime().ignore();
+  }
+
+  Future<void> _fetchSuvImages() async {
+    try {
+      final rows = await Supabase.instance.client
+          .from('fleet_cars')
+          .select('make, model, category, image_url')
+          .eq('is_available', true)
+          .isFilter('deleted_at', null)
+          .not('image_url', 'is', null)
+          .order('is_featured', ascending: false)
+          .order('created_at', ascending: false);
+
+      final suvUrls = <String>[];
+      for (final r in rows) {
+        final img = (r['image_url'] as String? ?? '').trim();
+        if (img.isEmpty) continue;
+        final cat = (r['category'] as String? ?? '').trim().toLowerCase();
+        final make = (r['make'] as String? ?? '').trim();
+        final model = (r['model'] as String? ?? '').trim();
+        if (cat == 'suvs' ||
+            cat == 'suv' ||
+            FleetService.autoCategorize(make, model) == 'SUVs') {
+          suvUrls.add(img);
+        }
+      }
+
+      if (mounted && suvUrls.isNotEmpty) {
+        setState(() {
+          _suvImageUrls = suvUrls;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _recalculateFare() async {
@@ -1042,32 +1077,45 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   }
 
   Widget _buildRideTypesGrid(BuildContext context, bool isDark) {
+    String suvImageAt(int idx, String fallback) {
+      if (_suvImageUrls.isEmpty) return fallback;
+      return _suvImageUrls[idx % _suvImageUrls.length];
+    }
+
     final items = [
       {
         'title': 'Airport transfers',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1648413653819-7c0fd93e8e6a?w=600&auto=format&fit=crop&q=80',
+        'imageUrl': suvImageAt(
+          0,
+          'https://images.unsplash.com/photo-1648413653819-7c0fd93e8e6a?w=600&auto=format&fit=crop&q=80',
+        ),
         'mode': 'schedule',
         'icon': Icons.flight_takeoff_rounded,
       },
       {
         'title': 'Hourly & full day\nhire',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1732347700505-e1231e0f7c94?w=600&auto=format&fit=crop&q=80',
+        'imageUrl': suvImageAt(
+          1,
+          'https://images.unsplash.com/photo-1732347700505-e1231e0f7c94?w=600&auto=format&fit=crop&q=80',
+        ),
         'mode': 'schedule',
         'icon': Icons.access_time_rounded,
       },
       {
         'title': 'City-to-City\nrides',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1764089859662-7b4773dff85b?w=600&auto=format&fit=crop&q=80',
+        'imageUrl': suvImageAt(
+          2,
+          'https://images.unsplash.com/photo-1764089859662-7b4773dff85b?w=600&auto=format&fit=crop&q=80',
+        ),
         'mode': 'instant',
         'icon': Icons.location_city_rounded,
       },
       {
         'title': 'Corporate rides',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1792813195738-d386fe4fe045?w=600&auto=format&fit=crop&q=80',
+        'imageUrl': suvImageAt(
+          3,
+          'https://images.unsplash.com/photo-1792813195738-d386fe4fe045?w=600&auto=format&fit=crop&q=80',
+        ),
         'mode': 'special',
         'icon': Icons.business_center_rounded,
       },
