@@ -74,7 +74,7 @@ workflows:
           fi
           echo "Building iOS IPA with build number: $NEXT_BUILD"
           flutter build ipa --release \
-            --build-name=1.0.1 \
+            --build-name=1.0.0 \
             --build-number=$NEXT_BUILD \
             --export-options-plist=/Users/builder/export_options.plist
 
@@ -127,7 +127,7 @@ workflows:
             BUILD_NUM=4
           fi
           echo "Building Android AAB with build number: $BUILD_NUM"
-          flutter build appbundle --release --build-name=1.0.1 --build-number=$BUILD_NUM
+          flutter build appbundle --release --build-name=1.0.0 --build-number=$BUILD_NUM
 
     artifacts:
       - build/app/outputs/bundle/release/*.aab
